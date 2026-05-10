@@ -11,7 +11,10 @@ import {
   SourcesBlock
 } from "@/components/article/ArticleComponents";
 import { PageShell } from "@/components/layout/PageShell";
-import { entities, getEntityBySlug } from "@/lib/data";
+import { entities } from "@/lib/data";
+import { getEntityBySlugFromAll } from "@/lib/research/public-data";
+
+export const dynamic = "force-dynamic";
 
 type ArticlePageProps = {
   params: Promise<{ slug: string }>;
@@ -23,7 +26,7 @@ export function generateStaticParams() {
 
 export async function generateMetadata({ params }: ArticlePageProps) {
   const { slug } = await params;
-  const entity = getEntityBySlug(slug);
+  const entity = await getEntityBySlugFromAll(slug);
 
   if (!entity) {
     return { title: "Article not found | DeepTechly" };
@@ -37,7 +40,7 @@ export async function generateMetadata({ params }: ArticlePageProps) {
 
 export default async function ArticlePage({ params }: ArticlePageProps) {
   const { slug } = await params;
-  const entity = getEntityBySlug(slug);
+  const entity = await getEntityBySlugFromAll(slug);
 
   if (!entity) {
     notFound();

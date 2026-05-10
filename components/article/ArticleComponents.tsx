@@ -37,6 +37,16 @@ export function ArticleHero({ entity }: { entity: ResearchEntity }) {
               </span>
             ))}
           </div>
+          <p className="mt-4 text-[10px] font-black uppercase tracking-[0.18em] text-ink/70">
+            By {entity.article.authorPersona ?? "Viral Bernstein"} ·{" "}
+            {entity.article.publishedAt
+              ? new Date(entity.article.publishedAt).toLocaleDateString("en-US", {
+                  month: "short",
+                  day: "numeric",
+                  year: "numeric"
+                })
+              : "Research desk"}
+          </p>
         </div>
       </div>
     </section>
@@ -48,15 +58,24 @@ export function ArticleVisualPanel({ entity }: { entity: ResearchEntity }) {
     <section className="w-full bg-paper">
       <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-xl border border-black bg-white shadow-hard">
-          <div className="grid h-56 grid-cols-6 grid-rows-5 gap-2 border-b border-black bg-paleOrange p-5">
-            <div className="col-span-2 row-span-5 border border-black bg-ink" />
-            <div className="col-span-3 row-span-2 border border-black bg-deepOrange" />
-            <div className="row-span-4 border border-black bg-white" />
-            <div className="col-span-2 row-span-3 border border-black bg-white" />
-            <div className="col-span-1 row-span-3 border border-black bg-charcoal" />
-            <div className="col-span-2 row-span-1 border border-black bg-deepOrange" />
-            <div className="col-span-4 border border-black bg-ink" />
-          </div>
+          {entity.article.heroImage ?? entity.heroImage ? (
+            <div
+              className="h-64 border-b border-black bg-cover bg-center"
+              style={{
+                backgroundImage: `url(${entity.article.heroImage ?? entity.heroImage})`
+              }}
+            />
+          ) : (
+            <div className="grid h-56 grid-cols-6 grid-rows-5 gap-2 border-b border-black bg-paleOrange p-5">
+              <div className="col-span-2 row-span-5 border border-black bg-ink" />
+              <div className="col-span-3 row-span-2 border border-black bg-deepOrange" />
+              <div className="row-span-4 border border-black bg-white" />
+              <div className="col-span-2 row-span-3 border border-black bg-white" />
+              <div className="col-span-1 row-span-3 border border-black bg-charcoal" />
+              <div className="col-span-2 row-span-1 border border-black bg-deepOrange" />
+              <div className="col-span-4 border border-black bg-ink" />
+            </div>
+          )}
           <div className="flex items-center justify-between gap-4 px-4 py-3">
             <div>
               <p className="text-[10px] font-black uppercase tracking-[0.2em] text-deepOrange">
@@ -194,19 +213,19 @@ export function DossierCTA({ entity }: { entity: ResearchEntity }) {
           <div className="grid gap-6 p-5 sm:grid-cols-[1fr_auto] sm:p-7">
             <div>
               <p className="text-[10px] font-black uppercase tracking-[0.24em] text-deepOrange">
-                Research Dossier
+                Next · Research Dossier
               </p>
               <h2 className="mt-3 max-w-xl text-3xl font-black leading-[1.02] sm:text-4xl">
                 The full research on{" "}
                 <span className="text-deepOrange">{entity.name}</span>
               </h2>
               <p className="mt-3 max-w-xl text-sm leading-6 text-white/76">
-                Technical architecture, patent signals, manufacturing
-                constraints, government relevance, commercialization scenarios,
-                and the investor read.
+                Founders, funding history, investors, traction signals,
+                technical architecture, market context, risk modeling, and the
+                candid investor read.
               </p>
               <p className="mt-4 text-[10px] font-black uppercase tracking-[0.18em] text-white/56">
-                Snapshot · Technology · Patents · Investor Read
+                Snapshot · Technology · Market · Investor Read
               </p>
               <div className="mt-4 flex flex-wrap gap-2">
                 {["Overview", "Technology", "Patents", "Markets", "Risks"].map((item) => (

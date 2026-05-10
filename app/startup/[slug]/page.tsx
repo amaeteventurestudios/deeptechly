@@ -30,7 +30,10 @@ import {
   TractionMetricsSection
 } from "@/components/dossier/DossierComponents";
 import { PageShell } from "@/components/layout/PageShell";
-import { entities, getEntityBySlug } from "@/lib/data";
+import { entities } from "@/lib/data";
+import { getEntityBySlugFromAll } from "@/lib/research/public-data";
+
+export const dynamic = "force-dynamic";
 
 type StartupDossierPageProps = {
   params: Promise<{ slug: string }>;
@@ -42,7 +45,7 @@ export function generateStaticParams() {
 
 export async function generateMetadata({ params }: StartupDossierPageProps) {
   const { slug } = await params;
-  const entity = getEntityBySlug(slug);
+  const entity = await getEntityBySlugFromAll(slug);
 
   if (!entity) {
     return { title: "Dossier not found | DeepTechly" };
@@ -58,7 +61,7 @@ export default async function StartupDossierPage({
   params
 }: StartupDossierPageProps) {
   const { slug } = await params;
-  const entity = getEntityBySlug(slug);
+  const entity = await getEntityBySlugFromAll(slug);
 
   if (!entity) {
     notFound();

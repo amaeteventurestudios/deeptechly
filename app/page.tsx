@@ -1,9 +1,13 @@
 import Link from "next/link";
-import { ArrowRight, Search, Star } from "lucide-react";
+import { ArrowRight, Star } from "lucide-react";
 import { PageShell } from "@/components/layout/PageShell";
-import { entities } from "@/lib/data";
+import { ResearchSubmitForm } from "@/components/research/ResearchSubmitForm";
+import { getPublishedEntities } from "@/lib/research/public-data";
 
-export default function HomePage() {
+export const dynamic = "force-dynamic";
+
+export default async function HomePage() {
+  const entities = await getPublishedEntities();
   const alsoReading = entities.slice(1);
 
   return (
@@ -20,22 +24,7 @@ export default function HomePage() {
             DeepTechly turns public signals into editorial articles, structured
             dossiers, confidence labels, and institutional diligence previews.
           </p>
-          <form className="mt-7 flex max-w-2xl flex-col gap-3 border border-black bg-white p-2 shadow-hard sm:flex-row">
-            <label className="flex min-w-0 flex-1 items-center gap-3 px-3">
-              <Search size={18} />
-              <input
-                aria-label="Research query"
-                className="h-11 min-w-0 flex-1 bg-transparent text-sm font-bold outline-none"
-                placeholder="Type any startup, patent, lab, or technology..."
-              />
-            </label>
-            <button
-              className="border border-black bg-ink px-5 py-3 text-[11px] font-black uppercase tracking-[0.14em] text-white"
-              type="button"
-            >
-              Research
-            </button>
-          </form>
+          <ResearchSubmitForm />
         </div>
       </section>
 
@@ -140,7 +129,16 @@ export default function HomePage() {
                 key={entity.slug}
                 className="block border border-black bg-white shadow-hard"
               >
-                <div className="h-28 border-b border-black bg-ink p-4 text-white">
+                <div
+                  className="h-28 border-b border-black bg-ink bg-cover bg-center p-4 text-white"
+                  style={
+                    entity.heroImage
+                      ? {
+                          backgroundImage: `linear-gradient(rgba(14,14,14,.72), rgba(14,14,14,.72)), url(${entity.heroImage})`
+                        }
+                      : undefined
+                  }
+                >
                   <p className="text-[10px] font-black uppercase tracking-[0.22em] text-deepOrange">
                     Research
                   </p>

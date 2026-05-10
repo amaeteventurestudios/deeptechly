@@ -77,11 +77,23 @@ export type ComparisonTableData = {
 
 export type Article = {
   headline: string;
+  title?: string;
   dek: string;
+  entityName?: string;
+  entitySlug?: string;
+  authorPersona?: string;
+  publishedAt?: string;
+  heroImage?: string | null;
+  dossierUrl?: string;
   visualLabel: string;
   visualCaption: string;
   sections: ArticleSection[];
+  bodySections?: ArticleSection[];
   comparisonTable: ComparisonTableData;
+  tags?: string[];
+  sources?: Source[];
+  adminFeatured?: boolean;
+  publishedStatus?: "draft" | "published";
 };
 
 export type Snapshot = {
@@ -166,20 +178,35 @@ export type Dossier = {
 };
 
 export type ResearchEntity = {
+  id?: string;
   slug: string;
   name: string;
   entityType: string;
+  domain?: string | null;
+  website?: string | null;
   sector: string;
   secondarySectors: string[];
   region: string;
   stage: string;
   summary: string;
   description: string;
+  foundedYear?: string | null;
+  headquarters?: string | null;
+  founders?: string[];
+  fundingStage?: string | null;
+  fundingAmount?: string | null;
+  employeeCount?: string | null;
+  investors?: string[];
   tags: string[];
   sourceCount: number;
   confidenceScore: number;
   confidenceLabel: ConfidenceLabel;
   lastResearchedAt: string;
+  heroImage?: string | null;
+  publishedStatus?: "draft" | "published";
+  searchCount?: number;
+  createdAt?: string;
+  updatedAt?: string;
   externalLinks: ExternalLink[];
   snapshot: Snapshot;
   taxonomy: TaxonomySnapshot;
