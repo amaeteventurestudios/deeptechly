@@ -44,10 +44,17 @@ export function storyScore(entity: ResearchEntity) {
 }
 
 export async function getPublishedEntities() {
-  const data = await readStore();
-  const generated = data.entities.filter(
-    (entity) => entity.publishedStatus === "published"
-  );
+  let generated: ResearchEntity[] = [];
+
+  try {
+    const data = await readStore();
+    generated = data.entities.filter(
+      (entity) => entity.publishedStatus === "published"
+    );
+  } catch (error) {
+    console.error("Generated research store unavailable", error);
+  }
+
   const seedSlugs = new Set(generated.map((entity) => entity.slug));
   const merged = [
     ...generated,
@@ -81,10 +88,14 @@ export async function getPublishedArticles() {
 }
 
 export async function getEntityBySlugFromAll(slug: string) {
-  const data = await readStore();
-  const generated = data.entities.find((entity) => entity.slug === slug);
-  if (generated) {
-    return generated;
+  try {
+    const data = await readStore();
+    const generated = data.entities.find((entity) => entity.slug === slug);
+    if (generated) {
+      return generated;
+    }
+  } catch (error) {
+    console.error("Generated research store unavailable", error);
   }
 
   return getSeedEntityBySlug(slug) ? seedAsPublished(getSeedEntityBySlug(slug)!) : null;

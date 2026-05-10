@@ -8,16 +8,24 @@ type RouteProps = {
 };
 
 export async function GET(_request: Request, { params }: RouteProps) {
-  const { slug } = await params;
-  const entity = await getPublishedEntityBySlug(slug);
+  try {
+    const { slug } = await params;
+    const entity = await getPublishedEntityBySlug(slug);
 
-  if (!entity) {
-    return NextResponse.json({ error: "Research profile not found" }, { status: 404 });
+    if (!entity) {
+      return NextResponse.json({ error: "Research profile not found" }, { status: 404 });
+    }
+
+    return NextResponse.json({
+      entity,
+      article: entity.article,
+      dossier: entity.dossier
+    });
+  } catch (error) {
+    console.error("Research profile service unavailable", error);
+    return NextResponse.json(
+      { error: "Research service unavailable" },
+      { status: 500 }
+    );
   }
-
-  return NextResponse.json({
-    entity,
-    article: entity.article,
-    dossier: entity.dossier
-  });
 }

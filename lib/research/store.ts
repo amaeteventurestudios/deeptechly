@@ -1,8 +1,5 @@
 import "server-only";
 
-import { mkdir, readFile, writeFile } from "node:fs/promises";
-import { existsSync } from "node:fs";
-import { dirname, join } from "node:path";
 import { randomUUID } from "node:crypto";
 import type {
   PublishedStatus,
@@ -16,8 +13,6 @@ import type {
 } from "./types";
 import type { ResearchEntity } from "@/lib/types";
 
-const storePath = join(process.cwd(), "data", "research-store.json");
-
 const initialStore: ResearchStoreData = {
   jobs: [],
   entities: [],
@@ -25,6 +20,20 @@ const initialStore: ResearchStoreData = {
   dossiers: [],
   searchEvents: []
 };
+
+declare global {
+  var __deeptechlyResearchStore: ResearchStoreData | undefined;
+}
+
+// Temporary in-memory store for Vercel demo mode.
+// Replace with Supabase/Vercel Postgres before production persistence.
+function getMemoryStore() {
+  if (!globalThis.__deeptechlyResearchStore) {
+    globalThis.__deeptechlyResearchStore = structuredClone(initialStore);
+  }
+
+  return globalThis.__deeptechlyResearchStore;
+}
 
 export const progressByStage: Record<ResearchStage, number> = {
   queued: 2,
@@ -131,28 +140,12 @@ export function stageMessage(stage: ResearchStage, domain?: string | null) {
   return mapping[stage];
 }
 
-async function ensureStoreFile() {
-  await mkdir(dirname(storePath), { recursive: true });
-
-  if (!existsSync(storePath)) {
-    await writeFile(storePath, JSON.stringify(initialStore, null, 2));
-  }
-}
-
 export async function readStore(): Promise<ResearchStoreData> {
-  await ensureStoreFile();
-
-  try {
-    const raw = await readFile(storePath, "utf8");
-    return { ...initialStore, ...JSON.parse(raw) } as ResearchStoreData;
-  } catch {
-    return initialStore;
-  }
+  return getMemoryStore();
 }
 
 export async function writeStore(data: ResearchStoreData) {
-  await ensureStoreFile();
-  await writeFile(storePath, JSON.stringify(data, null, 2));
+  globalThis.__deeptechlyResearchStore = data;
 }
 
 export function slugify(value: string) {
