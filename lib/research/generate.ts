@@ -21,6 +21,48 @@ import type {
 const articlePersona = "Viral Bernstein";
 const profilePersona = "Rhea Mendoza";
 const dossierPersona = "Marcus Okonkwo";
+const defaultOpenAIModel = "gpt-5.4-mini";
+
+const articleSchema = {
+  type: "object",
+  additionalProperties: false,
+  properties: {
+    headline: { type: "string" },
+    dek: { type: "string" },
+    sections: {
+      type: "array",
+      items: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          title: { type: "string" },
+          body: {
+            type: "array",
+            items: { type: "string" }
+          }
+        },
+        required: ["title", "body"]
+      }
+    }
+  },
+  required: ["headline", "dek", "sections"]
+};
+
+const dossierHighlightsSchema = {
+  type: "object",
+  additionalProperties: false,
+  properties: {
+    executiveSummary: {
+      type: "array",
+      items: { type: "string" }
+    },
+    strategicOutlook: {
+      type: "array",
+      items: { type: "string" }
+    }
+  },
+  required: ["executiveSummary", "strategicOutlook"]
+};
 
 function confidenceLabel(score: number): ConfidenceLabel {
   if (score >= 80) return "High";
@@ -448,7 +490,11 @@ function extractOutputText(body: {
   );
 }
 
-async function callOpenAIJson(prompt: string) {
+async function callOpenAIJson(
+  prompt: string,
+  schemaName: string,
+  schema: Record<string, unknown>
+) {
   if (!process.env.OPENAI_API_KEY) {
     console.log("OPENAI_API_KEY missing. Running research job in demo mode.");
     return null;
@@ -461,9 +507,16 @@ async function callOpenAIJson(prompt: string) {
       authorization: `Bearer ${process.env.OPENAI_API_KEY}`
     },
     body: JSON.stringify({
-      model: process.env.OPENAI_MODEL ?? "gpt-5.5-mini",
+      model: process.env.OPENAI_MODEL ?? defaultOpenAIModel,
       input: prompt,
-      text: { format: { type: "json_object" } }
+      text: {
+        format: {
+          type: "json_schema",
+          name: schemaName,
+          strict: true,
+          schema
+        }
+      }
     })
   });
 
@@ -504,7 +557,11 @@ ${JSON.stringify(facts)}
 Source summaries:
 ${JSON.stringify(summaries.slice(0, 8))}`;
 
-  const response = await callOpenAIJson(prompt);
+  const response = await callOpenAIJson(
+    prompt,
+    "deeptechly_article",
+    articleSchema
+  );
   const sections = response?.sections as ArticleSection[] | undefined;
   const headline = typeof response?.headline === "string" ? response.headline : null;
   const dek = typeof response?.dek === "string" ? response.dek : null;
@@ -537,7 +594,11 @@ ${JSON.stringify(verification)}
 Source summaries:
 ${JSON.stringify(summaries.slice(0, 8))}`;
 
-  const response = await callOpenAIJson(prompt);
+  const response = await callOpenAIJson(
+    prompt,
+    "deeptechly_dossier_highlights",
+    dossierHighlightsSchema
+  );
   const executiveSummary = response?.executiveSummary as string[] | undefined;
   const strategicOutlook = response?.strategicOutlook as string[] | undefined;
 

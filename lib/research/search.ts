@@ -3,6 +3,29 @@ import "server-only";
 import type { ReadablePage, SearchResult } from "./types";
 
 const provider = process.env.SEARCH_PROVIDER ?? "openai";
+const defaultOpenAIModel = "gpt-5.4-mini";
+const openAIWebSearchEnabled = process.env.OPENAI_ENABLE_WEB_SEARCH === "true";
+
+const searchResultsSchema = {
+  type: "object",
+  additionalProperties: false,
+  properties: {
+    results: {
+      type: "array",
+      items: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          title: { type: "string" },
+          url: { type: "string" },
+          snippet: { type: "string" }
+        },
+        required: ["title", "url", "snippet"]
+      }
+    }
+  },
+  required: ["results"]
+};
 
 function stripTags(html: string) {
   return html
@@ -134,7 +157,7 @@ async function searchWithTavily(query: string): Promise<SearchResult[]> {
 
 async function searchWithOpenAI(query: string): Promise<SearchResult[]> {
   const key = process.env.OPENAI_API_KEY;
-  if (!key) {
+  if (!key || !openAIWebSearchEnabled) {
     return [];
   }
 
@@ -145,10 +168,18 @@ async function searchWithOpenAI(query: string): Promise<SearchResult[]> {
       authorization: `Bearer ${key}`
     },
     body: JSON.stringify({
-      model: process.env.OPENAI_MODEL ?? "gpt-5.5-mini",
-      tools: [{ type: "web_search_preview" }],
+      model: process.env.OPENAI_MODEL ?? defaultOpenAIModel,
+      tools: [{ type: "web_search", external_web_access: true }],
+      tool_choice: "auto",
       input: `Search the public web for "${query}". Return JSON only with {"results":[{"title":"","url":"","snippet":""}]}. Keep the best 8 public sources.`,
-      text: { format: { type: "json_object" } }
+      text: {
+        format: {
+          type: "json_schema",
+          name: "deeptechly_search_results",
+          strict: true,
+          schema: searchResultsSchema
+        }
+      }
     })
   });
 
