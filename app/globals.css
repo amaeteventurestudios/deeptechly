@@ -1,0 +1,74 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --font-sans: "Inter", "Arial", sans-serif;
+  --font-serif: Georgia, "Times New Roman", serif;
+  --font-mono: "IBM Plex Mono", "SFMono-Regular", Consolas, monospace;
+  color-scheme: light;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  background: #faf8f4;
+  color: #0e0e0e;
+  font-family: var(--font-sans);
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+::selection {
+  background: #ffb17a;
+  color: #0e0e0e;
+}
+
+.deeptech-texture {
+  background-image:
+    linear-gradient(135deg, rgba(14, 14, 14, 0.08) 0 1px, transparent 1px 10px),
+    radial-gradient(circle at 18% 24%, rgba(255, 255, 255, 0.38), transparent 28%),
+    radial-gradient(circle at 78% 8%, rgba(255, 177, 122, 0.44), transparent 26%);
+}
+
+.article-copy p {
+  margin-bottom: 1.2rem;
+}
+
+.article-copy h2 {
+  margin-top: 2.4rem;
+}
+
+.hard-panel {
+  border: 1px solid #111111;
+  box-shadow: 4px 4px 0 #0f0f0f;
+}
+
+.scrollbar-thin::-webkit-scrollbar {
+  height: 8px;
+  width: 8px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: #f7f3ee;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: #0e0e0e;
+  border: 2px solid #f7f3ee;
+}
