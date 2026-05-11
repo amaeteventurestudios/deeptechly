@@ -4,29 +4,39 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { ArrowRight, Star } from "lucide-react";
 import { loadLocalQueueJobs, sortQueueJobs } from "@/components/research/queueStorage";
+import {
+  formatByline,
+  formatRelativeTime,
+  storyFromEntity,
+  storyFromJob,
+  storyTags,
+  type StoryCardData
+} from "@/lib/story-metadata";
 import type { ResearchJob } from "@/lib/research/types";
 import type { ResearchEntity } from "@/lib/types";
 
-type HomeStory = {
-  slug: string;
-  entityName: string;
-  headline: string;
-  dek: string;
-  summary: string;
-  sector: string;
-  confidenceLabel: string;
-  sourceCount: number;
-  heroImage: string | null;
-  articleUrl: string;
-  profileUrl: string;
-  publishedAt: string;
-  isGenerated: boolean;
-};
+const favoritesKey = "deeptechly_favorites";
+const sectorNav = [
+  ["ALL", "/explore"],
+  ["SPACE", "/explore?sector=space"],
+  ["DEFENSE", "/explore?sector=defense"],
+  ["ROBOTICS", "/explore?sector=robotics"],
+  ["ENERGY", "/explore?sector=energy"],
+  ["SEMICONDUCTORS", "/explore?sector=semiconductors"],
+  ["MANUFACTURING", "/explore?sector=manufacturing"],
+  ["MATERIALS", "/explore?sector=materials"],
+  ["PHOTONICS", "/explore?sector=photonics"],
+  ["SENSORS", "/explore?sector=sensors"],
+  ["BIOINFRASTRUCTURE", "/explore?sector=bioinfrastructure"]
+] as const;
+
+type FavoriteMap = Record<string, true>;
 
 export function HomeResearchFeed({ entities }: { entities: ResearchEntity[] }) {
   const [localJobs, setLocalJobs] = useState<ResearchJob[]>(() =>
     sortQueueJobs(loadLocalQueueJobs())
   );
+  const [favorites, setFavorites] = useState<FavoriteMap>({});
 
   useEffect(() => {
     const refreshLocalJobs = () => setLocalJobs(sortQueueJobs(loadLocalQueueJobs()));
@@ -40,12 +50,27 @@ export function HomeResearchFeed({ entities }: { entities: ResearchEntity[] }) {
     };
   }, []);
 
+  useEffect(() => {
+    const readFavorites = () => {
+      try {
+        const raw = window.localStorage.getItem(favoritesKey);
+        setFavorites(raw ? (JSON.parse(raw) as FavoriteMap) : {});
+      } catch {
+        setFavorites({});
+      }
+    };
+
+    readFavorites();
+    window.addEventListener("storage", readFavorites);
+    return () => window.removeEventListener("storage", readFavorites);
+  }, []);
+
   const stories = useMemo(() => {
     const localStories = localJobs
       .filter((job) => job.stage === "done" && (job.feed || job.articleUrl || job.profileUrl))
-      .map(jobToStory)
-      .filter((story): story is HomeStory => Boolean(story));
-    const serverStories = entities.map(entityToStory);
+      .map(storyFromJob)
+      .filter((story): story is StoryCardData => Boolean(story));
+    const serverStories = entities.map(storyFromEntity);
     const seen = new Set<string>();
 
     return [...localStories, ...serverStories]
@@ -57,7 +82,21 @@ export function HomeResearchFeed({ entities }: { entities: ResearchEntity[] }) {
       });
   }, [entities, localJobs]);
 
-  const alsoReading = stories.slice(1);
+  const topStories = fillStoryList(stories.slice(0, 5), stories, 5);
+  const alsoReading = fillStoryList(stories.slice(5, 10), stories, 5);
+
+  function toggleFavorite(slug: string) {
+    setFavorites((current) => {
+      const next = { ...current };
+      if (next[slug]) {
+        delete next[slug];
+      } else {
+        next[slug] = true;
+      }
+      window.localStorage.setItem(favoritesKey, JSON.stringify(next));
+      return next;
+    });
+  }
 
   return (
     <>
@@ -75,64 +114,27 @@ export function HomeResearchFeed({ entities }: { entities: ResearchEntity[] }) {
                 Browse All
               </Link>
             </div>
-            <div className="space-y-5">
-              {stories.map((story, index) => (
-                <article key={story.slug} className="border-b border-black/20 pb-5">
-                  <div className="grid gap-4 sm:grid-cols-[40px_1fr_auto]">
-                    <span className="text-3xl font-black text-deepOrange">
-                      {index + 1}
-                    </span>
-                    <div>
-                      <p className="text-[10px] font-black uppercase tracking-[0.18em] text-muted">
-                        {story.sector} · {story.confidenceLabel} confidence
-                        {story.isGenerated ? " · generated" : ""}
-                      </p>
-                      <h3 className="mt-2 max-w-2xl text-2xl font-black leading-tight">
-                        <Link href={story.articleUrl}>{story.headline}</Link>
-                      </h3>
-                      <p className="mt-2 max-w-2xl text-sm leading-6 text-charcoal">
-                        {story.dek}
-                      </p>
-                    </div>
-                    <Link
-                      href={story.articleUrl}
-                      className="inline-flex h-10 w-10 items-center justify-center border border-black bg-white shadow-hard"
-                      aria-label={`Read article about ${story.entityName}`}
-                    >
-                      <ArrowRight size={17} />
-                    </Link>
-                  </div>
-                </article>
+            <div className="space-y-0 border-t border-black/10">
+              {topStories.map((story, index) => (
+                <TopStoryRow
+                  key={`${story.slug}-${index}`}
+                  story={story}
+                  rank={index + 1}
+                  featured={index === 0}
+                  favorited={Boolean(favorites[story.slug])}
+                  onToggleFavorite={toggleFavorite}
+                />
               ))}
             </div>
           </div>
 
-          <aside className="lg:border-l lg:border-black/20 lg:pl-6">
-            <h2 className="mb-4 border-b border-black pb-3 text-[11px] font-black uppercase tracking-[0.24em] text-deepOrange">
-              Also Reading
-            </h2>
-            <div className="space-y-4">
-              {alsoReading.map((story) => (
-                <Link
-                  href={story.articleUrl}
-                  key={story.slug}
-                  className="block border border-black bg-white p-4 shadow-hard hover:bg-paleOrange"
-                >
-                  <div className="mb-3 flex items-center justify-between">
-                    <span className="text-[10px] font-black uppercase tracking-[0.18em] text-deepOrange">
-                      {story.sector}
-                    </span>
-                    <Star size={14} />
-                  </div>
-                  <h3 className="text-base font-black leading-tight">
-                    {story.entityName}
-                  </h3>
-                  <p className="mt-2 text-xs leading-5 text-charcoal">
-                    {story.summary}
-                  </p>
-                </Link>
-              ))}
-            </div>
+          <aside className="space-y-8 lg:border-l lg:border-black/20 lg:pl-6">
+            <AlsoReading
+              stories={alsoReading}
+              favorites={favorites}
+              onToggleFavorite={toggleFavorite}
+            />
+            <BrowseBySector />
           </aside>
         </div>
       </section>
@@ -148,39 +150,13 @@ export function HomeResearchFeed({ entities }: { entities: ResearchEntity[] }) {
             </Link>
           </div>
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {stories.map((story) => (
-              <Link
-                href={story.profileUrl}
+            {stories.slice(0, 9).map((story) => (
+              <RecentResearchCard
                 key={story.slug}
-                className="block border border-black bg-white shadow-hard"
-              >
-                <div
-                  className="h-28 border-b border-black bg-ink bg-cover bg-center p-4 text-white"
-                  style={
-                    story.heroImage
-                      ? {
-                          backgroundImage: `linear-gradient(rgba(14,14,14,.72), rgba(14,14,14,.72)), url(${story.heroImage})`
-                        }
-                      : undefined
-                  }
-                >
-                  <p className="text-[10px] font-black uppercase tracking-[0.22em] text-deepOrange">
-                    Research
-                  </p>
-                  <p className="mt-3 text-sm font-black">
-                    {story.confidenceLabel} Signal
-                  </p>
-                </div>
-                <div className="p-4">
-                  <p className="text-[10px] font-black uppercase tracking-[0.18em] text-deepOrange">
-                    {story.sector}
-                  </p>
-                  <h3 className="mt-2 text-xl font-black">{story.entityName}</h3>
-                  <p className="mt-2 text-sm leading-6 text-charcoal">
-                    {story.summary}
-                  </p>
-                </div>
-              </Link>
+                story={story}
+                favorited={Boolean(favorites[story.slug])}
+                onToggleFavorite={toggleFavorite}
+              />
             ))}
           </div>
         </div>
@@ -189,48 +165,268 @@ export function HomeResearchFeed({ entities }: { entities: ResearchEntity[] }) {
   );
 }
 
-function entityToStory(entity: ResearchEntity): HomeStory {
-  return {
-    slug: entity.slug,
-    entityName: entity.name,
-    headline: entity.article.headline,
-    dek: entity.article.dek,
-    summary: entity.summary,
-    sector: entity.sector,
-    confidenceLabel: entity.confidenceLabel,
-    sourceCount: entity.sourceCount,
-    heroImage: entity.heroImage ?? entity.article.heroImage ?? null,
-    articleUrl: `/article/${entity.slug}`,
-    profileUrl: `/startup/${entity.slug}`,
-    publishedAt: entity.article.publishedAt ?? entity.updatedAt ?? entity.createdAt ?? "",
-    isGenerated: entity.stage === "Generated research"
-  };
+function TopStoryRow({
+  story,
+  rank,
+  featured,
+  favorited,
+  onToggleFavorite
+}: {
+  story: StoryCardData;
+  rank: number;
+  featured: boolean;
+  favorited: boolean;
+  onToggleFavorite: (slug: string) => void;
+}) {
+  return (
+    <article className="border-b border-black/20 py-5">
+      <div className={`grid gap-4 ${featured ? "sm:grid-cols-[48px_4px_1fr_auto]" : "sm:grid-cols-[40px_3px_1fr_auto]"}`}>
+        <span className={featured ? "text-4xl font-black text-deepOrange" : "text-3xl font-black text-deepOrange"}>
+          {rank}
+        </span>
+        <span className="hidden bg-deepOrange sm:block" />
+        <div className="min-w-0">
+          <p className="text-[10px] font-black uppercase tracking-[0.18em] text-deepOrange">
+            {story.entityName} · {formatRelativeTime(story.publishedAt)}
+          </p>
+          <h3
+            className={`mt-2 max-w-2xl font-black leading-tight ${
+              featured ? "text-3xl sm:text-4xl" : "text-2xl"
+            }`}
+          >
+            <Link href={story.articleUrl}>{story.title}</Link>
+          </h3>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-charcoal">
+            {story.dek}
+          </p>
+          <MetadataTags story={story} />
+          <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 text-[10px] font-black uppercase tracking-[0.16em]">
+            <span className="text-muted">{formatByline(story.authorPersona)}</span>
+            <span className="text-black/30">|</span>
+            <Link href={story.articleUrl} className="inline-flex items-center gap-1 text-ink">
+              Read Article
+              <ArrowRight size={12} />
+            </Link>
+          </div>
+        </div>
+        <FavoriteButton
+          slug={story.slug}
+          label={story.entityName}
+          favorited={favorited}
+          onToggleFavorite={onToggleFavorite}
+        />
+      </div>
+    </article>
+  );
 }
 
-function jobToStory(job: ResearchJob): HomeStory | null {
-  const slug = job.feed?.slug ?? slugFromUrl(job.profileUrl ?? job.articleUrl);
-  if (!slug) return null;
-
-  return {
-    slug,
-    entityName: job.feed?.entityName ?? job.query,
-    headline: job.feed?.articleTitle ?? `${job.query} research profile is ready`,
-    dek:
-      job.feed?.articleDek ??
-      "DeepTechly generated a public article, profile, and investor dossier from the completed research job.",
-    summary: job.feed?.summary ?? "Generated DeepTechly research profile.",
-    sector: job.feed?.sector ?? "Deep Tech",
-    confidenceLabel: job.feed?.confidenceLabel ?? "Generated",
-    sourceCount: job.feed?.sourceCount ?? job.sourceCount,
-    heroImage: job.feed?.heroImage ?? null,
-    articleUrl: job.articleUrl ?? `/article/${slug}`,
-    profileUrl: job.profileUrl ?? job.dossierUrl ?? `/startup/${slug}`,
-    publishedAt: job.feed?.publishedAt ?? job.completedAt ?? job.updatedAt,
-    isGenerated: true
-  };
+function AlsoReading({
+  stories,
+  favorites,
+  onToggleFavorite
+}: {
+  stories: StoryCardData[];
+  favorites: FavoriteMap;
+  onToggleFavorite: (slug: string) => void;
+}) {
+  return (
+    <section>
+      <h2 className="mb-4 border-b border-black pb-3 text-[11px] font-black uppercase tracking-[0.24em] text-deepOrange">
+        Also Reading
+      </h2>
+      <div className="space-y-4">
+        {stories.map((story, index) => (
+          <article
+            key={`${story.slug}-also-${index}`}
+            className="grid grid-cols-[32px_1fr_auto] gap-3 border-b border-black/15 pb-4"
+          >
+            <span className="flex h-7 w-7 items-center justify-center border border-black bg-white text-[10px] font-black">
+              {index + 1}
+            </span>
+            <div className="min-w-0">
+              <p className="text-[10px] font-black uppercase tracking-[0.16em] text-deepOrange">
+                {story.entityName}
+              </p>
+              <h3 className="mt-1 text-sm font-black leading-tight">
+                <Link href={story.articleUrl}>{story.title}</Link>
+              </h3>
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {storyTags(story).slice(0, 2).map((tag) => (
+                  <span
+                    key={tag}
+                    className="border border-black bg-offWhite px-1.5 py-0.5 text-[9px] font-black uppercase tracking-[0.12em]"
+                  >
+                    {tag}
+                  </span>
+                ))}
+              </div>
+              <p className="mt-2 text-[9px] font-black uppercase tracking-[0.14em] text-muted">
+                {formatByline(story.authorPersona)} · {formatRelativeTime(story.publishedAt)}
+              </p>
+            </div>
+            <FavoriteButton
+              slug={story.slug}
+              label={story.entityName}
+              favorited={Boolean(favorites[story.slug])}
+              onToggleFavorite={onToggleFavorite}
+              compact
+            />
+          </article>
+        ))}
+      </div>
+    </section>
+  );
 }
 
-function slugFromUrl(url: string | null) {
-  if (!url) return null;
-  return url.split("/").filter(Boolean).at(-1) ?? null;
+function BrowseBySector() {
+  return (
+    <section>
+      <h2 className="mb-4 border-b border-black pb-3 text-[11px] font-black uppercase tracking-[0.24em] text-deepOrange">
+        Browse By Sector
+      </h2>
+      <div className="flex flex-wrap gap-2">
+        {sectorNav.map(([label, href], index) => (
+          <Link
+            key={label}
+            href={href}
+            className={`border border-black px-2.5 py-2 text-[10px] font-black uppercase tracking-[0.14em] hover:bg-deepOrange ${
+              index === 0 ? "bg-ink text-white" : "bg-white text-ink"
+            }`}
+          >
+            {label}
+          </Link>
+        ))}
+      </div>
+      <Link
+        href="/articles"
+        className="mt-5 inline-flex w-full items-center justify-between border border-black bg-white px-4 py-3 text-[11px] font-black uppercase tracking-[0.14em] shadow-hard hover:bg-deepOrange"
+      >
+        Read More Research
+        <ArrowRight size={14} />
+      </Link>
+    </section>
+  );
+}
+
+function RecentResearchCard({
+  story,
+  favorited,
+  onToggleFavorite
+}: {
+  story: StoryCardData;
+  favorited: boolean;
+  onToggleFavorite: (slug: string) => void;
+}) {
+  return (
+    <article className="relative border border-black bg-white shadow-hard">
+      <FavoriteButton
+        slug={story.slug}
+        label={story.entityName}
+        favorited={favorited}
+        onToggleFavorite={onToggleFavorite}
+        compact
+        className="absolute right-3 top-3 z-10 bg-white"
+      />
+      <Link href={story.profileUrl ?? story.dossierUrl ?? story.articleUrl} className="block">
+        <div
+          className="h-28 border-b border-black bg-ink bg-cover bg-center p-4 text-white"
+          style={
+            story.heroImage
+              ? {
+                  backgroundImage: `linear-gradient(rgba(14,14,14,.72), rgba(14,14,14,.72)), url(${story.heroImage})`
+                }
+              : undefined
+          }
+        >
+          <p className="text-[10px] font-black uppercase tracking-[0.22em] text-deepOrange">
+            {story.sectorTags[0] ?? "Research"}
+          </p>
+          <p className="mt-3 text-sm font-black">
+            {story.confidenceLabel ?? "Research"} Signal
+          </p>
+        </div>
+        <div className="p-4">
+          <p className="text-[10px] font-black uppercase tracking-[0.18em] text-deepOrange">
+            {story.entityName} · {formatRelativeTime(story.publishedAt)}
+          </p>
+          <h3 className="mt-2 text-xl font-black">{story.entityName}</h3>
+          <MetadataTags story={story} compact />
+          <p className="mt-2 text-sm leading-6 text-charcoal">{story.summary}</p>
+          <p className="mt-3 text-[10px] font-black uppercase tracking-[0.14em] text-muted">
+            {formatByline(story.authorPersona)}
+          </p>
+        </div>
+      </Link>
+    </article>
+  );
+}
+
+function MetadataTags({
+  story,
+  compact = false
+}: {
+  story: StoryCardData;
+  compact?: boolean;
+}) {
+  return (
+    <div className={`flex flex-wrap gap-2 ${compact ? "mt-2" : "mt-4"}`}>
+      {storyTags(story).map((tag) => (
+        <span
+          key={tag}
+          className="border border-black bg-white px-2 py-1 text-[10px] font-black uppercase tracking-[0.14em]"
+        >
+          {tag}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+function FavoriteButton({
+  slug,
+  label,
+  favorited,
+  onToggleFavorite,
+  compact = false,
+  className = ""
+}: {
+  slug: string;
+  label: string;
+  favorited: boolean;
+  onToggleFavorite: (slug: string) => void;
+  compact?: boolean;
+  className?: string;
+}) {
+  return (
+    <button
+      type="button"
+      aria-label={`${favorited ? "Remove" : "Save"} ${label}`}
+      aria-pressed={favorited}
+      onClick={() => onToggleFavorite(slug)}
+      className={`flex shrink-0 items-center justify-center border border-black ${
+        compact ? "h-7 w-7" : "h-9 w-9"
+      } ${favorited ? "bg-deepOrange text-ink" : "bg-white text-ink"} ${className}`}
+    >
+      <Star size={compact ? 13 : 16} fill={favorited ? "currentColor" : "none"} />
+    </button>
+  );
+}
+
+function fillStoryList(
+  preferredStories: StoryCardData[],
+  fallbackStories: StoryCardData[],
+  targetLength: number
+) {
+  if (preferredStories.length >= targetLength || fallbackStories.length === 0) {
+    return preferredStories.slice(0, targetLength);
+  }
+
+  const filled = [...preferredStories];
+  let index = 0;
+  while (filled.length < targetLength && index < targetLength * 3) {
+    filled.push(fallbackStories[index % fallbackStories.length]);
+    index += 1;
+  }
+
+  return filled.slice(0, targetLength);
 }

@@ -7,6 +7,12 @@ import type {
   Source,
   TaxonomySnapshot
 } from "./types";
+import {
+  inferRegionTag,
+  inferStageTag,
+  selectDeeptechlyAgent,
+  storySectorTags
+} from "./story-metadata";
 
 type EntityInput = {
   slug: string;
@@ -94,12 +100,36 @@ const taxonomyFor = (entity: EntityInput): TaxonomySnapshot => ({
     : "Medium to high"
 });
 
-const articleFor = (entity: EntityInput): Article => ({
-  headline: `${entity.name}'s ${entity.wedge} Targets Deep-Tech Bottlenecks`,
-  dek: `${entity.descriptor} DeepTechly's public read focuses on technical readiness, market pressure, and the evidence still needed before the company can be treated as institutional-grade infrastructure.`,
-  visualLabel: entity.sector.toUpperCase(),
-  visualCaption: `${entity.name} technical signal map`,
-  sections: [
+const articleFor = (entity: EntityInput): Article => {
+  const sectorTags = storySectorTags({
+    sector: entity.sector,
+    secondarySectors: entity.secondarySectors,
+    tags: [entity.sector, ...entity.secondarySectors]
+  });
+  const stageTag = inferStageTag({
+    stage: entity.stage,
+    trl: entity.confidenceScore >= 72 ? 6 : 5,
+    mrl: entity.confidenceScore >= 72 ? 4 : 3
+  });
+  const regionTag = inferRegionTag(entity.region);
+  const authorPersona = selectDeeptechlyAgent(entity.sector, [
+    ...sectorTags,
+    entity.wedge,
+    entity.market
+  ]);
+
+  return {
+    headline: `${entity.name}'s ${entity.wedge} Targets Deep-Tech Bottlenecks`,
+    dek: `${entity.descriptor} DeepTechly's public read focuses on technical readiness, market pressure, and the evidence still needed before the company can be treated as institutional-grade infrastructure.`,
+    authorPersona,
+    publishedAt: "2026-05-10T12:00:00.000Z",
+    sectorTags,
+    stageTag,
+    regionTag,
+    entityTypeTag: "Company",
+    visualLabel: entity.sector.toUpperCase(),
+    visualCaption: `${entity.name} technical signal map`,
+    sections: [
     {
       title: "Why it matters",
       body: [
@@ -142,17 +172,18 @@ const articleFor = (entity: EntityInput): Article => ({
         `If those signals arrive together, ${entity.name} could move from interesting technical profile to a more investable commercialization story. If they do not, the company remains a watchlist candidate with a meaningful but unproven technical thesis.`
       ]
     }
-  ],
-  comparisonTable: {
-    columns: ["Technology Layer", "Public Signal", "Constraint"],
-    rows: [
-      [entity.wedge, "Public positioning and technical category alignment", "Process validation required"],
-      ["Deployment pathway", entity.deployment, "Qualification and integration testing required"],
-      ["Buyer relevance", entity.buyer, "Procurement timeline and customer proof remain uncertain"],
-      ["Commercial readiness", entity.stage, "Manufacturing and repeatability evidence not yet public"]
-    ]
-  }
-});
+    ],
+    comparisonTable: {
+      columns: ["Technology Layer", "Public Signal", "Constraint"],
+      rows: [
+        [entity.wedge, "Public positioning and technical category alignment", "Process validation required"],
+        ["Deployment pathway", entity.deployment, "Qualification and integration testing required"],
+        ["Buyer relevance", entity.buyer, "Procurement timeline and customer proof remain uncertain"],
+        ["Commercial readiness", entity.stage, "Manufacturing and repeatability evidence not yet public"]
+      ]
+    }
+  };
+};
 
 const dossierFor = (entity: EntityInput, taxonomy: TaxonomySnapshot, sources: Source[]): Dossier => ({
   executiveSummary: [

@@ -1,11 +1,19 @@
 import Link from "next/link";
 import { ArrowRight, Cpu, Send, Star } from "lucide-react";
+import {
+  formatByline,
+  formatRelativeTime,
+  storyFromEntity,
+  storyTags
+} from "@/lib/story-metadata";
 import type { ArticleSection as ArticleSectionType, ResearchEntity, Source } from "@/lib/types";
 
 const tagClass =
   "border border-black bg-white px-2 py-1 text-[10px] font-black uppercase tracking-[0.14em]";
 
 export function ArticleHero({ entity }: { entity: ResearchEntity }) {
+  const story = storyFromEntity(entity);
+
   return (
     <section className="w-full border-b border-black bg-deepOrange deeptech-texture">
       <div className="mx-auto max-w-5xl px-4 py-14 sm:px-6 md:py-18 lg:px-8">
@@ -31,20 +39,16 @@ export function ArticleHero({ entity }: { entity: ResearchEntity }) {
             {entity.article.dek}
           </p>
           <div className="mt-6 flex flex-wrap justify-center gap-2 md:justify-start">
-            {entity.tags.slice(0, 4).map((tag) => (
+            {storyTags(story).map((tag) => (
               <span key={tag} className={tagClass}>
                 {tag}
               </span>
             ))}
           </div>
           <p className="mt-4 text-[10px] font-black uppercase tracking-[0.18em] text-ink/70">
-            By {entity.article.authorPersona ?? "Viral Bernstein"} ·{" "}
+            {formatByline(story.authorPersona)} ·{" "}
             {entity.article.publishedAt
-              ? new Date(entity.article.publishedAt).toLocaleDateString("en-US", {
-                  month: "short",
-                  day: "numeric",
-                  year: "numeric"
-                })
+              ? formatRelativeTime(entity.article.publishedAt)
               : "Research desk"}
           </p>
         </div>

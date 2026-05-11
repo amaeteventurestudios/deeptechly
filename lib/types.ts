@@ -91,6 +91,10 @@ export type Article = {
   bodySections?: ArticleSection[];
   comparisonTable: ComparisonTableData;
   tags?: string[];
+  sectorTags?: string[];
+  stageTag?: string;
+  regionTag?: string;
+  entityTypeTag?: string;
   sources?: Source[];
   adminFeatured?: boolean;
   publishedStatus?: "draft" | "published";
@@ -198,6 +202,10 @@ export type ResearchEntity = {
   employeeCount?: string | null;
   investors?: string[];
   tags: string[];
+  sectorTags?: string[];
+  stageTag?: string;
+  regionTag?: string;
+  entityTypeTag?: string;
   sourceCount: number;
   confidenceScore: number;
   confidenceLabel: ConfidenceLabel;

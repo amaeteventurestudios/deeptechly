@@ -59,6 +59,11 @@ export type ResearchJob = {
     confidenceScore: number;
     sourceCount: number;
     heroImage: string | null;
+    authorPersona?: string;
+    sectorTags?: string[];
+    stageTag?: string;
+    regionTag?: string;
+    entityTypeTag?: string;
     publishedAt: string;
   } | null;
   createdAt: string;
@@ -137,6 +142,10 @@ export type StoredResearchArticle = {
   heroImage: string | null;
   bodySections: ResearchEntity["article"]["sections"];
   tags: string[];
+  sectorTags?: string[];
+  stageTag?: string;
+  regionTag?: string;
+  entityTypeTag?: string;
   sources: Source[];
   publishedStatus: PublishedStatus;
   adminFeatured: boolean;

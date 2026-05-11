@@ -10,6 +10,12 @@ import type {
   StoredResearchArticle
 } from "./types";
 import { isCompletedResearchFeedEligible, isPublishable, slugify } from "./store";
+import {
+  inferRegionTag,
+  inferStageTag,
+  selectDeeptechlyAgent,
+  storySectorTags
+} from "@/lib/story-metadata";
 import type {
   ArticleSection,
   ConfidenceLabel,
@@ -18,9 +24,8 @@ import type {
   Source
 } from "@/lib/types";
 
-const articlePersona = "Viral Bernstein";
-const profilePersona = "Rhea Mendoza";
-const dossierPersona = "Marcus Okonkwo";
+const profilePersona = "Axon Reyes";
+const dossierPersona = "Daxon Pierce";
 const defaultOpenAIModel = "gpt-5.4-mini";
 
 const articleSchema = {
@@ -657,6 +662,28 @@ export async function generateResearchOutput({
   const tags = [facts.sector, ...secondary, label].slice(0, 5);
 
   dossier.sources = sources;
+  const sectorTags = storySectorTags({
+    sector: facts.sector,
+    secondarySectors: secondary,
+    tags
+  });
+  const stageTag = inferStageTag({
+    fundingStage: facts.fundingStage,
+    stage: facts.fundingStage ?? "Generated research",
+    sourceText: `${facts.productSummary} ${summaries
+      .flatMap((summary) => [summary.title, ...summary.keyFacts, ...summary.claims])
+      .join(" ")}`,
+    trl: dossier.dataSnapshot.trl,
+    mrl: dossier.dataSnapshot.mrl
+  });
+  const regionTag = inferRegionTag(
+    facts.headquarters ?? facts.domain ?? facts.website ?? "UNKNOWN"
+  );
+  const articlePersona = selectDeeptechlyAgent(facts.sector, [
+    ...sectorTags,
+    facts.productSummary,
+    ...facts.customerSegments
+  ]);
 
   const entity: ResearchEntity = {
     id: `entity_${randomUUID().slice(0, 8)}`,
@@ -679,6 +706,10 @@ export async function generateResearchOutput({
     employeeCount: facts.employeeCount ?? null,
     investors: facts.investors ?? [],
     tags,
+    sectorTags,
+    stageTag,
+    regionTag,
+    entityTypeTag: "Company",
     sourceCount,
     confidenceScore: score,
     confidenceLabel: label,
@@ -719,6 +750,10 @@ export async function generateResearchOutput({
         rows: comparisonRows(facts)
       },
       tags,
+      sectorTags,
+      stageTag,
+      regionTag,
+      entityTypeTag: "Company",
       sources,
       publishedStatus: "draft"
     },
@@ -741,6 +776,10 @@ export async function generateResearchOutput({
     heroImage,
     bodySections: sections,
     tags,
+    sectorTags,
+    stageTag,
+    regionTag,
+    entityTypeTag: "Company",
     sources,
     publishedStatus: entity.publishedStatus,
     adminFeatured: false,

@@ -268,7 +268,7 @@ export function stageMessage(stage: ResearchStage, domain?: string | null) {
     },
     drafting_outputs: {
       message:
-        "Drafting article (Viral Bernstein), public profile (Rhea Mendoza), and investor profile (Marcus Okonkwo) in parallel",
+        "Drafting article (Nova Mensah), public profile (Axon Reyes), and investor profile (Daxon Pierce) in parallel",
       detail: "AI analyst personas are preparing public and institutional outputs"
     },
     publishing_article: {
@@ -578,6 +578,15 @@ export async function saveResearchOutput(jobId: string, output: ResearchOutput) 
         confidenceScore: entity.confidenceScore,
         sourceCount: entity.sourceCount,
         heroImage: entity.heroImage ?? article.heroImage ?? null,
+        authorPersona: article.authorPersona,
+        sectorTags: article.sectorTags ?? entity.article.sectorTags ?? entity.sectorTags ?? [],
+        stageTag: article.stageTag ?? entity.article.stageTag ?? entity.stageTag ?? "UNKNOWN",
+        regionTag: article.regionTag ?? entity.article.regionTag ?? entity.regionTag ?? "UNKNOWN",
+        entityTypeTag:
+          article.entityTypeTag ??
+          entity.article.entityTypeTag ??
+          entity.entityTypeTag ??
+          entity.entityType,
         publishedAt: article.publishedAt ?? now
       },
       completedAt: now,

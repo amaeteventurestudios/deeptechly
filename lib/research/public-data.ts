@@ -8,24 +8,59 @@ import {
   listPublishedArticles,
   readStore
 } from "./store";
+import {
+  articleMetadataFromStoredArticle,
+  inferRegionTag,
+  inferStageTag,
+  normalizeDeeptechlyAgent,
+  storySectorTags
+} from "@/lib/story-metadata";
 
-const seedAsPublished = (entity: ResearchEntity): ResearchEntity => ({
-  ...entity,
-  publishedStatus: "published",
-  searchCount: entity.searchCount ?? 0,
-  article: {
-    ...entity.article,
-    title: entity.article.headline,
-    entityName: entity.name,
-    entitySlug: entity.slug,
-    authorPersona: entity.article.authorPersona ?? "Viral Bernstein",
-    publishedAt: entity.article.publishedAt ?? "2026-05-10T12:00:00.000Z",
-    dossierUrl: `/startup/${entity.slug}`,
+const seedAsPublished = (entity: ResearchEntity): ResearchEntity => {
+  const sectorTags = entity.sectorTags?.length
+    ? entity.sectorTags
+    : storySectorTags(entity);
+  const stageTag =
+    entity.stageTag ??
+    inferStageTag({
+      fundingStage: entity.fundingStage,
+      stage: entity.stage,
+      trl: entity.dossier.dataSnapshot.trl,
+      mrl: entity.dossier.dataSnapshot.mrl
+    });
+  const regionTag = entity.regionTag ?? inferRegionTag(entity.headquarters ?? entity.region);
+  const authorPersona =
+    normalizeDeeptechlyAgent(entity.article.authorPersona, entity.sector, [
+      ...sectorTags,
+      entity.summary
+    ]);
+
+  return {
+    ...entity,
+    sectorTags,
+    stageTag,
+    regionTag,
+    entityTypeTag: entity.entityTypeTag ?? entity.entityType,
     publishedStatus: "published",
-    tags: entity.tags,
-    sources: entity.sources
-  }
-});
+    searchCount: entity.searchCount ?? 0,
+    article: {
+      ...entity.article,
+      title: entity.article.headline,
+      entityName: entity.name,
+      entitySlug: entity.slug,
+      authorPersona,
+      publishedAt: entity.article.publishedAt ?? "2026-05-10T12:00:00.000Z",
+      dossierUrl: `/startup/${entity.slug}`,
+      publishedStatus: "published",
+      tags: entity.tags,
+      sectorTags,
+      stageTag,
+      regionTag,
+      entityTypeTag: entity.entityType,
+      sources: entity.sources
+    }
+  };
+};
 
 export function storyScore(entity: ResearchEntity) {
   const publishedAt = entity.article.publishedAt
@@ -86,31 +121,45 @@ export async function getPublishedArticles() {
         )
         .map((entity) => entity.slug)
     );
-    generatedArticles = (await listPublishedArticles()).filter((article) =>
-      eligibleGeneratedSlugs.has(article.slug)
-    );
+    generatedArticles = (await listPublishedArticles())
+      .filter((article) => eligibleGeneratedSlugs.has(article.slug))
+      .map((article) => ({
+        ...article,
+        ...articleMetadataFromStoredArticle(article)
+      }));
   } catch (error) {
     console.error("Generated article store unavailable", error);
   }
 
   const entities = await getPublishedEntities();
-  const entityArticles = entities.map((entity) => ({
-    id: entity.article.entitySlug ?? entity.slug,
-    slug: entity.slug,
-    entityId: entity.id ?? entity.slug,
-    title: entity.article.headline,
-    dek: entity.article.dek,
-    authorPersona: entity.article.authorPersona ?? "Viral Bernstein",
-    heroImage: entity.article.heroImage ?? entity.heroImage ?? null,
-    bodySections: entity.article.sections,
-    tags: entity.tags,
-    sources: entity.sources,
-    publishedStatus: "published",
-    adminFeatured: entity.article.adminFeatured ?? false,
-    publishedAt: entity.article.publishedAt ?? null,
-    createdAt: entity.createdAt ?? entity.article.publishedAt ?? new Date().toISOString(),
-    updatedAt: entity.updatedAt ?? entity.article.publishedAt ?? new Date().toISOString()
-  })) satisfies StoredResearchArticle[];
+  const entityArticles = entities.map((entity) => {
+    const sectorTags = entity.article.sectorTags ?? entity.sectorTags ?? storySectorTags(entity);
+    return {
+      id: entity.article.entitySlug ?? entity.slug,
+      slug: entity.slug,
+      entityId: entity.id ?? entity.slug,
+      title: entity.article.headline,
+      dek: entity.article.dek,
+      authorPersona:
+        normalizeDeeptechlyAgent(entity.article.authorPersona, entity.sector, [
+          ...sectorTags,
+          entity.summary
+        ]),
+      heroImage: entity.article.heroImage ?? entity.heroImage ?? null,
+      bodySections: entity.article.sections,
+      tags: entity.tags,
+      sectorTags,
+      stageTag: entity.article.stageTag ?? entity.stageTag ?? "UNKNOWN",
+      regionTag: entity.article.regionTag ?? entity.regionTag ?? "UNKNOWN",
+      entityTypeTag: entity.article.entityTypeTag ?? entity.entityTypeTag ?? entity.entityType,
+      sources: entity.sources,
+      publishedStatus: "published",
+      adminFeatured: entity.article.adminFeatured ?? false,
+      publishedAt: entity.article.publishedAt ?? null,
+      createdAt: entity.createdAt ?? entity.article.publishedAt ?? new Date().toISOString(),
+      updatedAt: entity.updatedAt ?? entity.article.publishedAt ?? new Date().toISOString()
+    };
+  }) satisfies StoredResearchArticle[];
   const generatedArticleSlugs = new Set(generatedArticles.map((article) => article.slug));
 
   return [

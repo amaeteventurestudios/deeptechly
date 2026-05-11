@@ -16,6 +16,7 @@ import {
   saveLocalQueueJobs,
   sortQueueJobs
 } from "./queueStorage";
+import { formatRelativeTime } from "@/lib/story-metadata";
 import type { ResearchJob, ResearchStage } from "@/lib/research/types";
 
 type JobsResponse = {
@@ -87,7 +88,7 @@ const stageDisplay: Record<
   drafting_outputs: {
     label: "WRITING",
     title:
-      "Drafting article (Viral Bernstein), public profile (Rhea Mendoza), and investor profile (Marcus Okonkwo) in parallel",
+      "Drafting article (Nova Mensah), public profile (Axon Reyes), and investor profile (Daxon Pierce) in parallel",
     detail: "AI analyst personas are preparing public and institutional outputs"
   },
   publishing_article: {
@@ -296,7 +297,7 @@ function ActiveQueueRow({ job }: { job: ResearchJob }) {
           <p className="mt-3 text-sm font-black leading-5">{display.title}</p>
           <p className="mt-1 text-xs leading-5 text-muted">{display.detail}</p>
           <p className="mt-3 text-[10px] font-black uppercase tracking-[0.16em] text-muted">
-            {display.label} · {elapsedLabel(job.updatedAt)}
+            {display.label} · {formatRelativeTime(job.updatedAt)}
           </p>
         </div>
       </div>
@@ -326,7 +327,7 @@ function TerminalQueueRow({ job }: { job: ResearchJob }) {
               {job.query}
             </h3>
             <p className="mt-1 text-[10px] font-black uppercase tracking-[0.16em] text-muted">
-              {display.label} · {elapsedLabel(job.completedAt ?? job.updatedAt)}
+              {display.label} · {formatRelativeTime(job.completedAt ?? job.updatedAt)}
             </p>
           </div>
         </div>
@@ -365,18 +366,4 @@ function TerminalQueueRow({ job }: { job: ResearchJob }) {
 
 function isActiveJob(job: ResearchJob) {
   return job.stage !== "done" && job.stage !== "failed";
-}
-
-function elapsedLabel(dateValue: string) {
-  const elapsedSeconds = Math.max(
-    0,
-    Math.round((Date.now() - new Date(dateValue).getTime()) / 1000)
-  );
-
-  if (elapsedSeconds < 60) return "JUST NOW";
-  const elapsedMinutes = Math.round(elapsedSeconds / 60);
-  if (elapsedMinutes < 60) return `${elapsedMinutes}M AGO`;
-  const elapsedHours = Math.round(elapsedMinutes / 60);
-  if (elapsedHours < 24) return `${elapsedHours}H AGO`;
-  return `${Math.round(elapsedHours / 24)}D AGO`;
 }
