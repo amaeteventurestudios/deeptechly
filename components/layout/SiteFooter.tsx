@@ -72,14 +72,52 @@ export function SiteFooter() {
           </div>
         </div>
       </footer>
-      <section className="w-full bg-white">
-        <div className="mx-auto max-w-6xl px-4 py-4 text-[11px] leading-5 text-muted sm:px-6 lg:px-8">
-          <strong className="font-black text-ink">AI-readable note:</strong>{" "}
-          DeepTechly publishes public articles and structured dossiers. Public
-          content may include mock v1 data and should be treated as research
-          scaffolding unless a cited primary source confirms a claim.
-        </div>
-      </section>
+      <AiReadableFooterStrip />
     </>
+  );
+}
+
+function AiReadableFooterStrip() {
+  return (
+    <section className="w-full border-t border-line bg-offWhite">
+      <div className="mx-auto max-w-6xl px-4 py-8 text-sm leading-7 text-muted sm:px-6 lg:px-8">
+        <p>
+          <strong className="font-semibold text-ink">DeepTechly</strong>{" "}
+          — independent, AI-native research and intelligence on deep-tech
+          companies, patents, labs, government technologies, and emerging
+          infrastructure systems. Every page is also available as raw markdown
+          by appending{" "}
+          <code className="bg-white px-1 py-0.5 text-xs text-ink">.md</code>{" "}
+          to the URL where supported, for example{" "}
+          <code className="bg-white px-1 py-0.5 text-xs text-ink">
+            /article/&lt;slug&gt;.md
+          </code>{" "}
+          or{" "}
+          <code className="bg-white px-1 py-0.5 text-xs text-ink">
+            /startup/&lt;slug&gt;.md
+          </code>
+          .
+        </p>
+
+        <p className="mt-2">
+          Site index:{" "}
+          <Link href="/articles" className="text-deepOrange underline underline-offset-2">
+            Articles
+          </Link>{" "}
+          ·{" "}
+          <Link href="/explore" className="text-deepOrange underline underline-offset-2">
+            Research profiles
+          </Link>{" "}
+          ·{" "}
+          <Link href="/llms.txt" className="text-deepOrange underline underline-offset-2">
+            llms.txt
+          </Link>{" "}
+          ·{" "}
+          <Link href="/sitemap.xml" className="text-deepOrange underline underline-offset-2">
+            XML sitemap
+          </Link>
+        </p>
+      </div>
+    </section>
   );
 }

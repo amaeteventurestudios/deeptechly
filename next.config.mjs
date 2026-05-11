@@ -8,6 +8,18 @@ const nextConfig = {
   reactStrictMode: true,
   turbopack: {
     root: projectRoot
+  },
+  async rewrites() {
+    return [
+      {
+        source: "/article/:slug.md",
+        destination: "/api/markdown/article/:slug"
+      },
+      {
+        source: "/startup/:slug.md",
+        destination: "/api/markdown/startup/:slug"
+      }
+    ];
   }
 };
 
