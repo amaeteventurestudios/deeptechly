@@ -2,12 +2,31 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
-import { ArrowRight, RefreshCw } from "lucide-react";
+import { ArrowRight, CheckCircle2, LoaderCircle, RefreshCw, XCircle } from "lucide-react";
 import { ResearchSubmitForm } from "./ResearchSubmitForm";
-import type { ResearchJob } from "@/lib/research/types";
+import type { ResearchJob, ResearchStage } from "@/lib/research/types";
 
 type JobsResponse = {
   jobs: ResearchJob[];
+};
+
+const stageDisplay: Record<ResearchStage, string> = {
+  queued: "Queued",
+  searching_web: "Searching the web",
+  reading_homepage: "Reading homepage",
+  reading_technical_pages: "Reading technical pages",
+  distilling_facts: "Distilling structured facts",
+  filling_gaps: "Filling gaps",
+  verifying_claims: "Verifying claims",
+  mapping_technology_stack: "Mapping technology stack",
+  mapping_government_relevance: "Mapping government relevance",
+  estimating_readiness: "Estimating readiness",
+  drafting_outputs: "Drafting article, public profile, and investor dossier in parallel",
+  publishing_article: "Publishing article",
+  publishing_profile: "Publishing public profile",
+  finalizing_dossier: "Finalizing institutional dossier",
+  done: "Done",
+  failed: "Research failed"
 };
 
 export function ResearchQueueClient({ initialJobId }: { initialJobId?: string }) {
@@ -47,7 +66,10 @@ export function ResearchQueueClient({ initialJobId }: { initialJobId?: string })
       return b.createdAt.localeCompare(a.createdAt);
     });
   const completedJobs = jobs
-    .filter((job) => job.stage === "done" || job.stage === "failed")
+    .filter((job) => job.stage === "done")
+    .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+  const failedJobs = jobs
+    .filter((job) => job.stage === "failed")
     .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
 
   return (
@@ -72,7 +94,7 @@ export function ResearchQueueClient({ initialJobId }: { initialJobId?: string })
       <section>
         <div className="mb-4 flex items-center justify-between border-b border-black pb-3">
           <h2 className="text-[11px] font-black uppercase tracking-[0.24em] text-deepOrange">
-            Research Queue
+            My research queue
           </h2>
           <button
             type="button"
@@ -115,6 +137,17 @@ export function ResearchQueueClient({ initialJobId }: { initialJobId?: string })
                 ))}
               </div>
             ) : null}
+
+            {failedJobs.length > 0 ? (
+              <div className="space-y-4">
+                <p className="border-b border-black pb-2 text-[10px] font-black uppercase tracking-[0.2em] text-muted">
+                  Failed Research
+                </p>
+                {failedJobs.map((job) => (
+                  <JobCard key={job.id} job={job} />
+                ))}
+              </div>
+            ) : null}
           </div>
         )}
       </section>
@@ -138,6 +171,10 @@ function elapsedLabel(dateValue: string) {
 
 function JobCard({ job }: { job: ResearchJob }) {
   const terminal = job.stage === "done" || job.stage === "failed";
+  const readableMessage =
+    job.message && !job.message.includes("_") ? job.message : stageDisplay[job.stage];
+  const Icon =
+    job.stage === "done" ? CheckCircle2 : job.stage === "failed" ? XCircle : LoaderCircle;
 
   return (
     <article
@@ -146,24 +183,43 @@ function JobCard({ job }: { job: ResearchJob }) {
       }`}
     >
       <div className="flex items-start justify-between gap-3">
-        <div>
+        <div className="flex min-w-0 gap-3">
+          <span className="mt-1 flex h-8 w-8 shrink-0 items-center justify-center border border-black bg-offWhite">
+            <Icon
+              size={17}
+              className={job.stage === "done" ? "text-deepOrange" : job.stage === "failed" ? "text-darkOrange" : "animate-spin text-deepOrange"}
+            />
+          </span>
+          <div className="min-w-0">
           <p className="text-[10px] font-black uppercase tracking-[0.18em] text-deepOrange">
             {job.statusLabel}
           </p>
-          <h3 className="mt-2 text-lg font-black leading-tight">{job.query}</h3>
+            <h3 className="mt-2 break-words text-lg font-black leading-tight">
+              {job.query}
+            </h3>
+          </div>
         </div>
         <span className="text-xl font-black">{job.progress}%</span>
       </div>
       <div className="mt-4 h-3 border border-black bg-offWhite">
         <div className="h-full bg-deepOrange" style={{ width: `${job.progress}%` }} />
       </div>
-      <p className="mt-3 text-sm font-black">{job.message}</p>
+      <p className="mt-3 text-sm font-black">{readableMessage}</p>
       <p className="mt-1 text-xs leading-5 text-muted">{job.detail}</p>
       <p className="mt-3 text-[10px] font-black uppercase tracking-[0.16em] text-muted">
         {job.statusLabel} · {elapsedLabel(job.createdAt)}
       </p>
       {job.stage === "done" ? (
         <div className="mt-4 flex flex-wrap gap-2">
+          {job.articleUrl ? (
+            <Link
+              href={job.articleUrl}
+              className="inline-flex items-center gap-2 border border-black bg-white px-3 py-2 text-[10px] font-black uppercase tracking-[0.14em]"
+            >
+              Open Article
+              <ArrowRight size={13} />
+            </Link>
+          ) : null}
           {job.profileUrl ? (
             <Link
               href={job.profileUrl}

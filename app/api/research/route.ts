@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createResearchJob, getResearchJobs } from "@/lib/research/store";
+import { createResearchJob, listResearchJobs } from "@/lib/research/store";
 import { runResearchJob } from "@/lib/research/pipeline";
 import type { ResearchMode } from "@/lib/research/types";
 
@@ -36,7 +36,7 @@ export async function POST(request: Request) {
 
 export async function GET() {
   try {
-    const jobs = await getResearchJobs();
+    const jobs = await listResearchJobs();
     return NextResponse.json({ jobs });
   } catch (error) {
     console.error("Research service unavailable", error);

@@ -3,7 +3,7 @@ import "server-only";
 import { entities as seedEntities, getEntityBySlug as getSeedEntityBySlug } from "@/lib/data";
 import type { ResearchEntity } from "@/lib/types";
 import type { StoredResearchArticle } from "./types";
-import { readStore } from "./store";
+import { listPublishedArticles, listPublishedEntities, readStore } from "./store";
 
 const seedAsPublished = (entity: ResearchEntity): ResearchEntity => ({
   ...entity,
@@ -47,10 +47,7 @@ export async function getPublishedEntities() {
   let generated: ResearchEntity[] = [];
 
   try {
-    const data = await readStore();
-    generated = data.entities.filter(
-      (entity) => entity.publishedStatus === "published"
-    );
+    generated = await listPublishedEntities();
   } catch (error) {
     console.error("Generated research store unavailable", error);
   }
@@ -67,8 +64,16 @@ export async function getPublishedEntities() {
 }
 
 export async function getPublishedArticles() {
+  let generatedArticles: StoredResearchArticle[] = [];
+
+  try {
+    generatedArticles = await listPublishedArticles();
+  } catch (error) {
+    console.error("Generated article store unavailable", error);
+  }
+
   const entities = await getPublishedEntities();
-  return entities.map((entity) => ({
+  const entityArticles = entities.map((entity) => ({
     id: entity.article.entitySlug ?? entity.slug,
     slug: entity.slug,
     entityId: entity.id ?? entity.slug,
@@ -85,6 +90,12 @@ export async function getPublishedArticles() {
     createdAt: entity.createdAt ?? entity.article.publishedAt ?? new Date().toISOString(),
     updatedAt: entity.updatedAt ?? entity.article.publishedAt ?? new Date().toISOString()
   })) satisfies StoredResearchArticle[];
+  const generatedArticleSlugs = new Set(generatedArticles.map((article) => article.slug));
+
+  return [
+    ...generatedArticles,
+    ...entityArticles.filter((article) => !generatedArticleSlugs.has(article.slug))
+  ];
 }
 
 export async function getEntityBySlugFromAll(slug: string) {

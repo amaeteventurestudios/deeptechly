@@ -13,6 +13,13 @@ import type {
 } from "./types";
 import type { ResearchEntity } from "@/lib/types";
 
+const storeKey =
+  process.env.DEEPTECHLY_RESEARCH_STORE_KEY ?? "deeptechly:research-store:v1";
+const redisRestUrl =
+  process.env.UPSTASH_REDIS_REST_URL ?? process.env.KV_REST_API_URL ?? null;
+const redisRestToken =
+  process.env.UPSTASH_REDIS_REST_TOKEN ?? process.env.KV_REST_API_TOKEN ?? null;
+
 const initialStore: ResearchStoreData = {
   jobs: [],
   entities: [],
@@ -25,6 +32,9 @@ declare global {
   var __deeptechlyResearchStore: ResearchStoreData | undefined;
 }
 
+// WARNING:
+// In-memory storage is not reliable across Vercel serverless invocations.
+// Use Supabase, Vercel Postgres, Neon, or Upstash for production.
 // Temporary in-memory store for Vercel demo mode.
 // Replace with Supabase/Vercel Postgres before production persistence.
 function getMemoryStore() {
@@ -33,6 +43,65 @@ function getMemoryStore() {
   }
 
   return globalThis.__deeptechlyResearchStore;
+}
+
+function hasRedisStore() {
+  return Boolean(redisRestUrl && redisRestToken);
+}
+
+async function readRedisStore() {
+  if (!hasRedisStore()) {
+    return structuredClone(initialStore);
+  }
+
+  const response = await fetch(
+    `${redisRestUrl}/get/${encodeURIComponent(storeKey)}`,
+    {
+      headers: {
+        authorization: `Bearer ${redisRestToken}`
+      },
+      cache: "no-store"
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error(`Research Redis read failed: ${response.status}`);
+  }
+
+  const body = (await response.json()) as { result?: string | ResearchStoreData | null };
+  if (!body.result) {
+    return structuredClone(initialStore);
+  }
+
+  if (typeof body.result === "string") {
+    return { ...structuredClone(initialStore), ...JSON.parse(body.result) } as ResearchStoreData;
+  }
+
+  return { ...structuredClone(initialStore), ...body.result };
+}
+
+async function writeRedisStore(data: ResearchStoreData) {
+  if (!hasRedisStore()) {
+    return false;
+  }
+
+  const response = await fetch(
+    `${redisRestUrl}/set/${encodeURIComponent(storeKey)}`,
+    {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${redisRestToken}`,
+        "content-type": "application/json"
+      },
+      body: JSON.stringify(data)
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error(`Research Redis write failed: ${response.status}`);
+  }
+
+  return true;
 }
 
 export const progressByStage: Record<ResearchStage, number> = {
@@ -141,10 +210,27 @@ export function stageMessage(stage: ResearchStage, domain?: string | null) {
 }
 
 export async function readStore(): Promise<ResearchStoreData> {
+  if (hasRedisStore()) {
+    try {
+      return await readRedisStore();
+    } catch (error) {
+      console.error("Persistent research store unavailable", error);
+    }
+  }
+
   return getMemoryStore();
 }
 
 export async function writeStore(data: ResearchStoreData) {
+  if (hasRedisStore()) {
+    try {
+      await writeRedisStore(data);
+      return;
+    } catch (error) {
+      console.error("Persistent research store unavailable", error);
+    }
+  }
+
   globalThis.__deeptechlyResearchStore = data;
 }
 
@@ -233,9 +319,57 @@ export async function getResearchJob(id: string) {
   return data.jobs.find((job) => job.id === id) ?? null;
 }
 
-export async function getResearchJobs() {
+export async function listResearchJobs() {
   const data = await readStore();
   return data.jobs.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+}
+
+export async function getResearchJobs() {
+  return listResearchJobs();
+}
+
+export async function saveGeneratedEntity(entity: ResearchEntity) {
+  const data = await readStore();
+  data.entities = [
+    entity,
+    ...data.entities.filter((item) => item.slug !== entity.slug)
+  ].slice(0, 100);
+  await writeStore(data);
+  return entity;
+}
+
+export async function saveGeneratedArticle(article: StoredResearchArticle) {
+  const data = await readStore();
+  data.articles = [
+    article,
+    ...data.articles.filter((item) => item.slug !== article.slug)
+  ].slice(0, 100);
+  await writeStore(data);
+  return article;
+}
+
+export async function saveGeneratedDossier(dossier: StoredDossier) {
+  const data = await readStore();
+  data.dossiers = [
+    dossier,
+    ...data.dossiers.filter((item) => item.slug !== dossier.slug)
+  ].slice(0, 100);
+  await writeStore(data);
+  return dossier;
+}
+
+export async function listPublishedArticles() {
+  const data = await readStore();
+  return data.articles
+    .filter((article) => article.publishedStatus === "published")
+    .sort((a, b) => (b.publishedAt ?? b.createdAt).localeCompare(a.publishedAt ?? a.createdAt));
+}
+
+export async function listPublishedEntities() {
+  const data = await readStore();
+  return data.entities
+    .filter((entity) => entity.publishedStatus === "published")
+    .sort((a, b) => (b.updatedAt ?? "").localeCompare(a.updatedAt ?? ""));
 }
 
 export function isPublishable(entity: ResearchEntity) {
