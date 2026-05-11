@@ -15,6 +15,10 @@ import type { ResearchEntity } from "@/lib/types";
 
 const storeKey =
   process.env.DEEPTECHLY_RESEARCH_STORE_KEY ?? "deeptechly:research-store:v1";
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.replace(/\/$/, "") ?? null;
+const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY ?? null;
+const supabaseStoreTable =
+  process.env.SUPABASE_RESEARCH_STORE_TABLE ?? "deeptechly_research_store";
 const redisRestUrl =
   process.env.UPSTASH_REDIS_REST_URL ?? process.env.KV_REST_API_URL ?? null;
 const redisRestToken =
@@ -47,6 +51,81 @@ function getMemoryStore() {
   return globalThis.__deeptechlyResearchStore;
 }
 
+function normalizeStoreData(data: Partial<ResearchStoreData> | null | undefined) {
+  return {
+    ...structuredClone(initialStore),
+    ...(data ?? {}),
+    jobs: data?.jobs ?? [],
+    entities: data?.entities ?? [],
+    articles: data?.articles ?? [],
+    dossiers: data?.dossiers ?? [],
+    searchEvents: data?.searchEvents ?? []
+  } satisfies ResearchStoreData;
+}
+
+function hasSupabaseStore() {
+  return Boolean(supabaseUrl && supabaseServiceRoleKey);
+}
+
+function supabaseHeaders() {
+  return {
+    apikey: supabaseServiceRoleKey!,
+    authorization: `Bearer ${supabaseServiceRoleKey}`,
+    "content-type": "application/json"
+  };
+}
+
+async function readSupabaseStore() {
+  if (!hasSupabaseStore()) {
+    return structuredClone(initialStore);
+  }
+
+  const response = await fetch(
+    `${supabaseUrl}/rest/v1/${supabaseStoreTable}?id=eq.${encodeURIComponent(
+      storeKey
+    )}&select=data`,
+    {
+      headers: supabaseHeaders(),
+      cache: "no-store"
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error(`Research Supabase read failed: ${response.status}`);
+  }
+
+  const rows = (await response.json()) as { data?: ResearchStoreData | null }[];
+  return normalizeStoreData(rows[0]?.data);
+}
+
+async function writeSupabaseStore(data: ResearchStoreData) {
+  if (!hasSupabaseStore()) {
+    return false;
+  }
+
+  const response = await fetch(
+    `${supabaseUrl}/rest/v1/${supabaseStoreTable}?on_conflict=id`,
+    {
+      method: "POST",
+      headers: {
+        ...supabaseHeaders(),
+        prefer: "resolution=merge-duplicates,return=minimal"
+      },
+      body: JSON.stringify({
+        id: storeKey,
+        data: normalizeStoreData(data),
+        updated_at: new Date().toISOString()
+      })
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error(`Research Supabase write failed: ${response.status}`);
+  }
+
+  return true;
+}
+
 function hasRedisStore() {
   return Boolean(redisRestUrl && redisRestToken);
 }
@@ -76,10 +155,10 @@ async function readRedisStore() {
   }
 
   if (typeof body.result === "string") {
-    return { ...structuredClone(initialStore), ...JSON.parse(body.result) } as ResearchStoreData;
+    return normalizeStoreData(JSON.parse(body.result) as ResearchStoreData);
   }
 
-  return { ...structuredClone(initialStore), ...body.result };
+  return normalizeStoreData(body.result);
 }
 
 async function writeRedisStore(data: ResearchStoreData) {
@@ -212,9 +291,21 @@ export function stageMessage(stage: ResearchStage, domain?: string | null) {
 }
 
 export async function readStore(): Promise<ResearchStoreData> {
+  if (hasSupabaseStore()) {
+    try {
+      const data = await readSupabaseStore();
+      globalThis.__deeptechlyResearchStore = data;
+      return data;
+    } catch (error) {
+      console.error("Supabase research store unavailable", error);
+    }
+  }
+
   if (hasRedisStore()) {
     try {
-      return await readRedisStore();
+      const data = await readRedisStore();
+      globalThis.__deeptechlyResearchStore = data;
+      return data;
     } catch (error) {
       console.error("Persistent research store unavailable", error);
     }
@@ -224,16 +315,29 @@ export async function readStore(): Promise<ResearchStoreData> {
 }
 
 export async function writeStore(data: ResearchStoreData) {
+  const normalizedData = normalizeStoreData(data);
+
+  if (hasSupabaseStore()) {
+    try {
+      await writeSupabaseStore(normalizedData);
+      globalThis.__deeptechlyResearchStore = normalizedData;
+      return;
+    } catch (error) {
+      console.error("Supabase research store unavailable", error);
+    }
+  }
+
   if (hasRedisStore()) {
     try {
-      await writeRedisStore(data);
+      await writeRedisStore(normalizedData);
+      globalThis.__deeptechlyResearchStore = normalizedData;
       return;
     } catch (error) {
       console.error("Persistent research store unavailable", error);
     }
   }
 
-  globalThis.__deeptechlyResearchStore = data;
+  globalThis.__deeptechlyResearchStore = normalizedData;
 }
 
 export function slugify(value: string) {
