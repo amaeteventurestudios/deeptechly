@@ -18,6 +18,10 @@ const nextConfig = {
       {
         source: "/startup/:slug.md",
         destination: "/api/markdown/startup/:slug"
+      },
+      {
+        source: "/dossier/:slug.md",
+        destination: "/api/markdown/dossier/:slug"
       }
     ];
   }

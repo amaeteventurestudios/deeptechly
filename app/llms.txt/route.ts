@@ -12,6 +12,10 @@ export async function GET() {
     .slice(0, 12)
     .map((entity) => `- ${entity.name}: /startup/${entity.slug}`)
     .join("\n");
+  const dossiers = entities
+    .slice(0, 12)
+    .map((entity) => `- ${entity.name}: /dossier/${entity.slug}`)
+    .join("\n");
 
   const body = `# DeepTechly
 
@@ -21,8 +25,13 @@ DeepTechly is an independent, AI-native research and intelligence platform for d
 
 - Homepage: /
 - Articles: /articles
-- Research profiles: /explore
+- Research profiles: /startups
+- Legacy profile archive: /explore
 - Research queue: /research
+- Sectors: /sectors
+- Patent intelligence: /patents
+- Pricing: /pricing
+- Expanded LLM guide: /llms-full.txt
 - XML sitemap: /sitemap.xml
 
 ## Recent Articles
@@ -33,12 +42,17 @@ ${articles}
 
 ${profiles}
 
+## Public Dossiers
+
+${dossiers}
+
 ## Markdown Routes
 
 Where supported, append .md to public research URLs:
 
 - /article/<slug>.md
 - /startup/<slug>.md
+- /dossier/<slug>.md
 
 ## Research Policy
 

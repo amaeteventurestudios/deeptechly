@@ -740,7 +740,7 @@ export async function generateResearchOutput({
       authorPersona: articlePersona,
       publishedAt: now,
       heroImage,
-      dossierUrl: `/startup/${slug}`,
+      dossierUrl: `/dossier/${slug}`,
       visualLabel: facts.sector.toUpperCase(),
       visualCaption: `${facts.name} extracted source visual`,
       sections,

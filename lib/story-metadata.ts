@@ -487,7 +487,7 @@ export function storyFromEntity(entity: ResearchEntity): StoryCardData {
     confidenceScore: entity.confidenceScore,
     articleUrl: `/article/${entity.slug}`,
     profileUrl: `/startup/${entity.slug}`,
-    dossierUrl: `/startup/${entity.slug}`,
+    dossierUrl: `/dossier/${entity.slug}`,
     heroImage: entity.heroImage ?? entity.article.heroImage ?? null,
     isGenerated: entity.stage === "Generated research"
   };
@@ -529,8 +529,8 @@ export function storyFromJob(job: ResearchJob): StoryCardData | null {
     sourceCount: job.feed?.sourceCount ?? job.sourceCount,
     confidenceScore: job.feed?.confidenceScore,
     articleUrl: job.articleUrl ?? `/article/${slug}`,
-    profileUrl: job.profileUrl ?? job.dossierUrl ?? `/startup/${slug}`,
-    dossierUrl: job.dossierUrl ?? `/startup/${slug}`,
+    profileUrl: job.profileUrl ?? `/startup/${slug}`,
+    dossierUrl: job.dossierUrl ?? `/dossier/${slug}`,
     heroImage: job.feed?.heroImage ?? null,
     isGenerated: true
   };

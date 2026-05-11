@@ -14,7 +14,7 @@ ${entity.article.dek}
 Entity: ${entity.name}
 Sector: ${entity.sector}
 Confidence: ${entity.confidenceLabel} (${entity.confidenceScore}/100)
-Research dossier: /startup/${entity.slug}
+Research dossier: /dossier/${entity.slug}
 
 ${entity.article.sections
   .map(
@@ -42,22 +42,47 @@ Region: ${entity.region}
 Stage: ${entity.stage}
 Confidence: ${entity.confidenceLabel} (${entity.confidenceScore}/100)
 Article: /article/${entity.slug}
+Dossier: /dossier/${entity.slug}
 
-## Executive Summary
+## Snapshot
 
-${entity.dossier.executiveSummary.join("\n\n")}
+- Entity type: ${entity.snapshot.entityType}
+- Primary sector: ${entity.snapshot.primarySector}
+- Region: ${entity.snapshot.region}
+- Stage: ${entity.snapshot.stage}
+- Source count: ${entity.snapshot.sourceCount}
+- Confidence: ${entity.snapshot.confidence}
 
-## Company Overview
+## Overview
 
 ${entity.dossier.companyOverview.join("\n\n")}
 
-## Product and Technology
+## Technical Summary
 
 ${entity.dossier.productAndTechnology.join("\n\n")}
 
-## Market Research
+## Market Position
 
 ${entity.dossier.marketResearch.join("\n\n")}
+
+## Competitive Landscape
+
+${entity.dossier.competitiveLandscape
+  .map(
+    (item) =>
+      `- ${item.companyOrApproach}: ${item.category}. Strength: ${item.strength}. Constraint: ${item.constraint}. Relevance: ${item.relevance}.`
+  )
+  .join("\n")}
+
+## Technology Tags
+
+${Array.from(new Set([entity.sector, ...entity.secondarySectors, ...entity.tags, ...(entity.sectorTags ?? [])]))
+  .map((tag) => `- ${tag}`)
+  .join("\n")}
+
+## Confidence Score
+
+${entity.confidenceScore}/100 — ${entity.confidenceLabel}
 
 ## Accuracy and Confidence
 
@@ -70,12 +95,85 @@ ${entity.dossier.accuracyAndConfidence.inferred.map((item) => `- ${item}`).join(
 Unverified:
 ${entity.dossier.accuracyAndConfidence.unverified.map((item) => `- ${item}`).join("\n")}
 
-## Strategic Outlook
+## Sources
 
-${entity.dossier.strategicOutlook.join("\n\n")}
+${sourceList(entity.sources)}
+
+## Related Pages
+
+- Article: /article/${entity.slug}
+- Dossier: /dossier/${entity.slug}
+`;
+}
+
+export function dossierMarkdown(entity: ResearchEntity) {
+  const competitiveLandscape = entity.dossier.competitiveLandscape
+    .map(
+      (item) =>
+        `- ${item.companyOrApproach}: ${item.category}. Strength: ${item.strength}. Constraint: ${item.constraint}. Relevance: ${item.relevance}.`
+    )
+    .join("\n");
+
+  return `# ${entity.name} Public Research Dossier
+
+${entity.summary}
+
+Entity type: ${entity.entityType}
+Primary sector: ${entity.sector}
+Region: ${entity.region}
+Confidence: ${entity.confidenceLabel} (${entity.confidenceScore}/100)
+Article: /article/${entity.slug}
+Profile: /startup/${entity.slug}
+
+## Executive Summary
+
+${entity.dossier.executiveSummary.join("\n\n")}
+
+## Overview
+
+${entity.dossier.companyOverview.join("\n\n")}
+
+## Key Facts
+
+- Source count: ${entity.sourceCount}
+- Research status: ${entity.snapshot.researchStatus}
+- Stage: ${entity.stage}
+- Secondary sectors: ${entity.secondarySectors.join(", ")}
+
+## Technical Summary
+
+${entity.dossier.productAndTechnology.join("\n\n")}
+
+## Market Position
+
+${entity.dossier.marketResearch.join("\n\n")}
+
+## Competitive Landscape
+
+${competitiveLandscape}
+
+## Confidence
+
+Label: ${entity.dossier.accuracyAndConfidence.label}
+
+Confirmed:
+${entity.dossier.accuracyAndConfidence.confirmed.map((item) => `- ${item}`).join("\n")}
+
+Inferred:
+${entity.dossier.accuracyAndConfidence.inferred.map((item) => `- ${item}`).join("\n")}
+
+Unverified:
+${entity.dossier.accuracyAndConfidence.unverified.map((item) => `- ${item}`).join("\n")}
 
 ## Sources
 
 ${sourceList(entity.dossier.sources)}
+
+## Related Pages
+
+- Article: /article/${entity.slug}
+- Article markdown: /article/${entity.slug}.md
+- Public profile: /startup/${entity.slug}
+- Public profile markdown: /startup/${entity.slug}.md
 `;
 }

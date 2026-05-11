@@ -29,7 +29,10 @@ export function SiteFooter() {
                 <Link href="/news">News</Link>
               </li>
               <li>
-                <Link href="/explore">Explore</Link>
+                <Link href="/startups">Startups</Link>
+              </li>
+              <li>
+                <Link href="/patents">Patent Intelligence</Link>
               </li>
               <li>
                 <Link href="/research">Research</Link>
@@ -55,6 +58,9 @@ export function SiteFooter() {
             <ul className="space-y-2 text-xs uppercase tracking-[0.14em] text-white/72">
               <li>
                 <Link href="/join">Institutional Access</Link>
+              </li>
+              <li>
+                <Link href="/pricing">Pricing</Link>
               </li>
               <li>
                 <Link href="/methodology">Methodology</Link>
@@ -95,6 +101,10 @@ function AiReadableFooterStrip() {
           or{" "}
           <code className="bg-white px-1 py-0.5 text-xs text-ink">
             /startup/&lt;slug&gt;.md
+          </code>{" "}
+          or{" "}
+          <code className="bg-white px-1 py-0.5 text-xs text-ink">
+            /dossier/&lt;slug&gt;.md
           </code>
           .
         </p>
@@ -105,12 +115,20 @@ function AiReadableFooterStrip() {
             Articles
           </Link>{" "}
           ·{" "}
-          <Link href="/explore" className="text-deepOrange underline underline-offset-2">
+          <Link href="/startups" className="text-deepOrange underline underline-offset-2">
             Research profiles
+          </Link>{" "}
+          ·{" "}
+          <Link href="/patents" className="text-deepOrange underline underline-offset-2">
+            Patent Intelligence
           </Link>{" "}
           ·{" "}
           <Link href="/llms.txt" className="text-deepOrange underline underline-offset-2">
             llms.txt
+          </Link>{" "}
+          ·{" "}
+          <Link href="/llms-full.txt" className="text-deepOrange underline underline-offset-2">
+            llms-full.txt
           </Link>{" "}
           ·{" "}
           <Link href="/sitemap.xml" className="text-deepOrange underline underline-offset-2">

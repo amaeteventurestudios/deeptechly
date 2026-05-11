@@ -7,17 +7,27 @@ export async function GET() {
   const entities = await getPublishedEntities();
   const staticRoutes = [
     "/",
+    "/news",
     "/articles",
+    "/startups",
     "/explore",
     "/research",
+    "/sectors",
+    "/patents",
+    "/pricing",
+    "/join",
+    "/methodology",
     "/llms.txt",
+    "/llms-full.txt",
     "/sitemap.xml"
   ];
   const entityRoutes = entities.flatMap((entity) => [
     `/article/${entity.slug}`,
     `/article/${entity.slug}.md`,
     `/startup/${entity.slug}`,
-    `/startup/${entity.slug}.md`
+    `/startup/${entity.slug}.md`,
+    `/dossier/${entity.slug}`,
+    `/dossier/${entity.slug}.md`
   ]);
   const urls = [...staticRoutes, ...entityRoutes]
     .map(

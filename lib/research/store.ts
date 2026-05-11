@@ -620,7 +620,7 @@ export async function saveResearchOutput(jobId: string, output: ResearchOutput) 
       dossierId: dossier.id,
       articleUrl: `/article/${entity.slug}`,
       profileUrl: `/startup/${entity.slug}`,
-      dossierUrl: `/startup/${entity.slug}`,
+      dossierUrl: `/dossier/${entity.slug}`,
       feed: {
         slug: entity.slug,
         entityName: entity.name,

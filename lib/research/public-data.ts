@@ -50,7 +50,7 @@ const seedAsPublished = (entity: ResearchEntity): ResearchEntity => {
       entitySlug: entity.slug,
       authorPersona,
       publishedAt: entity.article.publishedAt ?? "2026-05-10T12:00:00.000Z",
-      dossierUrl: `/startup/${entity.slug}`,
+      dossierUrl: `/dossier/${entity.slug}`,
       publishedStatus: "published",
       tags: entity.tags,
       sectorTags,

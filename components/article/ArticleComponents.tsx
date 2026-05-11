@@ -115,15 +115,15 @@ export function InlineResearchStatus({ entity }: { entity: ResearchEntity }) {
         <div className="mt-2 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h2 className="text-lg font-black leading-tight">
-              Read the full profile on {entity.name}
+              Open the full dossier on {entity.name}
             </h2>
             <p className="mt-1 text-sm leading-6 text-charcoal">
-              Research dossier available, public snapshot and institutional
-              sections included.
+              Public profile and institutional diligence sections are available
+              from the dossier.
             </p>
           </div>
           <Link
-            href={`/startup/${entity.slug}`}
+            href={`/dossier/${entity.slug}`}
             className="inline-flex shrink-0 items-center justify-center gap-2 border border-black bg-deepOrange px-4 py-2 text-[11px] font-black uppercase tracking-[0.14em] shadow-hard"
           >
             Open Dossier
@@ -211,7 +211,7 @@ export function DossierCTA({ entity }: { entity: ResearchEntity }) {
     <section className="w-full bg-paper">
       <div className="mx-auto max-w-3xl px-4 py-6 sm:px-6 lg:px-8">
         <Link
-          href={`/startup/${entity.slug}`}
+          href={`/dossier/${entity.slug}`}
           className="block border border-black bg-ink text-white shadow-hardLg"
         >
           <div className="grid gap-6 p-5 sm:grid-cols-[1fr_auto] sm:p-7">
@@ -269,7 +269,7 @@ export function ShareResearchCard({ entity }: { entity: ResearchEntity }) {
             </p>
           </div>
           <Link
-            href={`/startup/${entity.slug}`}
+            href={`/dossier/${entity.slug}`}
             className="mt-5 inline-flex items-center justify-center gap-2 border border-black bg-deepOrange px-4 py-3 text-[11px] font-black uppercase tracking-[0.14em] shadow-hard sm:mt-0"
           >
             <Send size={14} />

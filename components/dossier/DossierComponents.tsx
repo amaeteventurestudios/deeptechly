@@ -5,6 +5,7 @@ import {
   ArrowRight,
   BarChart3,
   Lock,
+  FileText,
   Star,
   ExternalLink as ExternalLinkIcon
 } from "lucide-react";
@@ -130,6 +131,13 @@ export function DossierHero({ entity }: { entity: ResearchEntity }) {
                   Read Article
                   <ArrowRight size={13} />
                 </Link>
+                <Link
+                  href={`/startup/${entity.slug}`}
+                  className="inline-flex items-center justify-center gap-2 border border-black bg-white px-3 py-2 text-[10px] font-black uppercase tracking-[0.14em] text-ink"
+                >
+                  Public Profile
+                  <ArrowRight size={13} />
+                </Link>
               </div>
             </div>
           </div>
@@ -252,6 +260,22 @@ export function CompanyOverviewSection({ entity }: { entity: ResearchEntity }) {
   );
 }
 
+export function OverviewSection({ entity }: { entity: ResearchEntity }) {
+  return (
+    <SectionFrame title="Overview">
+      <TextList items={entity.dossier.companyOverview} />
+    </SectionFrame>
+  );
+}
+
+export function TechnicalSummarySection({ entity }: { entity: ResearchEntity }) {
+  return (
+    <SectionFrame title="Technical summary">
+      <TextList items={entity.dossier.productAndTechnology} />
+    </SectionFrame>
+  );
+}
+
 export function ProductTechnologySection({ entity }: { entity: ResearchEntity }) {
   const facts = entity.dossier.productTechnologyFacts;
   return (
@@ -282,6 +306,40 @@ export function ProductTechnologySection({ entity }: { entity: ResearchEntity })
 export function MarketResearchSection({ entity }: { entity: ResearchEntity }) {
   return (
     <SectionFrame title="Market research">
+      <div className="space-y-5">
+        <TextList items={entity.dossier.marketResearch} />
+        <div className="scrollbar-thin overflow-x-auto border border-black bg-white shadow-hard">
+          <table className="w-full min-w-[680px] border-collapse text-left text-sm">
+            <thead className="bg-ink text-white">
+              <tr>
+                <th className="border border-black px-3 py-2">Customer Segment</th>
+                <th className="border border-black px-3 py-2">Need</th>
+                <th className="border border-black px-3 py-2">Adoption Constraint</th>
+              </tr>
+            </thead>
+            <tbody>
+              {entity.dossier.customerSegments.map((row) => (
+                <tr key={row.customerSegment}>
+                  <td className="border border-black px-3 py-3 font-black">
+                    {row.customerSegment}
+                  </td>
+                  <td className="border border-black px-3 py-3">{row.need}</td>
+                  <td className="border border-black px-3 py-3">
+                    {row.adoptionConstraint}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </SectionFrame>
+  );
+}
+
+export function MarketPositionSection({ entity }: { entity: ResearchEntity }) {
+  return (
+    <SectionFrame title="Market position">
       <div className="space-y-5">
         <TextList items={entity.dossier.marketResearch} />
         <div className="scrollbar-thin overflow-x-auto border border-black bg-white shadow-hard">
@@ -445,6 +503,14 @@ export function DataSnapshotPanel({ entity }: { entity: ResearchEntity }) {
         <RiskRadarChart entity={entity} />
         <SectorActivityChart entity={entity} />
       </div>
+    </SectionFrame>
+  );
+}
+
+export function ConfidenceScorePanel({ entity }: { entity: ResearchEntity }) {
+  return (
+    <SectionFrame title="Confidence score">
+      <ConfidenceScoreCard entity={entity} />
     </SectionFrame>
   );
 }
@@ -651,11 +717,190 @@ export function MembersOnlyBlock({
             <ArrowRight size={14} />
           </Link>
           <p className="mt-4 text-xs leading-5 text-muted">
-            Institutional access includes founder analysis, investor read,
-            revenue scenarios, traction signals, and commercialization risk
+            Institutional access includes technical stack, patent position,
+            readiness analysis, revenue scenarios, and commercialization risk
             modeling.
           </p>
         </div>
+      </div>
+    </section>
+  );
+}
+
+const institutionalLockedSections = [
+  {
+    title: "Technology Stack",
+    items: [
+      "Architecture layers",
+      "Critical hardware and software dependencies",
+      "Validation artifacts",
+      "System integration assumptions",
+      "Technical diligence questions"
+    ]
+  },
+  {
+    title: "White-Space Analysis",
+    items: [
+      "Underserved technical markets",
+      "Buyer pain points",
+      "Category formation signals",
+      "Adjacent capability gaps",
+      "No-dominant-player areas"
+    ]
+  },
+  {
+    title: "Government Relevance",
+    items: [
+      "Agency mapping",
+      "Dual-use relevance",
+      "Program-fit hypotheses",
+      "Public award signals",
+      "Procurement pathway questions"
+    ]
+  },
+  {
+    title: "Patent Position",
+    items: [
+      "Known and related patents",
+      "Research lineage",
+      "Licensing opportunities",
+      "Freedom-to-operate unknowns",
+      "IP diligence questions"
+    ]
+  },
+  {
+    title: "TRL / MRL Analysis",
+    items: [
+      "Estimated readiness ranges",
+      "Evidence required to adjust readiness",
+      "Manufacturing maturity assumptions",
+      "Certification and qualification gaps",
+      "Deployment proof points"
+    ]
+  },
+  {
+    title: "Manufacturing Constraints",
+    items: [
+      "Critical process steps",
+      "Yield and scale-up risks",
+      "Supplier concentration",
+      "Qualification requirements",
+      "Industrialization milestones"
+    ]
+  },
+  {
+    title: "Deployment Constraints",
+    items: [
+      "Field environment requirements",
+      "Integration dependencies",
+      "Reliability thresholds",
+      "Customer adoption blockers",
+      "Operational support needs"
+    ]
+  },
+  {
+    title: "Supply Chain Dependencies",
+    items: [
+      "Specialized components",
+      "Materials availability",
+      "Supplier qualification",
+      "Geographic concentration",
+      "Substitution options"
+    ]
+  },
+  {
+    title: "Revenue Scenarios",
+    items: [
+      "Conservative path",
+      "Base-case path",
+      "Aggressive path",
+      "Margin assumptions",
+      "Pricing evidence needed"
+    ]
+  },
+  {
+    title: "Commercialization Scenarios",
+    items: [
+      "Direct sales",
+      "Government pilot route",
+      "OEM integration",
+      "Strategic partnership",
+      "Licensing path"
+    ]
+  },
+  {
+    title: "Risk Modeling",
+    items: [
+      "Technical risk",
+      "Manufacturing risk",
+      "Regulatory risk",
+      "Deployment risk",
+      "Market adoption risk"
+    ]
+  },
+  {
+    title: "Capital Intensity",
+    items: [
+      "Facilities requirements",
+      "Certification cost",
+      "Working capital needs",
+      "Scale-up financing",
+      "Infrastructure leverage"
+    ]
+  },
+  {
+    title: "Regulatory Complexity",
+    items: [
+      "Certification exposure",
+      "Export-control review",
+      "Safety obligations",
+      "Government customer constraints",
+      "Compliance diligence"
+    ]
+  },
+  {
+    title: "Acquisition Potential",
+    items: [
+      "Strategic buyer categories",
+      "Capability adjacency",
+      "Integration fit",
+      "Timing signals",
+      "Exit-risk constraints"
+    ]
+  },
+  {
+    title: "Strategic Outlook",
+    items: [
+      "Milestones to watch",
+      "Market timing",
+      "Partnership paths",
+      "Technical validation needs",
+      "Institutional diligence read"
+    ]
+  }
+];
+
+export function InstitutionalDossierSections() {
+  return (
+    <section className="border-t border-black/20 py-8">
+      <div className="mb-5 flex items-center gap-3">
+        <span className="flex h-9 w-9 items-center justify-center border border-black bg-deepOrange">
+          <FileText size={17} />
+        </span>
+        <div>
+          <p className={labelClass}>Institutional Layer</p>
+          <h2 className="text-3xl font-black leading-tight">Locked diligence sections</h2>
+        </div>
+      </div>
+      <div className="space-y-5">
+        {institutionalLockedSections.map((section) => (
+          <MembersOnlyBlock
+            key={section.title}
+            title={section.title}
+            items={section.items}
+            intro={`${section.title} is part of the institutional dossier. The preview below names the diligence areas without exposing the gated analysis.`}
+          />
+        ))}
       </div>
     </section>
   );
