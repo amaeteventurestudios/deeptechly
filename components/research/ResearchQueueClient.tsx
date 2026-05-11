@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { ArrowRight, RefreshCw } from "lucide-react";
 import { ResearchSubmitForm } from "./ResearchSubmitForm";
 import type { ResearchJob } from "@/lib/research/types";
@@ -39,13 +39,16 @@ export function ResearchQueueClient({ initialJobId }: { initialJobId?: string })
     };
   }, [loadJobs]);
 
-  const activeJob = useMemo(() => {
-    if (initialJobId) {
-      return jobs.find((job) => job.id === initialJobId) ?? jobs[0];
-    }
-
-    return jobs[0];
-  }, [initialJobId, jobs]);
+  const activeJobs = jobs
+    .filter((job) => job.stage !== "done" && job.stage !== "failed")
+    .sort((a, b) => {
+      if (a.id === initialJobId) return -1;
+      if (b.id === initialJobId) return 1;
+      return b.createdAt.localeCompare(a.createdAt);
+    });
+  const completedJobs = jobs
+    .filter((job) => job.stage === "done" || job.stage === "failed")
+    .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
 
   return (
     <div className="space-y-8">
@@ -93,13 +96,25 @@ export function ResearchQueueClient({ initialJobId }: { initialJobId?: string })
             </p>
           </div>
         ) : (
-          <div className="grid gap-5 lg:grid-cols-[1fr_1.2fr]">
-            <div className="space-y-4">
-              {jobs.map((job) => (
-                <JobCard key={job.id} job={job} isActive={job.id === activeJob?.id} />
-              ))}
-            </div>
-            {activeJob ? <JobDetail job={activeJob} /> : null}
+          <div className="space-y-7">
+            {activeJobs.length > 0 ? (
+              <div className="space-y-4">
+                {activeJobs.map((job) => (
+                  <JobCard key={job.id} job={job} />
+                ))}
+              </div>
+            ) : null}
+
+            {completedJobs.length > 0 ? (
+              <div className="space-y-4">
+                <p className="border-b border-black pb-2 text-[10px] font-black uppercase tracking-[0.2em] text-muted">
+                  Completed Research
+                </p>
+                {completedJobs.map((job) => (
+                  <JobCard key={job.id} job={job} />
+                ))}
+              </div>
+            ) : null}
           </div>
         )}
       </section>
@@ -107,11 +122,27 @@ export function ResearchQueueClient({ initialJobId }: { initialJobId?: string })
   );
 }
 
-function JobCard({ job, isActive }: { job: ResearchJob; isActive: boolean }) {
+function elapsedLabel(dateValue: string) {
+  const elapsedSeconds = Math.max(
+    0,
+    Math.round((Date.now() - new Date(dateValue).getTime()) / 1000)
+  );
+
+  if (elapsedSeconds < 60) return "JUST NOW";
+  const elapsedMinutes = Math.round(elapsedSeconds / 60);
+  if (elapsedMinutes < 60) return `${elapsedMinutes}M AGO`;
+  const elapsedHours = Math.round(elapsedMinutes / 60);
+  if (elapsedHours < 24) return `${elapsedHours}H AGO`;
+  return `${Math.round(elapsedHours / 24)}D AGO`;
+}
+
+function JobCard({ job }: { job: ResearchJob }) {
+  const terminal = job.stage === "done" || job.stage === "failed";
+
   return (
     <article
-      className={`border border-black bg-white p-4 shadow-hard ${
-        isActive ? "border-l-4 border-l-deepOrange" : ""
+      className={`border border-l-4 border-black border-l-deepOrange p-4 shadow-hard ${
+        terminal ? "bg-offWhite" : "bg-white"
       }`}
     >
       <div className="flex items-start justify-between gap-3">
@@ -128,6 +159,9 @@ function JobCard({ job, isActive }: { job: ResearchJob; isActive: boolean }) {
       </div>
       <p className="mt-3 text-sm font-black">{job.message}</p>
       <p className="mt-1 text-xs leading-5 text-muted">{job.detail}</p>
+      <p className="mt-3 text-[10px] font-black uppercase tracking-[0.16em] text-muted">
+        {job.statusLabel} · {elapsedLabel(job.createdAt)}
+      </p>
       {job.stage === "done" ? (
         <div className="mt-4 flex flex-wrap gap-2">
           {job.profileUrl ? (
@@ -151,42 +185,5 @@ function JobCard({ job, isActive }: { job: ResearchJob; isActive: boolean }) {
         </div>
       ) : null}
     </article>
-  );
-}
-
-function JobDetail({ job }: { job: ResearchJob }) {
-  const rows = [
-    ["Job ID", job.id],
-    ["Stage", job.stage],
-    ["Sources", String(job.sourceCount)],
-    ["Created", new Date(job.createdAt).toLocaleString()],
-    ["Updated", new Date(job.updatedAt).toLocaleString()]
-  ];
-
-  return (
-    <aside className="border border-black bg-offWhite p-4 shadow-hard">
-      <p className="text-[10px] font-black uppercase tracking-[0.22em] text-deepOrange">
-        Current Job
-      </p>
-      <h3 className="mt-2 text-2xl font-black leading-tight">{job.query}</h3>
-      <div className="mt-5 space-y-3">
-        {rows.map(([label, value]) => (
-          <div key={label} className="border border-black bg-white p-3">
-            <p className="text-[10px] font-black uppercase tracking-[0.16em] text-muted">
-              {label}
-            </p>
-            <p className="mt-1 break-words text-sm font-bold">{value}</p>
-          </div>
-        ))}
-      </div>
-      {job.error ? (
-        <div className="mt-4 border border-black bg-white p-3">
-          <p className="text-[10px] font-black uppercase tracking-[0.16em] text-darkOrange">
-            Error
-          </p>
-          <p className="mt-1 text-sm font-bold">{job.error}</p>
-        </div>
-      ) : null}
-    </aside>
   );
 }
