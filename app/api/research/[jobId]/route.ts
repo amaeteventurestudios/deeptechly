@@ -1,5 +1,9 @@
 import { NextResponse } from "next/server";
-import { getResearchJob } from "@/lib/research/store";
+import {
+  cancelResearchJob,
+  getResearchJob,
+  removeResearchJob
+} from "@/lib/research/store";
 
 export const dynamic = "force-dynamic";
 
@@ -29,6 +33,10 @@ export async function GET(_request: Request, { params }: RouteProps) {
       progress: job.progress,
       message: job.message,
       detail: job.detail,
+      resolvedDomain: job.resolvedDomain ?? null,
+      resolvedName: job.resolvedName ?? null,
+      resolutionStatus: job.resolutionStatus ?? null,
+      publicResearchReadyAt: job.publicResearchReadyAt ?? null,
       sourceCount: job.sourceCount,
       elapsedSeconds,
       articleUrl: job.articleUrl,
@@ -40,6 +48,47 @@ export async function GET(_request: Request, { params }: RouteProps) {
       completedAt: job.completedAt,
       error: job.error
     });
+  } catch (error) {
+    console.error("Research service unavailable", error);
+    return NextResponse.json(
+      { error: "Research service unavailable" },
+      { status: 500 }
+    );
+  }
+}
+
+export async function PATCH(request: Request, { params }: RouteProps) {
+  try {
+    const { jobId } = await params;
+    const body = (await request.json().catch(() => ({}))) as {
+      action?: "cancel";
+    };
+
+    if (body.action !== "cancel") {
+      return NextResponse.json({ error: "Unsupported action" }, { status: 400 });
+    }
+
+    const job = await cancelResearchJob(jobId);
+
+    if (!job) {
+      return NextResponse.json({ error: "Research job not found" }, { status: 404 });
+    }
+
+    return NextResponse.json({ job });
+  } catch (error) {
+    console.error("Research service unavailable", error);
+    return NextResponse.json(
+      { error: "Research service unavailable" },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(_request: Request, { params }: RouteProps) {
+  try {
+    const { jobId } = await params;
+    await removeResearchJob(jobId);
+    return NextResponse.json({ ok: true });
   } catch (error) {
     console.error("Research service unavailable", error);
     return NextResponse.json(

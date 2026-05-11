@@ -29,7 +29,7 @@ export function SiteFooter() {
                 <Link href="/news">News</Link>
               </li>
               <li>
-                <Link href="/startups">Explore</Link>
+                <Link href="/explore">Explore</Link>
               </li>
               <li>
                 <Link href="/research">Research</Link>

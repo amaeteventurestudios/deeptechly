@@ -15,14 +15,16 @@ export default async function ResearchPage({
       <section className="w-full border-b border-black bg-deepOrange deeptech-texture">
         <div className="mx-auto max-w-5xl px-4 py-12 sm:px-6 lg:px-8">
           <p className="text-[11px] font-black uppercase tracking-[0.28em]">
-            My research queue
+            DeepTechly Research
           </p>
           <h1 className="mt-4 max-w-3xl text-5xl font-black leading-[0.92] sm:text-6xl">
-            Your deep research jobs, source by source.
+            Queue deep-tech research
           </h1>
-          <p className="mt-5 max-w-2xl text-base font-semibold leading-7 text-ink/82">
-            Watch the staged pipeline move from public source collection to
-            generated article, public profile, and investor dossier.
+          <p className="mt-5 max-w-3xl text-base font-semibold leading-7 text-ink/82">
+            Type a company, patent, lab, technology, or government program.
+            DeepTechly will search public sources, distill the facts, verify
+            claims, and generate an institutional-grade profile, feature
+            article, and research dossier.
           </p>
         </div>
       </section>

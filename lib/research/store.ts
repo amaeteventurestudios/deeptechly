@@ -12,6 +12,7 @@ import type {
   StoredResearchArticle
 } from "./types";
 import type { ResearchEntity } from "@/lib/types";
+import { MIN_SOURCE_COUNT_TO_PUBLISH } from "./limits";
 
 const storeKey =
   process.env.DEEPTECHLY_RESEARCH_STORE_KEY ?? "deeptechly:research-store:v1";
@@ -186,26 +187,34 @@ async function writeRedisStore(data: ResearchStoreData) {
 }
 
 export const progressByStage: Record<ResearchStage, number> = {
-  queued: 2,
-  searching_web: 8,
-  reading_homepage: 18,
-  reading_technical_pages: 28,
-  distilling_facts: 38,
-  filling_gaps: 52,
-  verifying_claims: 68,
-  mapping_technology_stack: 76,
-  mapping_government_relevance: 82,
-  estimating_readiness: 88,
-  drafting_outputs: 93,
-  publishing_article: 96,
-  publishing_profile: 98,
-  finalizing_dossier: 99,
+  queued: 3,
+  resolving_entity: 8,
+  finding_official_domain: 12,
+  confirming_company_identity: 16,
+  searching_web: 22,
+  reading_homepage: 30,
+  reading_technical_pages: 40,
+  distilling_facts: 50,
+  filling_gaps: 58,
+  verifying_claims: 66,
+  mapping_technology_stack: 72,
+  mapping_government_relevance: 78,
+  estimating_readiness: 82,
+  drafting_outputs: 88,
+  publishing_article: 92,
+  publishing_profile: 95,
+  finalizing_dossier: 98,
+  public_research_ready: 90,
   done: 100,
-  failed: 100
+  failed: 100,
+  cancelled: 100
 };
 
 const statusLabelByStage: Record<ResearchStage, ResearchJob["statusLabel"]> = {
   queued: "QUEUED",
+  resolving_entity: "SEARCHING",
+  finding_official_domain: "SEARCHING",
+  confirming_company_identity: "SEARCHING",
   searching_web: "SEARCHING",
   reading_homepage: "SEARCHING",
   reading_technical_pages: "SEARCHING",
@@ -219,21 +228,35 @@ const statusLabelByStage: Record<ResearchStage, ResearchJob["statusLabel"]> = {
   publishing_article: "WRITING",
   publishing_profile: "FINALIZING",
   finalizing_dossier: "FINALIZING",
+  public_research_ready: "READY",
   done: "DONE",
-  failed: "FAILED"
+  failed: "FAILED",
+  cancelled: "CANCELLED"
 };
 
 export function stageMessage(stage: ResearchStage, domain?: string | null) {
   const targetDomain = domain ?? "source domain";
   const mapping: Record<ResearchStage, { message: string; detail: string }> = {
-    queued: { message: "Queued", detail: "Research job accepted" },
+    queued: { message: "Queued", detail: "Waiting to begin research" },
+    resolving_entity: {
+      message: "Resolving entity",
+      detail: "Checking whether the submission is a domain, company, lab, patent, or public program"
+    },
+    finding_official_domain: {
+      message: "Finding official domain",
+      detail: "Searching public sources for the most likely official website"
+    },
+    confirming_company_identity: {
+      message: "Confirming company identity",
+      detail: "Comparing source signals before continuing into the research workflow"
+    },
     searching_web: {
       message: "Searching the web",
-      detail: "Collecting public source candidates"
+      detail: "Finding public sources, company pages, articles, and technical references"
     },
     reading_homepage: {
       message: `Reading homepage of ${targetDomain}`,
-      detail: "Extracting title, meta description, images, and important internal links"
+      detail: "Extracting title, metadata, images, and important internal links"
     },
     reading_technical_pages: {
       message: `Reading technical pages from ${targetDomain}`,
@@ -268,8 +291,8 @@ export function stageMessage(stage: ResearchStage, domain?: string | null) {
     },
     drafting_outputs: {
       message:
-        "Drafting article (Nova Mensah), public profile (Axon Reyes), and investor profile (Daxon Pierce) in parallel",
-      detail: "AI analyst personas are preparing public and institutional outputs"
+        "Drafting article, public profile, and investor dossier in parallel",
+      detail: "Axon Reyes, Sable Okoro, and Ilya Stone are preparing public and institutional outputs."
     },
     publishing_article: {
       message: "Article published. Finalizing research dossier",
@@ -283,8 +306,23 @@ export function stageMessage(stage: ResearchStage, domain?: string | null) {
       message: "Finalizing institutional dossier",
       detail: "Attaching sources, confidence labels, scenarios, and locked investor sections"
     },
-    done: { message: "Done", detail: "Research complete" },
-    failed: { message: "Research failed", detail: "The research job could not be completed" }
+    public_research_ready: {
+      message: "Public research ready",
+      detail: "Article and profile are published. Institutional dossier is still finalizing."
+    },
+    done: {
+      message: "Research complete",
+      detail: "Article, profile, and institutional dossier are ready."
+    },
+    failed: {
+      message: "Research failed",
+      detail:
+        "DeepTechly could not identify enough reliable public sources to generate a high-confidence profile."
+    },
+    cancelled: {
+      message: "Cancelled",
+      detail: "This research job was cancelled before publication."
+    }
   };
 
   return mapping[stage];
@@ -375,6 +413,12 @@ export async function createResearchJob(query: string, mode: ResearchMode) {
     detail: copy.detail,
     statusLabel: statusLabelByStage[stage],
     sourceCount: 0,
+    resolvedDomain: null,
+    resolvedName: null,
+    resolutionStatus: null,
+    stageStartedAt: now,
+    publicResearchReadyAt: null,
+    cancellationRequested: false,
     error: null,
     articleId: null,
     entityId: null,
@@ -406,13 +450,22 @@ export async function updateResearchJob(
 
   const nextStage = patch.stage ?? data.jobs[index].stage;
   const copy = patch.stage ? stageMessage(nextStage, data.jobs[index].normalizedQuery) : null;
+  const currentProgress = data.jobs[index].progress;
+  const nextProgress =
+    nextStage === "failed" || nextStage === "cancelled"
+      ? patch.progress ?? currentProgress
+      : Math.max(currentProgress, patch.progress ?? progressByStage[nextStage]);
   const updated: ResearchJob = {
     ...data.jobs[index],
     ...patch,
-    progress: patch.progress ?? progressByStage[nextStage],
+    progress: nextProgress,
     statusLabel: patch.statusLabel ?? statusLabelByStage[nextStage],
     message: patch.message ?? copy?.message ?? data.jobs[index].message,
     detail: patch.detail ?? copy?.detail ?? data.jobs[index].detail,
+    stageStartedAt:
+      patch.stage && patch.stage !== data.jobs[index].stage
+        ? new Date().toISOString()
+        : (patch.stageStartedAt ?? data.jobs[index].stageStartedAt),
     updatedAt: new Date().toISOString()
   };
 
@@ -429,7 +482,8 @@ export async function getResearchJob(id: string) {
 export async function listResearchJobs() {
   const data = await readStore();
   const rank = (job: ResearchJob) => {
-    if (job.stage !== "done" && job.stage !== "failed") return 0;
+    if (isActiveResearchStage(job.stage)) return 0;
+    if (job.stage === "public_research_ready") return 1;
     if (job.stage === "done") return 1;
     return 2;
   };
@@ -495,7 +549,7 @@ export async function listPublishedEntities() {
 
 export function isPublishable(entity: ResearchEntity) {
   return Boolean(
-    entity.sourceCount >= 3 &&
+    entity.sourceCount >= MIN_SOURCE_COUNT_TO_PUBLISH &&
       entity.article.headline &&
       entity.article.sections.length >= 4 &&
       entity.name &&
@@ -596,6 +650,99 @@ export async function saveResearchOutput(jobId: string, output: ResearchOutput) 
 
   await writeStore(data);
   return { entity, article, dossier };
+}
+
+export async function savePublicResearchReady(jobId: string, output: ResearchOutput) {
+  const data = await readStore();
+  const now = new Date().toISOString();
+  const publishStatus: PublishedStatus = output.publishable ? "published" : "draft";
+  const entity = {
+    ...output.entity,
+    publishedStatus: publishStatus,
+    updatedAt: now
+  };
+  const article: StoredResearchArticle = {
+    ...output.article,
+    publishedStatus: publishStatus,
+    publishedAt: output.publishable ? output.article.publishedAt ?? now : null,
+    updatedAt: now
+  };
+
+  data.entities = [
+    entity,
+    ...data.entities.filter((item) => item.slug !== entity.slug)
+  ].slice(0, 100);
+  data.articles = [
+    article,
+    ...data.articles.filter((item) => item.slug !== article.slug)
+  ].slice(0, 100);
+
+  const jobIndex = data.jobs.findIndex((job) => job.id === jobId);
+  if (jobIndex >= 0) {
+    data.jobs[jobIndex] = {
+      ...data.jobs[jobIndex],
+      stage: "public_research_ready",
+      progress: Math.max(data.jobs[jobIndex].progress, progressByStage.public_research_ready),
+      statusLabel: "READY",
+      message: "Public research ready",
+      detail: "Article and profile are published. Institutional dossier is still finalizing.",
+      sourceCount: entity.sourceCount,
+      entityId: entity.id ?? entity.slug,
+      articleId: article.id,
+      articleUrl: `/article/${entity.slug}`,
+      profileUrl: `/startup/${entity.slug}`,
+      dossierUrl: null,
+      publicResearchReadyAt: now,
+      updatedAt: now,
+      feed: {
+        slug: entity.slug,
+        entityName: entity.name,
+        articleTitle: article.title,
+        articleDek: article.dek,
+        summary: entity.summary,
+        sector: entity.sector,
+        confidenceLabel: entity.confidenceLabel,
+        confidenceScore: entity.confidenceScore,
+        sourceCount: entity.sourceCount,
+        heroImage: entity.heroImage ?? article.heroImage ?? null,
+        authorPersona: article.authorPersona,
+        sectorTags: article.sectorTags ?? entity.article.sectorTags ?? entity.sectorTags ?? [],
+        stageTag: article.stageTag ?? entity.article.stageTag ?? entity.stageTag ?? "UNKNOWN",
+        regionTag: article.regionTag ?? entity.article.regionTag ?? entity.regionTag ?? "UNKNOWN",
+        entityTypeTag:
+          article.entityTypeTag ??
+          entity.article.entityTypeTag ??
+          entity.entityTypeTag ??
+          entity.entityType,
+        publishedAt: article.publishedAt ?? now
+      }
+    };
+  }
+
+  await writeStore(data);
+  return { entity, article };
+}
+
+export async function cancelResearchJob(id: string) {
+  const copy = stageMessage("cancelled");
+  return updateResearchJob(id, {
+    stage: "cancelled",
+    statusLabel: "CANCELLED",
+    message: copy.message,
+    detail: copy.detail,
+    cancellationRequested: true,
+    completedAt: new Date().toISOString()
+  });
+}
+
+export async function removeResearchJob(id: string) {
+  const data = await readStore();
+  data.jobs = data.jobs.filter((job) => job.id !== id);
+  await writeStore(data);
+}
+
+export function isActiveResearchStage(stage: ResearchStage) {
+  return !["done", "failed", "cancelled", "public_research_ready"].includes(stage);
 }
 
 export async function recordSearchEvent(jobId: string, query: string, provider: string, resultCount: number) {

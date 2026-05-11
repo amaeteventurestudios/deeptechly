@@ -16,7 +16,7 @@ export function SiteHeader() {
           <Link className="hover:text-deepOrange" href="/news">
             News
           </Link>
-          <Link className="hover:text-deepOrange" href="/startups">
+          <Link className="hover:text-deepOrange" href="/explore">
             Explore
           </Link>
           <Link

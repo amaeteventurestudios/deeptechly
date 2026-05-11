@@ -3,16 +3,13 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { ArrowRight, Star } from "lucide-react";
-import { loadLocalQueueJobs, sortQueueJobs } from "@/components/research/queueStorage";
 import {
   formatByline,
   formatRelativeTime,
   storyFromEntity,
-  storyFromJob,
   storyTags,
   type StoryCardData
 } from "@/lib/story-metadata";
-import type { ResearchJob } from "@/lib/research/types";
 import type { ResearchEntity } from "@/lib/types";
 
 const favoritesKey = "deeptechly_favorites";
@@ -33,22 +30,7 @@ const sectorNav = [
 type FavoriteMap = Record<string, true>;
 
 export function HomeResearchFeed({ entities }: { entities: ResearchEntity[] }) {
-  const [localJobs, setLocalJobs] = useState<ResearchJob[]>(() =>
-    sortQueueJobs(loadLocalQueueJobs())
-  );
   const [favorites, setFavorites] = useState<FavoriteMap>({});
-
-  useEffect(() => {
-    const refreshLocalJobs = () => setLocalJobs(sortQueueJobs(loadLocalQueueJobs()));
-    window.addEventListener("storage", refreshLocalJobs);
-    window.addEventListener("deeptechly-research-queue-updated", refreshLocalJobs);
-    refreshLocalJobs();
-
-    return () => {
-      window.removeEventListener("storage", refreshLocalJobs);
-      window.removeEventListener("deeptechly-research-queue-updated", refreshLocalJobs);
-    };
-  }, []);
 
   useEffect(() => {
     const readFavorites = () => {
@@ -66,21 +48,17 @@ export function HomeResearchFeed({ entities }: { entities: ResearchEntity[] }) {
   }, []);
 
   const stories = useMemo(() => {
-    const localStories = localJobs
-      .filter((job) => job.stage === "done" && (job.feed || job.articleUrl || job.profileUrl))
-      .map(storyFromJob)
-      .filter((story): story is StoryCardData => Boolean(story));
     const serverStories = entities.map(storyFromEntity);
     const seen = new Set<string>();
 
-    return [...localStories, ...serverStories]
+    return serverStories
       .sort((a, b) => b.publishedAt.localeCompare(a.publishedAt))
       .filter((story) => {
         if (seen.has(story.slug)) return false;
         seen.add(story.slug);
         return true;
       });
-  }, [entities, localJobs]);
+  }, [entities]);
 
   const topStories = fillStoryList(stories.slice(0, 5), stories, 5);
   const alsoReading = fillStoryList(stories.slice(5, 10), stories, 5);

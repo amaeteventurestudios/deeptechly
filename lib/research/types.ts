@@ -4,6 +4,9 @@ export type ResearchMode = "company" | "patent" | "lab" | "technology" | "domain
 
 export type ResearchStage =
   | "queued"
+  | "resolving_entity"
+  | "finding_official_domain"
+  | "confirming_company_identity"
   | "searching_web"
   | "reading_homepage"
   | "reading_technical_pages"
@@ -17,8 +20,10 @@ export type ResearchStage =
   | "publishing_article"
   | "publishing_profile"
   | "finalizing_dossier"
+  | "public_research_ready"
   | "done"
-  | "failed";
+  | "failed"
+  | "cancelled";
 
 export type PublishedStatus = "draft" | "published";
 
@@ -38,9 +43,17 @@ export type ResearchJob = {
     | "WRITING"
     | "PUBLISHING"
     | "FINALIZING"
+    | "READY"
     | "DONE"
-    | "FAILED";
+    | "FAILED"
+    | "CANCELLED";
   sourceCount: number;
+  resolvedDomain?: string | null;
+  resolvedName?: string | null;
+  resolutionStatus?: "resolved" | "limited" | null;
+  stageStartedAt?: string;
+  publicResearchReadyAt?: string | null;
+  cancellationRequested?: boolean;
   error: string | null;
   articleId: string | null;
   entityId: string | null;

@@ -243,6 +243,32 @@ const agentByKeyword: [string, string][] = [
 ];
 
 export function selectDeeptechlyAgent(sector?: string | null, signals: string[] = []) {
+  const normalizedSector = (sector ?? "").toLowerCase();
+  if (normalizedSector.includes("semiconductor") || normalizedSector.includes("photonics")) {
+    return "Sable Okoro";
+  }
+  if (normalizedSector.includes("robotics") || normalizedSector.includes("autonomy")) {
+    return "Orin Cross";
+  }
+  if (normalizedSector.includes("energy") || normalizedSector.includes("climate")) {
+    return "Talia Voss";
+  }
+  if (normalizedSector.includes("defense")) {
+    return "Kairo Bell";
+  }
+  if (normalizedSector.includes("space") || normalizedSector.includes("aerospace")) {
+    return "Nyra Vale";
+  }
+  if (normalizedSector.includes("manufacturing")) {
+    return "Maren Holt";
+  }
+  if (normalizedSector.includes("material")) {
+    return "Sable Okoro";
+  }
+  if (normalizedSector.includes("bio") || normalizedSector.includes("health")) {
+    return "Lena Marr";
+  }
+
   const haystack = [sector ?? "", ...signals].join(" ").toLowerCase();
   const match = agentByKeyword.find(([keyword]) => haystack.includes(keyword));
   return match?.[1] ?? "Nova Mensah";

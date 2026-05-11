@@ -3,13 +3,13 @@
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Search } from "lucide-react";
-import { upsertLocalQueueJobs } from "./queueStorage";
-import type { ResearchJob } from "@/lib/research/types";
 
 export function ResearchSubmitForm({
-  compact = false
+  compact = false,
+  onSubmitted
 }: {
   compact?: boolean;
+  onSubmitted?: () => void;
 }) {
   const router = useRouter();
   const [query, setQuery] = useState("");
@@ -21,12 +21,13 @@ export function ResearchSubmitForm({
     const trimmed = query.trim();
 
     if (!trimmed) {
-      setError("Enter a company, domain, patent, lab, or technology.");
+      setError("Enter a company, patent, lab, technology, or government program.");
       return;
     }
 
     setSubmitting(true);
     setError(null);
+    onSubmitted?.();
 
     try {
       const response = await fetch("/api/research", {
@@ -36,16 +37,11 @@ export function ResearchSubmitForm({
       });
       const body = (await response.json()) as {
         jobId?: string;
-        job?: ResearchJob;
         error?: string;
       };
 
       if (!response.ok || !body.jobId) {
         throw new Error(body.error ?? "Research job could not be created.");
-      }
-
-      if (body.job) {
-        upsertLocalQueueJobs([body.job]);
       }
 
       router.push(`/research?jobId=${body.jobId}`);
@@ -72,7 +68,7 @@ export function ResearchSubmitForm({
         <input
           aria-label="Research query"
           className="h-11 min-w-0 flex-1 bg-transparent text-sm font-bold outline-none"
-          placeholder="Type any startup, patent, lab, or technology..."
+          placeholder="e.g. Anduril, NASA SiGe on sapphire, DARPA NOM4D, or openai.com"
           value={query}
           onChange={(event) => setQuery(event.target.value)}
         />
@@ -82,7 +78,7 @@ export function ResearchSubmitForm({
         type="submit"
         disabled={isSubmitting}
       >
-        {isSubmitting ? "Queuing" : "Research"}
+        {isSubmitting ? "Queuing" : "Begin"}
       </button>
       {error ? (
         <p className="px-3 pb-2 text-xs font-bold text-darkOrange sm:basis-full">

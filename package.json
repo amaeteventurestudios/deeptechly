@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "next dev",
     "lint": "eslint .",
-    "build": "next build"
+    "build": "next build",
+    "audit:links": "npx tsx scripts/audit-links.ts"
   },
   "dependencies": {
     "lucide-react": "^0.468.0",
