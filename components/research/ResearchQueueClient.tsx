@@ -203,6 +203,20 @@ export function ResearchQueueClient({ initialJobId }: { initialJobId?: string })
     }
   }, [markInteraction, setServerJobs]);
 
+  const handleJobCreated = useCallback(
+    (job: ResearchJob) => {
+      markInteraction();
+      // Immediately prepend the new job so it appears without waiting for the next poll.
+      setJobs((current) => {
+        const withoutDupe = current.filter((j) => j.id !== job.id);
+        return sortQueueJobs([job, ...withoutDupe]);
+      });
+      // Sync with server state right away so progress begins reflecting.
+      void loadJobs();
+    },
+    [markInteraction, loadJobs]
+  );
+
   useEffect(() => {
     const initial = window.setTimeout(() => {
       void loadJobs();
@@ -304,7 +318,7 @@ export function ResearchQueueClient({ initialJobId }: { initialJobId?: string })
           and research dossier.
         </p>
         <div className="mt-5">
-          <ResearchSubmitForm compact onSubmitted={markInteraction} />
+          <ResearchSubmitForm compact onSubmitted={handleJobCreated} />
         </div>
       </section>
 

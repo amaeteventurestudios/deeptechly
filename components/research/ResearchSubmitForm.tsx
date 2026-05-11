@@ -3,13 +3,14 @@
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Search } from "lucide-react";
+import type { ResearchJob } from "@/lib/research/types";
 
 export function ResearchSubmitForm({
   compact = false,
   onSubmitted
 }: {
   compact?: boolean;
-  onSubmitted?: () => void;
+  onSubmitted?: (job: ResearchJob) => void;
 }) {
   const router = useRouter();
   const [query, setQuery] = useState("");
@@ -27,7 +28,6 @@ export function ResearchSubmitForm({
 
     setSubmitting(true);
     setError(null);
-    onSubmitted?.();
 
     try {
       const response = await fetch("/api/research", {
@@ -37,6 +37,7 @@ export function ResearchSubmitForm({
       });
       const body = (await response.json()) as {
         jobId?: string;
+        job?: ResearchJob;
         error?: string;
       };
 
@@ -44,7 +45,13 @@ export function ResearchSubmitForm({
         throw new Error(body.error ?? "Research job could not be created.");
       }
 
-      router.push(`/research?jobId=${body.jobId}`);
+      setQuery("");
+
+      if (onSubmitted && body.job) {
+        onSubmitted(body.job);
+      } else {
+        router.push(`/research?jobId=${body.jobId}`);
+      }
     } catch (submitError) {
       setError(
         submitError instanceof Error
