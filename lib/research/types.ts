@@ -31,7 +31,15 @@ export type ResearchJob = {
   progress: number;
   message: string;
   detail: string;
-  statusLabel: "QUEUED" | "SEARCHING" | "ANALYZING" | "WRITING" | "PUBLISHING" | "DONE" | "FAILED";
+  statusLabel:
+    | "QUEUED"
+    | "SEARCHING"
+    | "ANALYZING"
+    | "WRITING"
+    | "PUBLISHING"
+    | "FINALIZING"
+    | "DONE"
+    | "FAILED";
   sourceCount: number;
   error: string | null;
   articleId: string | null;
@@ -40,6 +48,19 @@ export type ResearchJob = {
   articleUrl: string | null;
   profileUrl: string | null;
   dossierUrl: string | null;
+  feed?: {
+    slug: string;
+    entityName: string;
+    articleTitle: string;
+    articleDek: string;
+    summary: string;
+    sector: string;
+    confidenceLabel: string;
+    confidenceScore: number;
+    sourceCount: number;
+    heroImage: string | null;
+    publishedAt: string;
+  } | null;
   createdAt: string;
   updatedAt: string;
   completedAt: string | null;

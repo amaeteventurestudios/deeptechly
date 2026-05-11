@@ -35,6 +35,8 @@ declare global {
 // WARNING:
 // In-memory storage is not reliable across Vercel serverless invocations.
 // Use Supabase, Vercel Postgres, Neon, or Upstash for production.
+// Temporary in-memory queue store.
+// Replace with Supabase, Vercel Postgres, Neon, or Upstash for production persistence.
 // Temporary in-memory store for Vercel demo mode.
 // Replace with Supabase/Vercel Postgres before production persistence.
 function getMemoryStore() {
@@ -128,16 +130,16 @@ const statusLabelByStage: Record<ResearchStage, ResearchJob["statusLabel"]> = {
   searching_web: "SEARCHING",
   reading_homepage: "SEARCHING",
   reading_technical_pages: "SEARCHING",
-  distilling_facts: "ANALYZING",
-  filling_gaps: "ANALYZING",
-  verifying_claims: "ANALYZING",
+  distilling_facts: "SEARCHING",
+  filling_gaps: "SEARCHING",
+  verifying_claims: "SEARCHING",
   mapping_technology_stack: "ANALYZING",
   mapping_government_relevance: "ANALYZING",
   estimating_readiness: "ANALYZING",
   drafting_outputs: "WRITING",
-  publishing_article: "PUBLISHING",
-  publishing_profile: "PUBLISHING",
-  finalizing_dossier: "PUBLISHING",
+  publishing_article: "WRITING",
+  publishing_profile: "FINALIZING",
+  finalizing_dossier: "FINALIZING",
   done: "DONE",
   failed: "FAILED"
 };
@@ -276,6 +278,7 @@ export async function createResearchJob(query: string, mode: ResearchMode) {
     articleUrl: null,
     profileUrl: null,
     dossierUrl: null,
+    feed: null,
     createdAt: now,
     updatedAt: now,
     completedAt: null
@@ -321,7 +324,21 @@ export async function getResearchJob(id: string) {
 
 export async function listResearchJobs() {
   const data = await readStore();
-  return data.jobs.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  const rank = (job: ResearchJob) => {
+    if (job.stage !== "done" && job.stage !== "failed") return 0;
+    if (job.stage === "done") return 1;
+    return 2;
+  };
+  const timestamp = (job: ResearchJob) =>
+    job.stage === "done"
+      ? job.completedAt ?? job.updatedAt
+      : job.updatedAt ?? job.createdAt;
+
+  return [...data.jobs].sort((a, b) => {
+    const rankDelta = rank(a) - rank(b);
+    if (rankDelta !== 0) return rankDelta;
+    return timestamp(b).localeCompare(timestamp(a));
+  });
 }
 
 export async function getResearchJobs() {
@@ -384,6 +401,18 @@ export function isPublishable(entity: ResearchEntity) {
   );
 }
 
+export function isCompletedResearchFeedEligible(entity: ResearchEntity) {
+  return Boolean(
+    entity.article.headline &&
+      entity.article.dek &&
+      entity.article.sections.length >= 4 &&
+      entity.name &&
+      entity.summary &&
+      entity.dossier.executiveSummary.length > 0 &&
+      entity.confidenceScore >= 50
+  );
+}
+
 export async function saveResearchOutput(jobId: string, output: ResearchOutput) {
   const data = await readStore();
   const now = new Date().toISOString();
@@ -434,6 +463,19 @@ export async function saveResearchOutput(jobId: string, output: ResearchOutput) 
       articleUrl: `/article/${entity.slug}`,
       profileUrl: `/startup/${entity.slug}`,
       dossierUrl: `/startup/${entity.slug}`,
+      feed: {
+        slug: entity.slug,
+        entityName: entity.name,
+        articleTitle: article.title,
+        articleDek: article.dek,
+        summary: entity.summary,
+        sector: entity.sector,
+        confidenceLabel: entity.confidenceLabel,
+        confidenceScore: entity.confidenceScore,
+        sourceCount: entity.sourceCount,
+        heroImage: entity.heroImage ?? article.heroImage ?? null,
+        publishedAt: article.publishedAt ?? now
+      },
       completedAt: now,
       updatedAt: now
     };

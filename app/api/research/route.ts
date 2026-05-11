@@ -23,7 +23,8 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       jobId: job.id,
-      status: job.stage
+      status: job.stage,
+      job
     });
   } catch (error) {
     console.error("Research service unavailable", error);

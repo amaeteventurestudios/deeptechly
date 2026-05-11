@@ -3,6 +3,8 @@
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Search } from "lucide-react";
+import { upsertLocalQueueJobs } from "./queueStorage";
+import type { ResearchJob } from "@/lib/research/types";
 
 export function ResearchSubmitForm({
   compact = false
@@ -32,10 +34,18 @@ export function ResearchSubmitForm({
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ query: trimmed, mode: "company" })
       });
-      const body = (await response.json()) as { jobId?: string; error?: string };
+      const body = (await response.json()) as {
+        jobId?: string;
+        job?: ResearchJob;
+        error?: string;
+      };
 
       if (!response.ok || !body.jobId) {
         throw new Error(body.error ?? "Research job could not be created.");
+      }
+
+      if (body.job) {
+        upsertLocalQueueJobs([body.job]);
       }
 
       router.push(`/research?jobId=${body.jobId}`);

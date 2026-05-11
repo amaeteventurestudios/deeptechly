@@ -3,7 +3,11 @@ import "server-only";
 import { entities as seedEntities, getEntityBySlug as getSeedEntityBySlug } from "@/lib/data";
 import type { ResearchEntity } from "@/lib/types";
 import type { StoredResearchArticle } from "./types";
-import { listPublishedArticles, listPublishedEntities, readStore } from "./store";
+import {
+  isCompletedResearchFeedEligible,
+  listPublishedArticles,
+  readStore
+} from "./store";
 
 const seedAsPublished = (entity: ResearchEntity): ResearchEntity => ({
   ...entity,
@@ -47,7 +51,12 @@ export async function getPublishedEntities() {
   let generated: ResearchEntity[] = [];
 
   try {
-    generated = await listPublishedEntities();
+    const stored = await readStore();
+    generated = stored.entities.filter(
+      (entity) =>
+        entity.publishedStatus === "published" ||
+        isCompletedResearchFeedEligible(entity)
+    );
   } catch (error) {
     console.error("Generated research store unavailable", error);
   }
@@ -67,7 +76,19 @@ export async function getPublishedArticles() {
   let generatedArticles: StoredResearchArticle[] = [];
 
   try {
-    generatedArticles = await listPublishedArticles();
+    const stored = await readStore();
+    const eligibleGeneratedSlugs = new Set(
+      stored.entities
+        .filter(
+          (entity) =>
+            entity.publishedStatus === "published" ||
+            isCompletedResearchFeedEligible(entity)
+        )
+        .map((entity) => entity.slug)
+    );
+    generatedArticles = (await listPublishedArticles()).filter((article) =>
+      eligibleGeneratedSlugs.has(article.slug)
+    );
   } catch (error) {
     console.error("Generated article store unavailable", error);
   }

@@ -9,7 +9,7 @@ import type {
   StoredDossier,
   StoredResearchArticle
 } from "./types";
-import { isPublishable, slugify } from "./store";
+import { isCompletedResearchFeedEligible, isPublishable, slugify } from "./store";
 import type {
   ArticleSection,
   ConfidenceLabel,
@@ -727,7 +727,7 @@ export async function generateResearchOutput({
     relatedEntities: []
   };
 
-  const publishable = isPublishable(entity);
+  const publishable = isPublishable(entity) || isCompletedResearchFeedEligible(entity);
   entity.publishedStatus = publishable ? "published" : "draft";
   entity.article.publishedStatus = entity.publishedStatus;
 

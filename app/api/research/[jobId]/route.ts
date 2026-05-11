@@ -34,6 +34,10 @@ export async function GET(_request: Request, { params }: RouteProps) {
       articleUrl: job.articleUrl,
       profileUrl: job.profileUrl,
       dossierUrl: job.dossierUrl,
+      feed: job.feed ?? null,
+      createdAt: job.createdAt,
+      updatedAt: job.updatedAt,
+      completedAt: job.completedAt,
       error: job.error
     });
   } catch (error) {
