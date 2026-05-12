@@ -55,12 +55,20 @@ grant select, insert, update, delete on public.users_profile to service_role;
 create table if not exists public.invite_codes (
   id uuid primary key default gen_random_uuid(),
   code text unique not null,
+  organization text,
   tier text,
   max_uses integer,
   used_count integer not null default 0,
   expires_at timestamptz,
+  disabled_at timestamptz,
   created_at timestamptz not null default now()
 );
+
+alter table public.invite_codes
+  add column if not exists organization text;
+
+alter table public.invite_codes
+  add column if not exists disabled_at timestamptz;
 
 alter table public.invite_codes enable row level security;
 
@@ -78,6 +86,7 @@ begin
     update public.invite_codes
     set used_count = used_count + 1
     where code = invite_code_input
+      and disabled_at is null
       and (expires_at is null or expires_at > now())
       and (max_uses is null or used_count < max_uses)
     returning coalesce(tier, 'institutional') as redeemed_tier
