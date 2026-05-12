@@ -98,6 +98,13 @@ export default async function SignInPage({ searchParams }: SignInPageProps) {
 
             <div className="mt-4 space-y-3">
               <Link
+                href="/forgot-password"
+                className="flex w-full items-center justify-between border border-black bg-offWhite px-4 py-3 text-[11px] font-black uppercase tracking-[0.14em] hover:bg-paleOrange"
+              >
+                Forgot Password?
+                <ArrowRight size={14} />
+              </Link>
+              <Link
                 href="/join"
                 className="flex w-full items-center justify-between border border-black bg-white px-4 py-3 text-[11px] font-black uppercase tracking-[0.14em] hover:bg-offWhite"
               >
