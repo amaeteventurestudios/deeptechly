@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { Cpu, ArrowRight } from "lucide-react";
+import { Cpu, ArrowRight, LogIn } from "lucide-react";
+import { AuthSubmitButton } from "@/components/auth/AuthSubmitButton";
 import { PageShell } from "@/components/layout/PageShell";
 
 export const metadata = {
@@ -7,7 +8,14 @@ export const metadata = {
   description: "Sign in to your DeepTechly research account."
 };
 
-export default function SignInPage() {
+type SignInPageProps = {
+  searchParams: Promise<{ error?: string; notice?: string; redirectTo?: string }>;
+};
+
+export default async function SignInPage({ searchParams }: SignInPageProps) {
+  const { error, notice, redirectTo } = await searchParams;
+  const redirectPath = getSafeRedirectPath(redirectTo);
+
   return (
     <PageShell>
       <section className="w-full border-b border-black bg-deepOrange deeptech-texture">
@@ -35,24 +43,65 @@ export default function SignInPage() {
               Authentication
             </p>
             <p className="mt-2 text-sm leading-6 text-charcoal">
-              Researcher and institutional accounts are currently in private access.
-              Submit a request below to join the waitlist or request institutional
-              credentials.
+              Sign in with your email-only DeepTechly account. Public research
+              remains available without an account.
             </p>
 
-            <div className="mt-6 space-y-3">
+            {notice === "check-email" ? (
+              <p className="mt-4 border border-black bg-offWhite px-3 py-2 text-xs font-bold text-ink">
+                Check your email to confirm the account, then sign in.
+              </p>
+            ) : null}
+
+            {error ? (
+              <p className="mt-4 border border-black bg-paleOrange px-3 py-2 text-xs font-bold text-ink">
+                {getErrorMessage(error)}
+              </p>
+            ) : null}
+
+            <form
+              action="/api/auth/sign-in"
+              className="mt-6 space-y-4"
+              method="post"
+            >
+              <input name="redirectTo" type="hidden" value={redirectPath} />
+              <label className="block">
+                <span className="text-[10px] font-black uppercase tracking-[0.18em] text-ink">
+                  Email
+                </span>
+                <input
+                  className="mt-2 w-full border border-black bg-offWhite px-4 py-3 text-sm font-semibold text-ink outline-none focus:border-deepOrange"
+                  name="email"
+                  required
+                  type="email"
+                />
+              </label>
+              <label className="block">
+                <span className="text-[10px] font-black uppercase tracking-[0.18em] text-ink">
+                  Password
+                </span>
+                <input
+                  className="mt-2 w-full border border-black bg-offWhite px-4 py-3 text-sm font-semibold text-ink outline-none focus:border-deepOrange"
+                  name="password"
+                  required
+                  type="password"
+                />
+              </label>
+              <AuthSubmitButton
+                className="flex w-full items-center justify-between border border-black bg-deepOrange px-4 py-3 text-[11px] font-black uppercase tracking-[0.14em] shadow-hard hover:bg-darkOrange"
+                pendingLabel="Signing In..."
+              >
+                Sign In
+                <LogIn size={14} />
+              </AuthSubmitButton>
+            </form>
+
+            <div className="mt-4 space-y-3">
               <Link
                 href="/join"
-                className="flex w-full items-center justify-between border border-black bg-deepOrange px-4 py-3 text-[11px] font-black uppercase tracking-[0.14em] shadow-hard hover:bg-darkOrange"
-              >
-                Request Institutional Access
-                <ArrowRight size={14} />
-              </Link>
-              <Link
-                href="/"
                 className="flex w-full items-center justify-between border border-black bg-white px-4 py-3 text-[11px] font-black uppercase tracking-[0.14em] hover:bg-offWhite"
               >
-                Back to Homepage
+                Join DeepTechly
                 <ArrowRight size={14} />
               </Link>
             </div>
@@ -65,4 +114,24 @@ export default function SignInPage() {
       </section>
     </PageShell>
   );
+}
+
+function getErrorMessage(error: string) {
+  if (error === "config") {
+    return "Supabase authentication is not configured for this environment.";
+  }
+
+  if (error === "invalid") {
+    return "The email or password was not accepted.";
+  }
+
+  return "Enter a valid email and password to continue.";
+}
+
+function getSafeRedirectPath(value?: string) {
+  if (!value || !value.startsWith("/") || value.startsWith("//")) {
+    return "/research";
+  }
+
+  return value;
 }

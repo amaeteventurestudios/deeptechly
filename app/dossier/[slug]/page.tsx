@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import {
+  type InstitutionalAccessState,
   CompetitiveLandscapeTable,
   ConfidenceScorePanel,
   DossierHero,
@@ -13,6 +14,10 @@ import {
   TechnicalSummarySection
 } from "@/components/dossier/DossierComponents";
 import { PageShell } from "@/components/layout/PageShell";
+import {
+  getAuthSession,
+  getInstitutionalAccessState
+} from "@/lib/auth/session";
 import { entities } from "@/lib/data";
 import { getEntityBySlugFromAll } from "@/lib/research/public-data";
 
@@ -43,6 +48,9 @@ export async function generateMetadata({ params }: DossierPageProps) {
 export default async function DossierPage({ params }: DossierPageProps) {
   const { slug } = await params;
   const entity = await getEntityBySlugFromAll(slug);
+  const session = await getAuthSession();
+  const accessState: InstitutionalAccessState =
+    getInstitutionalAccessState(session);
 
   if (!entity) {
     notFound();
@@ -62,7 +70,7 @@ export default async function DossierPage({ params }: DossierPageProps) {
           <CompetitiveLandscapeTable entity={entity} />
           <DossierSourcesBlock sources={entity.dossier.sources} />
           <ConfidenceScorePanel entity={entity} />
-          <InstitutionalDossierSections />
+          <InstitutionalDossierSections accessState={accessState} />
         </div>
       </section>
     </PageShell>

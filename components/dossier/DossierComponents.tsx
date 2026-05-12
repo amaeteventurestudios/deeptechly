@@ -28,6 +28,11 @@ const panelClass = "border border-black bg-white shadow-hard";
 const labelClass =
   "text-[10px] font-black uppercase tracking-[0.22em] text-deepOrange";
 
+export type InstitutionalAccessState =
+  | "signed-out"
+  | "free"
+  | "institutional";
+
 function SectionFrame({
   eyebrow,
   title,
@@ -680,12 +685,17 @@ export function ScenarioScroller({ entity }: { entity: ResearchEntity }) {
 export function MembersOnlyBlock({
   title,
   items,
-  intro
+  intro,
+  accessState = "signed-out"
 }: {
   title: string;
   items: string[];
   intro?: string;
+  accessState?: InstitutionalAccessState;
 }) {
+  const isSignedIn = accessState !== "signed-out";
+  const isVerified = accessState === "institutional";
+
   return (
     <section className="border-t border-black/20 py-8">
       <div className="border border-black bg-offWhite shadow-hard">
@@ -694,28 +704,33 @@ export function MembersOnlyBlock({
             <p className={labelClass}>Members Only</p>
             <h2 className="mt-1 text-2xl font-black leading-tight">{title}</h2>
           </div>
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center border border-black bg-deepOrange">
+          <span
+            className={`flex h-10 w-10 shrink-0 items-center justify-center border border-black ${
+              isVerified ? "bg-white text-ink" : "bg-deepOrange"
+            }`}
+          >
             <Lock size={18} />
           </span>
         </div>
         <div className="p-4 sm:p-5">
           <p className="max-w-2xl text-sm font-bold leading-6 text-ink/82">
-            {intro ??
-              `${title} is available to institutional users. The preview below shows the diligence categories included in the locked research block.`}
+            {getMembersOnlyIntro({ title, intro, accessState })}
           </p>
           <div className="mt-4 border-l-4 border-deepOrange bg-white p-4">
             <p className="mb-3 text-[10px] font-black uppercase tracking-[0.18em] text-muted">
-              Preview
+              {isVerified ? "Institutional Access" : "Preview"}
             </p>
             <BulletList items={items.slice(0, 5)} />
           </div>
-          <Link
-            href="/join"
-            className="mt-5 inline-flex items-center justify-center gap-2 border border-black bg-deepOrange px-4 py-3 text-[11px] font-black uppercase tracking-[0.14em] shadow-hard"
-          >
-            Request Institutional Access
-            <ArrowRight size={14} />
-          </Link>
+          {!isVerified ? (
+            <Link
+              href={isSignedIn ? "/join?access=institutional" : "/join"}
+              className="mt-5 inline-flex items-center justify-center gap-2 border border-black bg-deepOrange px-4 py-3 text-[11px] font-black uppercase tracking-[0.14em] shadow-hard"
+            >
+              {isSignedIn ? "Request Verification" : "Request Institutional Access"}
+              <ArrowRight size={14} />
+            </Link>
+          ) : null}
           <p className="mt-4 text-xs leading-5 text-muted">
             Institutional access includes technical stack, patent position,
             readiness analysis, revenue scenarios, and commercialization risk
@@ -724,6 +739,29 @@ export function MembersOnlyBlock({
         </div>
       </div>
     </section>
+  );
+}
+
+function getMembersOnlyIntro({
+  title,
+  intro,
+  accessState
+}: {
+  title: string;
+  intro?: string;
+  accessState: InstitutionalAccessState;
+}) {
+  if (accessState === "institutional") {
+    return `${title} is available for this verified institutional account.`;
+  }
+
+  if (accessState === "free") {
+    return `${title} requires verified institutional access. Your signed-in account can request verification without exposing the locked research block.`;
+  }
+
+  return (
+    intro ??
+    `${title} is available to institutional users. The preview below shows the diligence categories included in the locked research block.`
   );
 }
 
@@ -880,7 +918,11 @@ const institutionalLockedSections = [
   }
 ];
 
-export function InstitutionalDossierSections() {
+export function InstitutionalDossierSections({
+  accessState
+}: {
+  accessState: InstitutionalAccessState;
+}) {
   return (
     <section className="border-t border-black/20 py-8">
       <div className="mb-5 flex items-center gap-3">
@@ -899,6 +941,7 @@ export function InstitutionalDossierSections() {
             title={section.title}
             items={section.items}
             intro={`${section.title} is part of the institutional dossier. The preview below names the diligence areas without exposing the gated analysis.`}
+            accessState={accessState}
           />
         ))}
       </div>

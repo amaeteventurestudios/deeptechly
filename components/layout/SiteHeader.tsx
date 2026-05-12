@@ -1,10 +1,20 @@
 import Link from "next/link";
-import { Cpu, LogIn } from "lucide-react";
+import { Cpu, LogIn, LogOut, UserRound } from "lucide-react";
+import { getAuthSession } from "@/lib/auth/session";
 
-export function SiteHeader() {
+const navLinkClass = "hover:text-deepOrange";
+const researchLinkClass =
+  "border border-white px-3 py-1.5 hover:border-deepOrange hover:text-deepOrange";
+const joinLinkClass =
+  "border border-deepOrange bg-deepOrange px-3 py-1.5 text-ink hover:bg-darkOrange";
+
+export async function SiteHeader() {
+  const session = await getAuthSession();
+  const accountLabel = session?.name || session?.email;
+
   return (
     <header className="w-full border-b border-white/10 bg-ink text-white">
-      <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
+      <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-6 lg:px-8">
         <Link href="/" className="flex items-center gap-2">
           <span className="flex h-6 w-6 items-center justify-center border border-deepOrange bg-deepOrange text-ink">
             <Cpu size={15} strokeWidth={2.6} />
@@ -13,30 +23,75 @@ export function SiteHeader() {
         </Link>
 
         <nav className="hidden items-center gap-6 text-[11px] font-bold uppercase tracking-[0.12em] md:flex">
-          <Link className="hover:text-deepOrange" href="/news">
+          <Link className={navLinkClass} href="/news">
             News
           </Link>
-          <Link className="hover:text-deepOrange" href="/explore">
+          <Link className={navLinkClass} href="/explore">
             Explore
           </Link>
-          <Link
-            className="border border-white px-3 py-1.5 hover:border-deepOrange hover:text-deepOrange"
-            href="/research"
-          >
+          <Link className={researchLinkClass} href="/research">
             Research
           </Link>
-          <Link className="hover:text-deepOrange" href="/sign-in">
-            Sign In
-          </Link>
+          {session ? (
+            <>
+              <span className="flex max-w-[14rem] items-center gap-2 truncate border border-white/30 px-3 py-1.5 text-white/78">
+                <UserRound size={13} />
+                <span className="truncate">{accountLabel}</span>
+              </span>
+              <form action="/api/auth/sign-out" method="post">
+                <button
+                  className="flex items-center gap-2 hover:text-deepOrange"
+                  type="submit"
+                >
+                  <LogOut size={13} />
+                  Sign Out
+                </button>
+              </form>
+            </>
+          ) : (
+            <>
+              <Link className={navLinkClass} href="/sign-in">
+                Sign In
+              </Link>
+              <Link className={joinLinkClass} href="/join">
+                Join
+              </Link>
+            </>
+          )}
         </nav>
 
-        <Link
-          className="flex items-center gap-2 border border-white px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.12em] text-white hover:border-deepOrange hover:text-deepOrange md:hidden"
-          href="/sign-in"
-        >
-          <LogIn size={13} />
-          Sign In
-        </Link>
+        <div className="flex w-full items-center justify-end gap-2 text-[10px] font-bold uppercase tracking-[0.12em] md:hidden">
+          {session ? (
+            <>
+              <span className="flex min-w-0 items-center gap-2 border border-white/30 px-3 py-1.5 text-white/78">
+                <UserRound size={13} className="shrink-0" />
+                <span className="truncate">{accountLabel}</span>
+              </span>
+              <form action="/api/auth/sign-out" method="post">
+                <button
+                  className="flex items-center gap-2 border border-white px-3 py-1.5 text-white hover:border-deepOrange hover:text-deepOrange"
+                  type="submit"
+                >
+                  <LogOut size={13} />
+                  Sign Out
+                </button>
+              </form>
+            </>
+          ) : (
+            <>
+              <Link
+                className="flex items-center gap-2 border border-white px-3 py-1.5 text-white hover:border-deepOrange hover:text-deepOrange"
+                href="/sign-in"
+              >
+                <LogIn size={13} />
+                Sign In
+              </Link>
+              <Link className={joinLinkClass} href="/join">
+                Join DeepTechly
+              </Link>
+            </>
+          )}
+        </div>
       </div>
     </header>
   );
