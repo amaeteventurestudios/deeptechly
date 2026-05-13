@@ -42,9 +42,8 @@ const aiReadableLinks = [
 
 export function SiteFooter() {
   return (
-    <>
-      <footer className="w-full border-t border-black bg-ink text-white">
-        <div className="mx-auto grid max-w-7xl gap-10 px-4 py-12 text-center sm:px-6 md:grid-cols-2 md:text-left lg:grid-cols-[1.3fr_0.8fr_0.8fr_0.8fr_1.1fr] lg:px-8">
+    <footer className="w-full border-t border-black bg-ink text-white">
+        <div className="mx-auto grid max-w-7xl gap-8 px-4 py-8 text-center sm:px-6 md:grid-cols-2 md:text-left lg:grid-cols-[1.3fr_0.8fr_0.8fr_0.8fr_1.1fr] lg:px-8">
           <div className="mx-auto flex max-w-sm flex-col items-center md:mx-0 md:items-start">
             <Link href="/" className="mb-4 flex items-center justify-center gap-2 md:justify-start">
               <span className="flex h-6 w-6 items-center justify-center border border-deepOrange bg-deepOrange text-ink">
@@ -52,7 +51,7 @@ export function SiteFooter() {
               </span>
               <span className="text-lg font-black">DeepTechly</span>
             </Link>
-            <p className="max-w-xs text-sm font-semibold leading-6 text-white/68">
+            <p className="max-w-xs text-xs font-semibold leading-5 text-white/68">
               AI-native deep-tech research and intelligence. We research what
               matters across deep-tech, government technology, and institutional
               analysis.
@@ -64,7 +63,7 @@ export function SiteFooter() {
               <h3 className="mb-3 text-[10px] font-black uppercase tracking-[0.2em] text-deepOrange">
                 {column.title}
               </h3>
-              <ul className="space-y-2 text-xs font-bold uppercase tracking-[0.14em] text-white/72">
+              <ul className="space-y-1.5 text-xs font-bold text-white/72">
                 {column.links.map(([label, href]) => (
                   <li key={label}>
                     <Link href={href} className="hover:text-deepOrange">
@@ -80,7 +79,7 @@ export function SiteFooter() {
             <h3 className="mb-3 text-[10px] font-black uppercase tracking-[0.2em] text-deepOrange">
               AI-Readable Access
             </h3>
-            <p className="text-sm font-semibold leading-6 text-white/68">
+            <p className="text-xs font-semibold leading-5 text-white/68">
               DeepTechly publishes machine-readable content for researchers,
               institutions, and AI systems.
             </p>
@@ -89,7 +88,7 @@ export function SiteFooter() {
                 <Link
                   key={label}
                   href={href}
-                  className="inline-flex min-h-11 items-center justify-center border border-white/30 px-3 py-2 text-center text-[10px] font-black uppercase tracking-[0.14em] text-white hover:border-deepOrange hover:text-deepOrange"
+                  className="inline-flex min-h-9 items-center justify-center border border-white/30 px-3 py-2 text-center text-[10px] font-black uppercase tracking-[0.14em] text-white hover:border-deepOrange hover:text-deepOrange"
                 >
                   {label}
                 </Link>
@@ -97,59 +96,12 @@ export function SiteFooter() {
             </div>
           </div>
         </div>
-        <div className="border-t border-white/10 py-4">
+        <div className="border-t border-white/10 py-3">
           <div className="mx-auto flex max-w-7xl flex-col items-center justify-center gap-2 px-4 text-center text-[10px] font-bold uppercase tracking-[0.16em] text-white/52 sm:px-6 md:flex-row md:justify-between md:text-left lg:px-8">
             <span>© 2026 DeepTechly. Independent research.</span>
             <span>Not investment advice.</span>
           </div>
         </div>
-      </footer>
-      <AiReadableFooterStrip />
-    </>
-  );
-}
-
-function AiReadableFooterStrip() {
-  return (
-    <section className="w-full border-t border-line bg-offWhite">
-      <div className="mx-auto max-w-6xl px-4 py-8 text-center text-sm leading-7 text-muted sm:px-6 md:text-left lg:px-8">
-        <p>
-          <strong className="font-semibold text-ink">DeepTechly</strong>{" "}
-          publishes independent, AI-native research and intelligence on
-          deep-tech companies, patents, labs, government technologies, and
-          emerging infrastructure systems. Every page is also available as raw
-          markdown by appending{" "}
-          <code className="bg-white px-1 py-0.5 text-xs text-ink">.md</code>{" "}
-          to supported URLs.
-        </p>
-
-        <p className="mt-3">
-          Site index:{" "}
-          <Link href="/articles" className="text-deepOrange underline underline-offset-2">
-            Articles
-          </Link>{" "}
-          ·{" "}
-          <Link href="/startups" className="text-deepOrange underline underline-offset-2">
-            Research profiles
-          </Link>{" "}
-          ·{" "}
-          <Link href="/patents" className="text-deepOrange underline underline-offset-2">
-            Patent Intelligence
-          </Link>{" "}
-          ·{" "}
-          <Link href="/llms.txt" className="text-deepOrange underline underline-offset-2">
-            llms.txt
-          </Link>{" "}
-          ·{" "}
-          <Link href="/llms-full.txt" className="text-deepOrange underline underline-offset-2">
-            llms-full.txt
-          </Link>{" "}
-          ·{" "}
-          <Link href="/sitemap.xml" className="text-deepOrange underline underline-offset-2">
-            XML sitemap
-          </Link>
-        </p>
-      </div>
-    </section>
+    </footer>
   );
 }

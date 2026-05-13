@@ -4,9 +4,9 @@ import { getAuthSession } from "@/lib/auth/session";
 
 const navLinkClass = "hover:text-deepOrange";
 const researchLinkClass =
-  "border border-white px-3 py-1.5 hover:border-deepOrange hover:text-deepOrange";
+  "border border-deepOrange px-4 py-2 hover:bg-deepOrange hover:text-ink";
 const joinLinkClass =
-  "border border-deepOrange bg-deepOrange px-3 py-1.5 text-ink hover:bg-darkOrange";
+  "border border-deepOrange bg-deepOrange px-4 py-2 text-ink hover:bg-darkOrange";
 
 export async function SiteHeader() {
   const session = await getAuthSession();
@@ -14,15 +14,15 @@ export async function SiteHeader() {
 
   return (
     <header className="w-full border-b border-white/10 bg-ink text-white">
-      <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-6 lg:px-8">
+      <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-3.5 sm:px-6 lg:px-8">
         <Link href="/" className="flex items-center gap-2">
-          <span className="flex h-6 w-6 items-center justify-center border border-deepOrange bg-deepOrange text-ink">
-            <Cpu size={15} strokeWidth={2.6} />
+          <span className="flex h-8 w-8 items-center justify-center border border-deepOrange bg-deepOrange text-ink">
+            <Cpu size={18} strokeWidth={2.6} />
           </span>
-          <span className="text-lg font-black tracking-tight">DeepTechly</span>
+          <span className="text-xl font-black tracking-tight">DeepTechly</span>
         </Link>
 
-        <nav className="hidden items-center gap-6 text-[11px] font-bold uppercase tracking-[0.12em] md:flex">
+        <nav className="hidden items-center gap-7 text-[12px] font-black uppercase tracking-[0.12em] md:flex">
           <Link className={navLinkClass} href="/news">
             News
           </Link>
@@ -60,7 +60,7 @@ export async function SiteHeader() {
           )}
         </nav>
 
-        <div className="flex w-full items-center justify-end gap-2 text-[10px] font-bold uppercase tracking-[0.12em] md:hidden">
+        <div className="flex w-full flex-wrap items-center justify-center gap-2 text-[10px] font-bold uppercase tracking-[0.12em] md:hidden">
           {session ? (
             <>
               <span className="flex min-w-0 items-center gap-2 border border-white/30 px-3 py-1.5 text-white/78">

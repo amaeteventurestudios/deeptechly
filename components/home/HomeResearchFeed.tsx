@@ -2,7 +2,6 @@ import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { GovernmentSignals } from "./GovernmentSignals";
 import { HomeSaveButton } from "./HomeSaveButton";
-import { HomeSectionHeader } from "./HomeSectionHeader";
 import { HomeTag } from "./HomeTag";
 import { LatestArticles } from "./LatestArticles";
 import { MyResearch } from "./MyResearch";
@@ -16,16 +15,15 @@ export function HomeResearchFeed() {
   return (
     <>
       <section className="w-full bg-paper">
-        <div className="mx-auto grid max-w-6xl gap-8 px-4 py-10 text-center sm:px-6 lg:grid-cols-[minmax(0,1fr)_340px] lg:px-8 lg:text-left">
+        <div className="mx-auto grid max-w-7xl gap-8 px-4 py-8 text-center sm:px-6 lg:grid-cols-[minmax(0,1fr)_minmax(340px,460px)] lg:px-8 lg:text-left">
           <div className="mx-auto w-full max-w-3xl lg:max-w-none">
-            <HomeSectionHeader
-              eyebrow="Top Stories"
-              title="What the research desk is reading first"
+            <CompactSectionHeader
+              title="Top Stories"
               actionHref="/articles"
               actionLabel="Browse All"
             />
             <div className="border-t border-black/10">
-              {homepageSeed.topStories.map((story, index) => (
+              {homepageSeed.topStories.slice(0, 4).map((story, index) => (
                 <TopStoryRow
                   key={story.id}
                   story={story}
@@ -42,18 +40,16 @@ export function HomeResearchFeed() {
         </div>
       </section>
 
-      <LatestArticles />
-      <MyResearch />
+      <section className="w-full border-t border-black bg-offWhite">
+        <div className="mx-auto grid max-w-7xl gap-8 px-4 py-8 sm:px-6 lg:grid-cols-[minmax(0,1.1fr)_minmax(420px,0.9fr)] lg:px-8">
+          <LatestArticles />
+          <MyResearch />
+        </div>
+      </section>
 
-      <section className="w-full border-t border-black bg-ink">
-        <div className="mx-auto w-full max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-          <HomeSectionHeader
-            eyebrow="Signals Intelligence"
-            title="Technology, government, patent, and white-space movement"
-            dek="Compact seed-data panels designed as an editorial intelligence band, not a SaaS analytics dashboard."
-            inverted
-          />
-          <div className="grid grid-cols-1 gap-5 lg:grid-cols-2 xl:grid-cols-4">
+      <section className="w-full border-t border-black bg-paper">
+        <div className="mx-auto w-full max-w-7xl px-4 py-7 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 gap-px border border-black bg-black md:grid-cols-2 xl:grid-cols-4">
             <TechnologySignals />
             <GovernmentSignals />
             <PatentIntelligence />
@@ -81,12 +77,12 @@ function TopStoryRow({
     <article className="border-b border-black/20 py-6">
       <div
         className={`grid gap-4 ${
-          featured ? "lg:grid-cols-[56px_4px_1fr_auto]" : "lg:grid-cols-[44px_3px_1fr_auto]"
+          featured ? "lg:grid-cols-[64px_4px_1fr_40px]" : "lg:grid-cols-[56px_3px_1fr_40px]"
         }`}
       >
         <span
-          className={`mx-auto flex items-center justify-center font-black text-deepOrange lg:mx-0 ${
-            featured ? "text-5xl" : "text-4xl"
+          className={`mx-auto flex items-start justify-center font-black leading-none text-deepOrange lg:mx-0 ${
+            featured ? "text-5xl lg:text-6xl" : "text-4xl lg:text-5xl"
           }`}
         >
           {rank}
@@ -97,8 +93,8 @@ function TopStoryRow({
             {story.entityName} · {story.time}
           </p>
           <h3
-            className={`mx-auto mt-2 max-w-2xl font-black leading-[1.02] text-ink lg:mx-0 ${
-              featured ? "text-3xl sm:text-4xl" : "text-2xl"
+            className={`mx-auto mt-2 max-w-3xl font-black leading-[1.02] text-ink lg:mx-0 ${
+              featured ? "text-3xl sm:text-4xl lg:text-[42px]" : "text-2xl lg:text-[27px]"
             }`}
           >
             <Link href={story.href}>{story.headline}</Link>
@@ -134,14 +130,12 @@ function TopStoryRow({
 function AlsoReading({ stories }: { stories: HomepageStory[] }) {
   return (
     <section>
-      <h2 className="mb-4 border-b border-black pb-3 text-center text-[11px] font-black uppercase tracking-[0.24em] text-deepOrange lg:text-left">
-        Also Reading
-      </h2>
-      <div className="space-y-4">
+      <CompactSectionHeader title="Also Reading" />
+      <div className="divide-y divide-black/20 border-t border-black/10">
         {stories.map((story, index) => (
           <article
             key={story.id}
-            className="border-b border-black/15 pb-4 text-center lg:text-left"
+            className="py-4 text-center lg:text-left"
           >
             <div className="flex flex-col items-center gap-3 lg:flex-row lg:items-start">
               <span className="flex h-8 w-8 shrink-0 items-center justify-center border border-black bg-white text-[10px] font-black">
@@ -154,12 +148,7 @@ function AlsoReading({ stories }: { stories: HomepageStory[] }) {
                 <h3 className="mt-1 text-base font-black leading-tight">
                   <Link href={story.href}>{story.headline}</Link>
                 </h3>
-                <div className="mt-3 flex flex-wrap justify-center gap-1.5 lg:justify-start">
-                  {story.tags.slice(0, 2).map((tag) => (
-                    <HomeTag key={`${story.id}-${tag}`}>{tag}</HomeTag>
-                  ))}
-                </div>
-                <p className="mt-3 text-[9px] font-black uppercase tracking-[0.14em] text-muted">
+                <p className="mt-2 text-[9px] font-black uppercase tracking-[0.14em] text-muted">
                   {story.analyst} · {story.time}
                 </p>
               </div>
@@ -175,15 +164,13 @@ function AlsoReading({ stories }: { stories: HomepageStory[] }) {
 function BrowseBySector() {
   return (
     <section className="w-full border-t border-black bg-offWhite">
-      <div className="mx-auto w-full max-w-7xl px-4 py-10 text-center sm:px-6 lg:px-8">
-        <HomeSectionHeader
-          eyebrow="Browse by Sector"
-          title="Open the archive by technical market"
-          dek="Sector tags wrap cleanly on mobile and remain boxed for quick scanning."
+      <div className="mx-auto w-full max-w-7xl px-4 py-6 text-center sm:px-6 lg:px-8">
+        <CompactSectionHeader
+          title="Browse by Sector"
           actionHref="/sectors"
-          actionLabel="All Sectors"
+          actionLabel="View All Sectors"
         />
-        <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-center gap-2">
+        <div className="mx-auto flex flex-wrap items-center justify-center gap-2">
           {homepageSeed.sectors.map((sector, index) => (
             <Link
               key={sector.label}
@@ -198,5 +185,32 @@ function BrowseBySector() {
         </div>
       </div>
     </section>
+  );
+}
+
+function CompactSectionHeader({
+  title,
+  actionHref,
+  actionLabel
+}: {
+  title: string;
+  actionHref?: string;
+  actionLabel?: string;
+}) {
+  return (
+    <div className="mb-3 flex flex-col items-center gap-3 border-b border-black pb-2 text-center sm:flex-row sm:justify-between sm:text-left">
+      <h2 className="text-[13px] font-black uppercase tracking-[0.18em] text-ink">
+        {title}
+      </h2>
+      {actionHref && actionLabel ? (
+        <Link
+          href={actionHref}
+          className="inline-flex min-h-10 items-center justify-center gap-2 border border-black bg-white px-3 py-2 text-center text-[10px] font-black uppercase tracking-[0.14em] hover:bg-deepOrange"
+        >
+          {actionLabel}
+          <ArrowRight size={13} aria-hidden="true" />
+        </Link>
+      ) : null}
+    </div>
   );
 }

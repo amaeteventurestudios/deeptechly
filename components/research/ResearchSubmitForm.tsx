@@ -7,10 +7,14 @@ import type { ResearchJob } from "@/lib/research/types";
 
 export function ResearchSubmitForm({
   compact = false,
-  onSubmitted
+  onSubmitted,
+  placeholder = "e.g. Anduril, NASA SiGe on sapphire, DARPA NOM4D, or openai.com",
+  submitLabel = "Begin"
 }: {
   compact?: boolean;
   onSubmitted?: (job: ResearchJob) => void;
+  placeholder?: string;
+  submitLabel?: string;
 }) {
   const router = useRouter();
   const [query, setQuery] = useState("");
@@ -75,7 +79,7 @@ export function ResearchSubmitForm({
         <input
           aria-label="Research query"
           className="h-11 min-w-0 flex-1 bg-transparent text-sm font-bold outline-none"
-          placeholder="e.g. Anduril, NASA SiGe on sapphire, DARPA NOM4D, or openai.com"
+          placeholder={placeholder}
           value={query}
           onChange={(event) => setQuery(event.target.value)}
         />
@@ -85,7 +89,7 @@ export function ResearchSubmitForm({
         type="submit"
         disabled={isSubmitting}
       >
-        {isSubmitting ? "Queuing" : "Begin"}
+        {isSubmitting ? "Queuing" : submitLabel}
       </button>
       {error ? (
         <p className="px-3 pb-2 text-xs font-bold text-darkOrange sm:basis-full">
