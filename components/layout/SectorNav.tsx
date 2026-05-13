@@ -6,7 +6,7 @@ export function SectorNav() {
   return (
     <section className="w-full border-b border-white/10 bg-[#111111] text-white">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <nav className="scrollbar-thin flex gap-6 overflow-x-auto py-2 text-[10px] font-black uppercase tracking-[0.18em]">
+        <nav className="scrollbar-thin flex max-w-full justify-start gap-6 overflow-x-auto whitespace-nowrap py-2 text-[10px] font-black uppercase tracking-[0.18em] sm:justify-center">
           {sectors.map((sector) => (
             <Link
               key={sector}
