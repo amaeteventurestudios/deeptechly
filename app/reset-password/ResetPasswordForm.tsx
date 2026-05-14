@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { ArrowRight, KeyRound } from "lucide-react";
+import { PasswordSuggestionField } from "@/components/auth/PasswordSuggestionField";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 
 type ResetPasswordFormProps = {
@@ -137,32 +138,14 @@ export function ResetPasswordForm({ code }: ResetPasswordFormProps) {
         </Link>
       ) : (
         <form className="mt-6 space-y-4" onSubmit={onSubmit}>
-          <label className="block">
-            <span className="text-[10px] font-black uppercase tracking-[0.18em] text-ink">
-              New Password
-            </span>
-            <input
-              className="mt-2 w-full border border-black bg-offWhite px-4 py-3 text-sm font-semibold text-ink outline-none focus:border-deepOrange disabled:cursor-not-allowed disabled:text-muted"
-              disabled={isBusy}
-              minLength={8}
-              name="password"
-              required
-              type="password"
-            />
-          </label>
-          <label className="block">
-            <span className="text-[10px] font-black uppercase tracking-[0.18em] text-ink">
-              Confirm Password
-            </span>
-            <input
-              className="mt-2 w-full border border-black bg-offWhite px-4 py-3 text-sm font-semibold text-ink outline-none focus:border-deepOrange disabled:cursor-not-allowed disabled:text-muted"
-              disabled={isBusy}
-              minLength={8}
-              name="confirmPassword"
-              required
-              type="password"
-            />
-          </label>
+          <PasswordSuggestionField
+            confirmLabel="Confirm Password"
+            confirmName="confirmPassword"
+            disabled={isBusy}
+            label="New Password"
+            minLength={8}
+            name="password"
+          />
           <button
             className="flex w-full items-center justify-between border border-black bg-deepOrange px-4 py-3 text-[11px] font-black uppercase tracking-[0.14em] shadow-hard hover:bg-darkOrange disabled:cursor-not-allowed disabled:bg-offWhite disabled:text-muted"
             disabled={!canSubmit || isBusy}

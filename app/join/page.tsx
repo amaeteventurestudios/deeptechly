@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Cpu, ArrowRight, UserPlus } from "lucide-react";
 import { AuthSubmitButton } from "@/components/auth/AuthSubmitButton";
+import { PasswordSuggestionField } from "@/components/auth/PasswordSuggestionField";
 import { PageShell } from "@/components/layout/PageShell";
 
 export const metadata = {
@@ -78,17 +79,11 @@ export default async function JoinPage({ searchParams }: JoinPageProps) {
                     type="email"
                   />
                 </label>
-                <label className="block">
-                  <span className="text-[10px] font-black uppercase tracking-[0.18em] text-ink">
-                    Password
-                  </span>
-                  <input
-                    className="mt-2 w-full border border-black bg-offWhite px-4 py-3 text-sm font-semibold text-ink outline-none focus:border-deepOrange"
-                    name="password"
-                    required
-                    type="password"
-                  />
-                </label>
+                <PasswordSuggestionField
+                  label="Password"
+                  minLength={8}
+                  name="password"
+                />
               </div>
               <AuthSubmitButton
                 className="mt-6 flex w-full items-center justify-between border border-black bg-deepOrange px-4 py-3 text-[11px] font-black uppercase tracking-[0.14em] shadow-hard hover:bg-darkOrange"
@@ -151,17 +146,13 @@ export default async function JoinPage({ searchParams }: JoinPageProps) {
                     type="email"
                   />
                 </label>
-                <label className="block">
-                  <span className="text-[10px] font-black uppercase tracking-[0.18em] text-white">
-                    Password
-                  </span>
-                  <input
-                    className="mt-2 w-full border border-white bg-white px-4 py-3 text-sm font-semibold text-ink outline-none focus:border-deepOrange"
-                    name="password"
-                    required
-                    type="password"
-                  />
-                </label>
+                <PasswordSuggestionField
+                  inputClassName="mt-2 w-full border border-white bg-white px-4 py-3 text-sm font-semibold text-ink outline-none focus:border-deepOrange"
+                  label="Password"
+                  labelClassName="text-[10px] font-black uppercase tracking-[0.18em] text-white"
+                  minLength={8}
+                  name="password"
+                />
                 <label className="block">
                   <span className="text-[10px] font-black uppercase tracking-[0.18em] text-white">
                     Invite Code
