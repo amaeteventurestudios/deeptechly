@@ -17,6 +17,7 @@ const notConfirmed = "Not confirmed in public sources.";
 export type InstitutionalAccessState =
   | "signed-out"
   | "free"
+  | "pending"
   | "institutional";
 
 function SectionFrame({
@@ -708,6 +709,7 @@ export function MembersOnlyBlock({
 }) {
   const isSignedIn = accessState !== "signed-out";
   const isVerified = accessState === "institutional";
+  const isPending = accessState === "pending";
   const visibleItems = isVerified ? items : (previewItems ?? items);
 
   return (
@@ -740,10 +742,20 @@ export function MembersOnlyBlock({
           </div>
           {!isVerified ? (
             <Link
-              href={isSignedIn ? "/join?access=institutional" : "/join"}
+              href={
+                isPending
+                  ? "/account"
+                  : isSignedIn
+                    ? "/join?access=institutional"
+                    : "/sign-in?redirectTo=/join?access=institutional"
+              }
               className="mt-5 inline-flex items-center justify-center gap-2 border border-black bg-deepOrange px-4 py-3 text-[11px] font-black uppercase tracking-[0.14em] shadow-hard"
             >
-              Unlock institutional analysis
+              {isPending
+                ? "Institutional access pending review"
+                : isSignedIn
+                  ? "Request institutional access"
+                  : "Sign in to request institutional access"}
               <ArrowRight size={14} />
             </Link>
           ) : null}
@@ -772,6 +784,10 @@ function getMembersOnlyIntro({
 
   if (accessState === "free") {
     return `${title} requires verified institutional access. Your signed-in account can request verification without exposing the locked research block.`;
+  }
+
+  if (accessState === "pending") {
+    return "Institutional access pending review. Your request is under review.";
   }
 
   return (

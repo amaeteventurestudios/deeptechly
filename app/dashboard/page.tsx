@@ -277,9 +277,9 @@ function getNextAction(session: {
 
   return {
     title: "Build your public research shelf.",
-    body: "Free accounts can save public articles, profiles, signals, and queue new research. Institutional analysis remains locked.",
-    cta: "Browse Newsstand",
-    href: "/news"
+    body: "Free accounts can save public articles, profiles, signals, and queue new research. Request verified access when institutional dossier sections are needed.",
+    cta: "Request Access",
+    href: "/join?access=institutional"
   };
 }
 

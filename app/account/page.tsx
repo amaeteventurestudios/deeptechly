@@ -19,6 +19,7 @@ export default async function AccountPage() {
   }
 
   const profile = session.profile;
+  const accessAction = getAccessAction(session);
 
   return (
     <PageShell>
@@ -79,6 +80,24 @@ export default async function AccountPage() {
           </section>
 
           <aside className="space-y-4">
+            <section className="border border-black bg-white p-5 shadow-hard">
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-deepOrange">
+                Next Action
+              </p>
+              <h2 className="mt-2 text-xl font-black leading-tight">
+                {accessAction.title}
+              </h2>
+              <p className="mt-2 text-sm font-semibold leading-6 text-charcoal">
+                {accessAction.body}
+              </p>
+              <Link
+                href={accessAction.href}
+                className="mt-4 flex min-h-12 items-center justify-between border border-black bg-deepOrange px-4 py-3 text-[11px] font-black uppercase tracking-[0.14em] shadow-hard hover:bg-darkOrange"
+              >
+                {accessAction.cta}
+                <ArrowRight size={14} />
+              </Link>
+            </section>
             <Link
               href="/dashboard"
               className="flex min-h-12 items-center justify-between border border-black bg-white px-4 py-3 text-[11px] font-black uppercase tracking-[0.14em] shadow-hard hover:bg-paleOrange"
@@ -107,6 +126,36 @@ export default async function AccountPage() {
       </section>
     </PageShell>
   );
+}
+
+function getAccessAction(session: {
+  isInstitutionalVerified: boolean;
+  institutionalRequestPending: boolean;
+}) {
+  if (session.isInstitutionalVerified) {
+    return {
+      title: "Institutional access verified.",
+      body: "Open your dashboard or public profiles to continue into unlocked dossier sections.",
+      cta: "Open Dashboard",
+      href: "/dashboard"
+    };
+  }
+
+  if (session.institutionalRequestPending) {
+    return {
+      title: "Institutional review pending.",
+      body: "Your request is under review. Public research, saved items, and the research queue remain available.",
+      cta: "View Pricing",
+      href: "/pricing"
+    };
+  }
+
+  return {
+    title: "Request institutional review.",
+    body: "Free accounts can request verified access when investor-grade dossier sections are needed.",
+    cta: "Request Access",
+    href: "/join?access=institutional"
+  };
 }
 
 function ProfileTile({ label, value }: { label: string; value: string }) {

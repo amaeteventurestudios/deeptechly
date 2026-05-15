@@ -5,14 +5,14 @@ import { PageShell } from "@/components/layout/PageShell";
 export const metadata = {
   title: "Pricing | DeepTechly",
   description:
-    "DeepTechly pricing for public research, analyst tools, and institutional dossier access."
+    "DeepTechly pricing for public research, analyst tools, institutional dossiers, and enterprise intelligence."
 };
 
 const tiers = [
   {
     name: "Free",
     price: "$0",
-    summary: "Public deep-tech research for readers, founders, and technical scouts.",
+    summary: "Public research and AI-readable deep-tech profiles.",
     features: [
       "Public articles",
       "Public profiles",
@@ -20,14 +20,15 @@ const tiers = [
       "Public dossier snapshots",
       "Markdown access"
     ],
-    href: "/research",
-    cta: "Queue Research",
+    href: "/join?access=research",
+    cta: "Create research account",
     highlight: false
   },
   {
     name: "Analyst",
     price: "$49/month",
-    summary: "Research tools for operators, analysts, and technical market scouts.",
+    summary:
+      "Research tools for founders, operators, analysts, and technical scouts.",
     features: [
       "Saved watchlists",
       "Research alerts",
@@ -36,25 +37,42 @@ const tiers = [
       "Startup comparisons",
       "Patent monitoring"
     ],
-    href: "/join",
-    cta: "Request Analyst Access",
-    highlight: true
+    href: "/join?access=research",
+    cta: "Join analyst waitlist",
+    highlight: false
   },
   {
     name: "Institutional",
     price: "$499/month",
     summary:
-      "Investor-grade intelligence for funds, corporate teams, primes, and strategic operators.",
+      "Investor-grade intelligence for funds, corporate innovation teams, primes, and strategic operators.",
     features: [
       "Revenue projections",
       "Risk modeling",
       "Scenario analysis",
       "Investor dossiers",
       "TRL / MRL analysis",
-      "Government relevance mapping"
+      "Government relevance mapping",
+      "Manufacturing constraints",
+      "Commercialization scenarios"
     ],
-    href: "/join",
-    cta: "Request Institutional Access",
+    href: "/join?access=institutional",
+    cta: "Request institutional access",
+    highlight: true
+  },
+  {
+    name: "Enterprise",
+    price: "Custom",
+    summary: "Custom intelligence infrastructure for teams.",
+    features: [
+      "Team access",
+      "API",
+      "Private datasets",
+      "Custom workflows",
+      "Strategic intelligence"
+    ],
+    href: "mailto:enterprise@deeptechly.com",
+    cta: "Request enterprise access",
     highlight: false
   }
 ] as const;
@@ -63,26 +81,27 @@ export default function PricingPage() {
   return (
     <PageShell>
       <section className="w-full border-b border-black bg-deepOrange deeptech-texture">
-        <div className="mx-auto max-w-5xl px-4 py-12 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-5xl px-4 py-12 text-center sm:px-6 lg:px-8 lg:text-left">
           <p className="text-[11px] font-black uppercase tracking-[0.28em]">
-            Pricing
+            Access Tiers
           </p>
           <h1 className="mt-4 max-w-3xl text-5xl font-black leading-[0.92] sm:text-6xl">
-            Research access that scales from public reading to institutional diligence.
+            Public research stays open. Institutional analysis requires verification.
           </h1>
           <p className="mt-5 max-w-2xl text-sm font-semibold leading-6 text-ink/82">
-            DeepTechly keeps public research open while reserving deeper investor,
-            risk, and scenario work for analyst and institutional access.
+            DeepTechly supports free public research accounts, analyst tooling,
+            verified institutional dossier access, and custom enterprise
+            intelligence infrastructure.
           </p>
         </div>
       </section>
 
       <section className="w-full bg-paper">
-        <div className="mx-auto grid max-w-6xl gap-5 px-4 py-12 sm:px-6 lg:grid-cols-3 lg:px-8">
+        <div className="mx-auto grid max-w-7xl gap-5 px-4 py-12 sm:px-6 md:grid-cols-2 xl:grid-cols-4 lg:px-8">
           {tiers.map((tier) => (
             <article
               key={tier.name}
-              className={`border border-black p-6 shadow-hard ${
+              className={`flex min-h-full flex-col border border-black p-5 shadow-hard ${
                 tier.highlight ? "bg-ink text-white" : "bg-white text-ink"
               }`}
             >
@@ -92,7 +111,7 @@ export default function PricingPage() {
               <p className="mt-3 text-3xl font-black">{tier.price}</p>
               <p
                 className={`mt-3 text-sm font-semibold leading-6 ${
-                  tier.highlight ? "text-white/72" : "text-charcoal"
+                  tier.highlight ? "text-white/74" : "text-charcoal"
                 }`}
               >
                 {tier.summary}
@@ -102,7 +121,7 @@ export default function PricingPage() {
                   <li
                     key={feature}
                     className={`flex gap-2 text-sm leading-5 ${
-                      tier.highlight ? "text-white/78" : "text-charcoal"
+                      tier.highlight ? "text-white/82" : "text-charcoal"
                     }`}
                   >
                     <span className="font-black text-deepOrange">-</span>
@@ -112,14 +131,14 @@ export default function PricingPage() {
               </ul>
               <Link
                 href={tier.href}
-                className={`mt-7 flex items-center justify-between border px-4 py-3 text-[10px] font-black uppercase tracking-[0.14em] ${
+                className={`mt-auto flex min-h-12 items-center justify-between gap-3 border px-4 py-3 text-[10px] font-black uppercase tracking-[0.14em] ${
                   tier.highlight
                     ? "border-deepOrange bg-deepOrange text-ink hover:bg-darkOrange"
                     : "border-black bg-offWhite hover:bg-paleOrange"
                 }`}
               >
                 {tier.cta}
-                <ArrowRight size={13} />
+                <ArrowRight size={13} aria-hidden="true" />
               </Link>
             </article>
           ))}

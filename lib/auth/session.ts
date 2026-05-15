@@ -4,6 +4,7 @@ import { getUserProfile, type UserProfile } from "./profiles";
 export type InstitutionalAccessState =
   | "signed-out"
   | "free"
+  | "pending"
   | "institutional";
 
 export type DeeptechlyAuthSession = {
@@ -60,6 +61,10 @@ export function getInstitutionalAccessState(
 
   if (session.isInstitutionalVerified) {
     return "institutional";
+  }
+
+  if (session.institutionalRequestPending) {
+    return "pending";
   }
 
   return "free";

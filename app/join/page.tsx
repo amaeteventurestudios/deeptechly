@@ -1,300 +1,251 @@
 import Link from "next/link";
-import { Cpu, ArrowRight, UserPlus } from "lucide-react";
+import { ArrowRight, Cpu, UserPlus } from "lucide-react";
 import { AuthSubmitButton } from "@/components/auth/AuthSubmitButton";
 import { PasswordSuggestionField } from "@/components/auth/PasswordSuggestionField";
 import { PageShell } from "@/components/layout/PageShell";
 
 export const metadata = {
-  title: "Institutional Access | DeepTechly",
-  description: "Request institutional or research access to DeepTechly's full dossier and intelligence platform."
+  title: "Join DeepTechly | DeepTechly",
+  description:
+    "Create a free research account or request verified institutional access to DeepTechly."
 };
 
 type JoinPageProps = {
   searchParams: Promise<{ error?: string; access?: string }>;
 };
 
+type AccessTab = "research" | "institutional";
+
 export default async function JoinPage({ searchParams }: JoinPageProps) {
   const { error, access } = await searchParams;
+  const activeTab: AccessTab = access === "institutional" ? "institutional" : "research";
 
   return (
     <PageShell>
       <section className="w-full border-b border-black bg-deepOrange deeptech-texture">
-        <div className="mx-auto max-w-5xl px-4 py-12 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-5xl px-4 py-12 text-center sm:px-6 lg:px-8 lg:text-left">
           <p className="text-[11px] font-black uppercase tracking-[0.28em]">
-            Institutional Access
+            Join DeepTechly
           </p>
           <h1 className="mt-4 max-w-3xl text-5xl font-black leading-[0.92] sm:text-6xl">
-            Research-grade intelligence for serious institutions.
+            Choose the access path that matches your role.
           </h1>
-          <p className="mt-4 max-w-xl text-sm font-semibold leading-6 text-ink/82">
-            Full investor dossiers, confidence scores, scenario analysis, and
-            structured data exports. Built for VC, corporate development,
-            government acquisition, and technical due diligence teams.
+          <p className="mt-4 max-w-2xl text-sm font-semibold leading-6 text-ink/82">
+            Research accounts are free. Institutional analysis may require
+            verification or an invite code.
           </p>
         </div>
       </section>
 
       <section className="w-full bg-paper">
-        <div className="mx-auto max-w-5xl px-4 py-12 sm:px-6 lg:px-8">
-          <div className="grid gap-6 md:grid-cols-2">
-            <form
-              action="/api/auth/join"
-              className="border border-black bg-white p-6 shadow-hard"
-              method="post"
-            >
-              <input name="accessPath" type="hidden" value="research" />
-              <p className="text-[10px] font-black uppercase tracking-[0.22em] text-deepOrange">
-                Research Access
-              </p>
-              <h2 className="mt-2 text-2xl font-black">Create research account</h2>
-              <p className="mt-2 text-sm leading-6 text-charcoal">
-                Free account access for public research workflows and saved
-                queue state.
-              </p>
-              {error && (!access || access === "research") ? (
-                <p className="mt-4 border border-black bg-paleOrange px-3 py-2 text-xs font-bold text-ink">
-                  {getErrorMessage(error)}
-                </p>
-              ) : null}
-              <div className="mt-5 space-y-4">
-                <label className="block">
-                  <span className="text-[10px] font-black uppercase tracking-[0.18em] text-ink">
-                    Full Name
-                  </span>
-                  <input
-                    className="mt-2 w-full border border-black bg-offWhite px-4 py-3 text-sm font-semibold text-ink outline-none focus:border-deepOrange"
-                    name="fullName"
-                    required
-                    type="text"
-                  />
-                </label>
-                <label className="block">
-                  <span className="text-[10px] font-black uppercase tracking-[0.18em] text-ink">
-                    Email
-                  </span>
-                  <input
-                    className="mt-2 w-full border border-black bg-offWhite px-4 py-3 text-sm font-semibold text-ink outline-none focus:border-deepOrange"
-                    name="email"
-                    required
-                    type="email"
-                  />
-                </label>
-                <PasswordSuggestionField
-                  label="Password"
-                  minLength={8}
-                  name="password"
-                />
-              </div>
-              <AuthSubmitButton
-                className="mt-6 flex w-full items-center justify-between border border-black bg-deepOrange px-4 py-3 text-[11px] font-black uppercase tracking-[0.14em] shadow-hard hover:bg-darkOrange"
-                pendingLabel="Creating Account..."
-              >
-                Create Research Account
-                <UserPlus size={14} />
-              </AuthSubmitButton>
-            </form>
+        <div className="mx-auto max-w-4xl px-4 py-10 sm:px-6 lg:px-8">
+          <div
+            aria-label="Choose access path"
+            className="grid grid-cols-1 gap-px border border-black bg-black sm:grid-cols-2"
+            role="tablist"
+          >
+            <AccessTabLink
+              active={activeTab === "research"}
+              href="/join?access=research"
+              label="Research Access"
+            />
+            <AccessTabLink
+              active={activeTab === "institutional"}
+              href="/join?access=institutional"
+              label="Institutional Access"
+            />
+          </div>
 
-            <form
-              action="/api/auth/join"
-              className="border border-black bg-ink p-6 text-white shadow-hard"
-              method="post"
-            >
-              <input name="accessPath" type="hidden" value="institutional" />
-              <p className="text-[10px] font-black uppercase tracking-[0.22em] text-deepOrange">
-                Institutional Access
-              </p>
-              <h2 className="mt-2 text-2xl font-black">Request institutional access</h2>
-              <p className="mt-2 text-sm leading-6 text-white/72">
-                Verification path for dossier analysis, scenario models, and
-                institutional intelligence features.
-              </p>
-              {error && access === "institutional" ? (
-                <p className="mt-4 border border-deepOrange bg-white px-3 py-2 text-xs font-bold text-ink">
-                  {getErrorMessage(error)}
-                </p>
-              ) : null}
-              <div className="mt-5 space-y-4">
-                <label className="block">
-                  <span className="text-[10px] font-black uppercase tracking-[0.18em] text-white">
-                    Full Name
-                  </span>
-                  <input
-                    className="mt-2 w-full border border-white bg-white px-4 py-3 text-sm font-semibold text-ink outline-none focus:border-deepOrange"
-                    name="fullName"
-                    required
-                    type="text"
-                  />
-                </label>
-                <label className="block">
-                  <span className="text-[10px] font-black uppercase tracking-[0.18em] text-white">
-                    Organization
-                  </span>
-                  <input
-                    className="mt-2 w-full border border-white bg-white px-4 py-3 text-sm font-semibold text-ink outline-none focus:border-deepOrange"
-                    name="organization"
-                    type="text"
-                  />
-                </label>
-                <label className="block">
-                  <span className="text-[10px] font-black uppercase tracking-[0.18em] text-white">
-                    Work Email
-                  </span>
-                  <input
-                    className="mt-2 w-full border border-white bg-white px-4 py-3 text-sm font-semibold text-ink outline-none focus:border-deepOrange"
-                    name="workEmail"
-                    required
-                    type="email"
-                  />
-                </label>
-                <PasswordSuggestionField
-                  inputClassName="mt-2 w-full border border-white bg-white px-4 py-3 text-sm font-semibold text-ink outline-none focus:border-deepOrange"
-                  label="Password"
-                  labelClassName="text-[10px] font-black uppercase tracking-[0.18em] text-white"
-                  minLength={8}
-                  name="password"
-                />
-                <label className="block">
-                  <span className="text-[10px] font-black uppercase tracking-[0.18em] text-white">
-                    Invite Code
-                  </span>
-                  <input
-                    className="mt-2 w-full border border-white bg-white px-4 py-3 text-sm font-semibold text-ink outline-none focus:border-deepOrange"
-                    name="inviteCode"
-                    type="text"
-                  />
-                </label>
-              </div>
-              <AuthSubmitButton
-                className="mt-6 flex w-full items-center justify-between border border-deepOrange bg-deepOrange px-4 py-3 text-[11px] font-black uppercase tracking-[0.14em] text-ink shadow-hard hover:bg-darkOrange"
-                pendingLabel="Requesting Access..."
-              >
-                Request Institutional Access
-                <ArrowRight size={14} />
-              </AuthSubmitButton>
-            </form>
+          <div className="mt-6">
+            {activeTab === "institutional" ? (
+              <InstitutionalAccessForm error={error} />
+            ) : (
+              <ResearchAccessForm error={error} />
+            )}
           </div>
 
           <p className="mt-6 text-center text-[10px] font-black uppercase tracking-[0.16em] text-muted">
             Already a member?{" "}
-            <Link className="text-deepOrange" href="/sign-in">
+            <Link className="text-deepOrange hover:text-ink" href="/sign-in">
               Sign in
             </Link>
           </p>
-
-          <div className="mt-10 grid gap-6 md:grid-cols-3">
-            {[
-              {
-                label: "Public Research",
-                price: "Free",
-                features: [
-                  "Feature articles",
-                  "Public profiles",
-                  "Sector tags and readiness labels",
-                  "Source citations",
-                  "Markdown export"
-                ],
-                cta: "Browse Research",
-                href: "/news",
-                highlight: false
-              },
-              {
-                label: "Institutional Dossier",
-                price: "Request Access",
-                features: [
-                  "Full investor dossier",
-                  "Confidence scoring",
-                  "Scenario analysis (best / base / downside)",
-                  "Team and hiring signals",
-                  "Revenue and traction estimates",
-                  "Competitive landscape",
-                  "Strategic risk read"
-                ],
-                cta: "Request Access",
-                href: "mailto:access@deeptechly.com",
-                highlight: true
-              },
-              {
-                label: "Enterprise",
-                price: "Contact Us",
-                features: [
-                  "Bulk research queue",
-                  "API access",
-                  "Custom sector coverage",
-                  "White-label exports",
-                  "Dedicated analyst review"
-                ],
-                cta: "Get in Touch",
-                href: "mailto:enterprise@deeptechly.com",
-                highlight: false
-              }
-            ].map((tier) => (
-              <div
-                key={tier.label}
-                className={`border border-black p-6 shadow-hard ${
-                  tier.highlight ? "bg-ink text-white" : "bg-white text-ink"
-                }`}
-              >
-                <p
-                  className={`text-[10px] font-black uppercase tracking-[0.22em] ${
-                    tier.highlight ? "text-deepOrange" : "text-deepOrange"
-                  }`}
-                >
-                  {tier.label}
-                </p>
-                <p className="mt-2 text-2xl font-black">{tier.price}</p>
-                <ul className="mt-4 space-y-2">
-                  {tier.features.map((feature) => (
-                    <li
-                      key={feature}
-                      className={`flex items-start gap-2 text-sm leading-5 ${
-                        tier.highlight ? "text-white/80" : "text-charcoal"
-                      }`}
-                    >
-                      <span className="mt-0.5 shrink-0 font-black text-deepOrange">—</span>
-                      {feature}
-                    </li>
-                  ))}
-                </ul>
-                <Link
-                  href={tier.href}
-                  className={`mt-6 flex items-center justify-between border px-4 py-3 text-[10px] font-black uppercase tracking-[0.14em] ${
-                    tier.highlight
-                      ? "border-deepOrange bg-deepOrange text-ink hover:bg-darkOrange"
-                      : "border-black bg-offWhite hover:bg-paleOrange"
-                  }`}
-                >
-                  {tier.cta}
-                  <ArrowRight size={13} />
-                </Link>
-              </div>
-            ))}
-          </div>
         </div>
       </section>
 
       <section className="w-full border-t border-black bg-offWhite">
         <div className="mx-auto max-w-5xl px-4 py-10 sm:px-6 lg:px-8">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center justify-center gap-2 text-center sm:justify-start sm:text-left">
             <span className="flex h-6 w-6 items-center justify-center border border-deepOrange bg-deepOrange text-ink">
-              <Cpu size={14} strokeWidth={2.6} />
+              <Cpu size={14} strokeWidth={2.6} aria-hidden="true" />
             </span>
             <span className="text-sm font-black">DeepTechly</span>
           </div>
-          <p className="mt-3 max-w-xl text-sm leading-6 text-charcoal">
-            All public research — articles, profiles, and markdown exports — is
-            available without an account. Institutional access unlocks the full
-            dossier layer.
+          <p className="mx-auto mt-3 max-w-xl text-center text-sm leading-6 text-charcoal sm:mx-0 sm:text-left">
+            Public articles, profiles, public dossier snapshots, and markdown
+            exports remain open. Verified accounts unlock the institutional
+            dossier layer where available.
           </p>
           <Link
-            href="/news"
-            className="mt-4 inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.16em] text-deepOrange"
+            href="/pricing"
+            className="mx-auto mt-4 inline-flex min-h-10 items-center justify-center gap-2 border border-black bg-white px-3 py-2 text-[10px] font-black uppercase tracking-[0.14em] hover:bg-paleOrange sm:mx-0"
           >
-            Browse free research
-            <ArrowRight size={12} />
+            View pricing
+            <ArrowRight size={12} aria-hidden="true" />
           </Link>
         </div>
       </section>
     </PageShell>
+  );
+}
+
+function AccessTabLink({
+  active,
+  href,
+  label
+}: {
+  active: boolean;
+  href: string;
+  label: string;
+}) {
+  return (
+    <Link
+      aria-selected={active}
+      className={`flex min-h-12 items-center justify-center border-0 px-4 py-3 text-center text-[11px] font-black uppercase tracking-[0.16em] focus:outline-none focus:ring-2 focus:ring-deepOrange focus:ring-offset-2 ${
+        active ? "bg-ink text-white" : "bg-white text-ink hover:bg-paleOrange"
+      }`}
+      href={href}
+      role="tab"
+    >
+      {label}
+    </Link>
+  );
+}
+
+function ResearchAccessForm({ error }: { error?: string }) {
+  return (
+    <form
+      action="/api/auth/join"
+      className="border border-black bg-white p-5 shadow-hard sm:p-6"
+      method="post"
+    >
+      <input name="accessPath" type="hidden" value="research" />
+      <p className="text-[10px] font-black uppercase tracking-[0.22em] text-deepOrange">
+        Research Access
+      </p>
+      <h2 className="mt-2 text-2xl font-black leading-tight">
+        Create research account
+      </h2>
+      <p className="mt-2 text-sm leading-6 text-charcoal">
+        Free account access for public research workflows, saved research, and
+        basic queue activity.
+      </p>
+      {error ? <ErrorNotice error={error} /> : null}
+      <div className="mt-5 space-y-4">
+        <TextField label="Full Name" name="fullName" required />
+        <TextField label="Email" name="email" required type="email" />
+        <PasswordSuggestionField label="Password" minLength={8} name="password" />
+      </div>
+      <AuthSubmitButton
+        className="mt-6 flex min-h-12 w-full items-center justify-between border border-black bg-deepOrange px-4 py-3 text-[11px] font-black uppercase tracking-[0.14em] shadow-hard hover:bg-darkOrange"
+        pendingLabel="Creating Account..."
+      >
+        Create Research Account
+        <UserPlus size={14} aria-hidden="true" />
+      </AuthSubmitButton>
+    </form>
+  );
+}
+
+function InstitutionalAccessForm({ error }: { error?: string }) {
+  return (
+    <form
+      action="/api/auth/join"
+      className="border border-black bg-ink p-5 text-white shadow-hard sm:p-6"
+      method="post"
+    >
+      <input name="accessPath" type="hidden" value="institutional" />
+      <p className="text-[10px] font-black uppercase tracking-[0.22em] text-deepOrange">
+        Institutional Access
+      </p>
+      <h2 className="mt-2 text-2xl font-black leading-tight">
+        Request institutional access
+      </h2>
+      <p className="mt-2 text-sm leading-6 text-white/74">
+        Submit a request for verified access. A valid invite code can unlock
+        institutional access immediately; missing or invalid codes remain
+        pending review.
+      </p>
+      {error ? <ErrorNotice dark error={error} /> : null}
+      <div className="mt-5 space-y-4">
+        <TextField dark label="Full Name" name="fullName" required />
+        <TextField dark label="Organization" name="organization" />
+        <TextField dark label="Work Email" name="workEmail" required type="email" />
+        <PasswordSuggestionField
+          inputClassName="mt-2 w-full border border-white bg-white px-4 py-3 text-sm font-semibold text-ink outline-none focus:border-deepOrange"
+          label="Password"
+          labelClassName="text-[10px] font-black uppercase tracking-[0.18em] text-white"
+          minLength={8}
+          name="password"
+        />
+        <TextField dark label="Invite Code" name="inviteCode" />
+      </div>
+      <AuthSubmitButton
+        className="mt-6 flex min-h-12 w-full items-center justify-between border border-deepOrange bg-deepOrange px-4 py-3 text-[11px] font-black uppercase tracking-[0.14em] text-ink shadow-hard hover:bg-darkOrange"
+        pendingLabel="Requesting Access..."
+      >
+        Request Institutional Access
+        <ArrowRight size={14} aria-hidden="true" />
+      </AuthSubmitButton>
+    </form>
+  );
+}
+
+function TextField({
+  dark = false,
+  label,
+  name,
+  required = false,
+  type = "text"
+}: {
+  dark?: boolean;
+  label: string;
+  name: string;
+  required?: boolean;
+  type?: string;
+}) {
+  return (
+    <label className="block">
+      <span
+        className={`text-[10px] font-black uppercase tracking-[0.18em] ${
+          dark ? "text-white" : "text-ink"
+        }`}
+      >
+        {label}
+      </span>
+      <input
+        className={`mt-2 w-full border px-4 py-3 text-sm font-semibold text-ink outline-none focus:border-deepOrange ${
+          dark ? "border-white bg-white" : "border-black bg-offWhite"
+        }`}
+        name={name}
+        required={required}
+        type={type}
+      />
+    </label>
+  );
+}
+
+function ErrorNotice({ dark = false, error }: { dark?: boolean; error: string }) {
+  return (
+    <p
+      className={`mt-4 border px-3 py-2 text-xs font-bold leading-5 ${
+        dark
+          ? "border-deepOrange bg-white text-ink"
+          : "border-black bg-paleOrange text-ink"
+      }`}
+    >
+      {getErrorMessage(error)}
+    </p>
   );
 }
 
