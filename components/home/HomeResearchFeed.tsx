@@ -9,7 +9,7 @@ import { PatentIntelligence } from "./PatentIntelligence";
 import { ResearchNewsstand } from "./ResearchNewsstand";
 import { TechnologySignals } from "./TechnologySignals";
 import { WhiteSpaceOpportunities } from "./WhiteSpaceOpportunities";
-import { getPublishedEntities } from "@/lib/research/public-data";
+import { isCompletedResearchFeedEligible, readStore } from "@/lib/research/store";
 import {
   formatRelativeTime,
   storyFromEntity,
@@ -26,12 +26,12 @@ import type { ResearchEntity } from "@/lib/types";
 
 export async function HomeResearchFeed() {
   const generatedStories = await getGeneratedHomepageStories();
-  const topStories = mergeStories(generatedStories, homepageSeed.topStories).slice(0, 4);
+  const topStories = mergeStories(generatedStories, homepageSeed.topStories).slice(0, 5);
   const alsoReadingStories = mergeStories(
-    generatedStories.slice(4),
+    generatedStories.slice(5),
     homepageSeed.alsoReading
-  ).slice(0, 6);
-  const latestArticles = mergeStories(generatedStories, homepageSeed.latestArticles).slice(0, 4);
+  ).slice(0, 8);
+  const latestArticles = mergeStories(generatedStories, homepageSeed.latestArticles).slice(0, 6);
   const newsstandItems = mergeNewsstandItems(
     generatedStories.flatMap(newsstandItemsFromStory),
     homepageSeed.newsstand
@@ -75,10 +75,10 @@ export async function HomeResearchFeed() {
       <section className="w-full border-t border-black bg-paper">
         <div className="mx-auto w-full max-w-7xl px-4 py-7 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 gap-px border border-black bg-black md:grid-cols-2 xl:grid-cols-4">
-            <TechnologySignals />
-            <GovernmentSignals />
-            <PatentIntelligence />
-            <WhiteSpaceOpportunities />
+            <TechnologySignals stories={generatedStories} />
+            <GovernmentSignals stories={generatedStories} />
+            <PatentIntelligence stories={generatedStories} />
+            <WhiteSpaceOpportunities stories={generatedStories} />
           </div>
         </div>
       </section>
@@ -91,7 +91,15 @@ export async function HomeResearchFeed() {
 
 async function getGeneratedHomepageStories() {
   try {
-    const entities = await getPublishedEntities();
+    const store = await readStore();
+    const entities = store.entities
+      .filter(
+        (entity) =>
+          entity.publishedStatus === "published" &&
+          isCompletedResearchFeedEligible(entity)
+      )
+      .sort(compareHomepageEntities);
+
     return entities
       .filter(isGeneratedEntity)
       .map(homepageStoryFromEntity);
@@ -114,11 +122,29 @@ function homepageStoryFromEntity(entity: ResearchEntity): HomepageStory {
     dek: story.dek,
     analyst: story.authorPersona as DeepTechlyAnalyst,
     href: story.articleUrl,
+    profileHref: story.profileUrl,
+    dossierHref: story.dossierUrl,
+    heroImage: story.heroImage,
+    researchMode: entity.entityTypeTag ?? entity.entityType ?? entity.stage,
     tags: storyTags(story).slice(0, 3),
     time: story.publishedAt ? formatRelativeTime(story.publishedAt) : "JUST NOW",
     confidence: confidenceForLabel(story.confidenceLabel),
     sourceCount: story.sourceCount
   };
+}
+
+function compareHomepageEntities(a: ResearchEntity, b: ResearchEntity) {
+  const featuredDelta =
+    Number(Boolean(b.article.adminFeatured)) - Number(Boolean(a.article.adminFeatured));
+  if (featuredDelta !== 0) return featuredDelta;
+
+  return timestampForEntity(b) - timestampForEntity(a);
+}
+
+function timestampForEntity(entity: ResearchEntity) {
+  const value = entity.article.publishedAt ?? entity.updatedAt ?? entity.createdAt ?? "";
+  const time = Date.parse(value);
+  return Number.isFinite(time) ? time : 0;
 }
 
 function confidenceForLabel(label?: string | null): HomepageConfidence {
@@ -162,7 +188,7 @@ function newsstandItemsFromStory(story: HomepageStory): NewsstandItem[] {
       time: story.time,
       sourceCount: story.sourceCount ?? 0,
       confidence: story.confidence ?? "Moderate",
-      href: story.href.replace("/article/", "/startup/"),
+      href: story.profileHref ?? story.href.replace("/article/", "/startup/"),
       cta: "Open Profile"
     },
     {
@@ -175,7 +201,7 @@ function newsstandItemsFromStory(story: HomepageStory): NewsstandItem[] {
       time: story.time,
       sourceCount: story.sourceCount ?? 0,
       confidence: story.confidence ?? "Moderate",
-      href: story.href.replace("/article/", "/dossier/"),
+      href: story.dossierHref ?? story.href.replace("/article/", "/dossier/"),
       cta: "Open Dossier",
       gated: true
     }
@@ -209,8 +235,8 @@ function TopStoryRow({
         }`}
       >
         <span
-          className={`mx-auto flex items-start justify-center font-black leading-none text-deepOrange lg:mx-0 ${
-            featured ? "text-5xl lg:text-6xl" : "text-4xl lg:text-5xl"
+          className={`mx-auto flex items-start justify-center font-black leading-none lg:mx-0 ${
+            featured ? "text-5xl text-deepOrange lg:text-6xl" : "text-4xl text-black/15 lg:text-5xl"
           }`}
         >
           {rank}
@@ -235,7 +261,11 @@ function TopStoryRow({
               <HomeTag key={`${story.id}-${tag}`}>{tag}</HomeTag>
             ))}
           </div>
-          <div className="mt-4 flex flex-col items-center justify-center gap-2 text-[10px] font-black uppercase tracking-[0.14em] sm:flex-row lg:justify-start">
+          <p className="mt-3 text-[10px] font-black uppercase tracking-[0.14em] text-muted">
+            {story.sourceCount ?? 0} public sources · {story.confidence ?? "Moderate"} confidence
+            {story.researchMode ? ` · ${story.researchMode}` : ""}
+          </p>
+          <div className="mt-4 flex flex-col items-center justify-center gap-2 text-[10px] font-black uppercase tracking-[0.14em] sm:flex-row sm:flex-wrap lg:justify-start">
             <span className="text-muted">By {story.analyst}</span>
             <span className="hidden text-black/30 sm:inline">|</span>
             <Link
@@ -245,6 +275,15 @@ function TopStoryRow({
               Read Article
               <ArrowRight size={12} aria-hidden="true" />
             </Link>
+            {story.dossierHref ? (
+              <Link
+                href={story.dossierHref}
+                className="inline-flex min-h-11 items-center justify-center gap-1 border border-black bg-offWhite px-3 py-2 text-ink shadow-[3px_3px_0_#0f0f0f] hover:bg-paleOrange"
+              >
+                Open Dossier
+                <ArrowRight size={12} aria-hidden="true" />
+              </Link>
+            ) : null}
           </div>
         </div>
         <div className="flex justify-center lg:block">
@@ -284,8 +323,18 @@ function AlsoReading({ stories }: { stories: HomepageStory[] }) {
                   <Link href={story.href}>{story.headline}</Link>
                 </h3>
                 <p className="mt-2 text-[9px] font-black uppercase tracking-[0.14em] text-muted">
+                  {story.sector} · {story.sourceCount ?? 0} sources · {story.confidence ?? "Moderate"}
+                </p>
+                <p className="mt-1 text-[9px] font-black uppercase tracking-[0.14em] text-muted">
                   {story.analyst} · {story.time}
                 </p>
+                <Link
+                  href={story.href}
+                  className="mt-2 inline-flex min-h-8 items-center justify-center gap-1 text-[9px] font-black uppercase tracking-[0.12em] hover:text-deepOrange"
+                >
+                  Open
+                  <ArrowRight size={10} aria-hidden="true" />
+                </Link>
               </div>
               <HomeSaveButton
                 entityName={story.entityName}
@@ -304,6 +353,25 @@ function AlsoReading({ stories }: { stories: HomepageStory[] }) {
 }
 
 function BrowseBySector() {
+  const sectors = [
+    "Space",
+    "Defense",
+    "Robotics",
+    "Energy",
+    "Semiconductors",
+    "Photonics",
+    "Materials",
+    "Manufacturing",
+    "Sensors",
+    "Autonomy",
+    "Bioinfrastructure",
+    "Quantum",
+    "Climate Systems"
+  ].map((label) => ({
+    label,
+    href: `/sector/${label.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`
+  }));
+
   return (
     <section className="w-full border-t border-black bg-offWhite">
       <div className="mx-auto w-full max-w-7xl px-4 py-6 text-center sm:px-6 lg:px-8">
@@ -313,7 +381,7 @@ function BrowseBySector() {
           actionLabel="View All Sectors"
         />
         <div className="mx-auto flex flex-wrap items-center justify-center gap-2">
-          {homepageSeed.sectors.map((sector, index) => (
+          {sectors.map((sector, index) => (
             <Link
               key={sector.label}
               href={sector.href}

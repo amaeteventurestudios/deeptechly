@@ -16,10 +16,10 @@ const footerColumns = [
     title: "Resources",
     links: [
       ["llms.txt", "/llms.txt"],
-      ["llms-full.txt", "/llms-full.txt"],
-      ["Sitemap.xml", "/sitemap.xml"],
-      ["Research Archive", "/articles"],
-      ["API coming soon", "/methodology#api-coming-soon"]
+      ["XML sitemap", "/sitemap.xml"],
+      ["Articles", "/articles"],
+      ["Research Profiles", "/startups"],
+      ["Patent Intelligence", "/patents"]
     ]
   },
   {
@@ -52,9 +52,9 @@ export function SiteFooter() {
               <span className="text-lg font-black">DeepTechly</span>
             </Link>
             <p className="max-w-xs text-xs font-semibold leading-5 text-white/68">
-              AI-native deep-tech research and intelligence. We research what
-              matters across deep-tech, government technology, and institutional
-              analysis.
+              DeepTechly.ai — independent AI-native research and reporting on
+              deep-tech companies, patents, government technologies, and
+              emerging infrastructure systems.
             </p>
           </div>
 
@@ -80,8 +80,8 @@ export function SiteFooter() {
               AI-Readable Access
             </h3>
             <p className="text-xs font-semibold leading-5 text-white/68">
-              DeepTechly publishes machine-readable content for researchers,
-              institutions, and AI systems.
+              Every public research page is also available as raw markdown by
+              appending .md to the URL.
             </p>
             <div className="mt-4 flex flex-wrap justify-center gap-2 md:justify-start">
               {aiReadableLinks.map(([label, href]) => (
@@ -98,8 +98,8 @@ export function SiteFooter() {
         </div>
         <div className="border-t border-white/10 py-3">
           <div className="mx-auto flex max-w-7xl flex-col items-center justify-center gap-2 px-4 text-center text-[10px] font-bold uppercase tracking-[0.16em] text-white/52 sm:px-6 md:flex-row md:justify-between md:text-left lg:px-8">
-            <span>© 2026 DeepTechly. Independent research.</span>
-            <span>Not investment advice.</span>
+            <span>Site index: Articles · Research Profiles · Patent Intelligence · llms.txt · XML sitemap</span>
+            <span>Independent research · Not investment advice</span>
           </div>
         </div>
     </footer>

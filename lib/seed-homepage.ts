@@ -38,6 +38,10 @@ export type HomepageStory = {
   dek: string;
   analyst: DeepTechlyAnalyst;
   href: string;
+  profileHref?: string;
+  dossierHref?: string;
+  heroImage?: string | null;
+  researchMode?: string;
   tags: string[];
   time: string;
   confidence?: HomepageConfidence;

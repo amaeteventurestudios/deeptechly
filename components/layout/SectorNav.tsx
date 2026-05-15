@@ -1,6 +1,20 @@
 import Link from "next/link";
 
-const sectors = ["SPACE", "DEFENSE", "ROBOTICS", "ENERGY", "SEMICONDUCTORS"];
+const sectors = [
+  "SPACE",
+  "DEFENSE",
+  "ROBOTICS",
+  "ENERGY",
+  "SEMICONDUCTORS",
+  "PHOTONICS",
+  "MATERIALS",
+  "MANUFACTURING",
+  "SENSORS",
+  "AUTONOMY",
+  "BIOINFRASTRUCTURE",
+  "QUANTUM",
+  "CLIMATE SYSTEMS"
+];
 
 export function SectorNav() {
   return (
@@ -10,7 +24,7 @@ export function SectorNav() {
           {sectors.map((sector) => (
             <Link
               key={sector}
-              href={`/sector/${sector.toLowerCase()}`}
+              href={`/sector/${sector.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`}
               className="shrink-0 text-white/78 hover:text-deepOrange"
             >
               {sector}

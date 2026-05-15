@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Check, LoaderCircle, Star } from "lucide-react";
 
 export type SaveResearchButtonProps = {
@@ -30,6 +30,35 @@ export function SaveResearchButton({
     "idle"
   );
 
+  useEffect(() => {
+    let active = true;
+
+    async function loadSavedState() {
+      try {
+        const response = await fetch("/api/saved-research", { cache: "no-store" });
+        if (!response.ok) return;
+
+        const body = (await response.json()) as {
+          items?: { item_id?: string }[];
+        };
+        if (
+          active &&
+          body.items?.some((item) => item.item_id === itemId)
+        ) {
+          setState("saved");
+        }
+      } catch {
+        // Existing signed-out and unavailable states are handled when the user clicks.
+      }
+    }
+
+    loadSavedState();
+
+    return () => {
+      active = false;
+    };
+  }, [itemId]);
+
   async function saveItem() {
     if (state === "saving") {
       return;
@@ -39,17 +68,21 @@ export function SaveResearchButton({
 
     try {
       const response = await fetch("/api/saved-research", {
-        method: "POST",
+        method: state === "saved" ? "DELETE" : "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          itemId,
-          itemType,
-          title,
-          href,
-          sector,
-          entityName,
-          source
-        })
+        body: JSON.stringify(
+          state === "saved"
+            ? { itemId }
+            : {
+                itemId,
+                itemType,
+                title,
+                href,
+                sector,
+                entityName,
+                source
+              }
+        )
       });
 
       if (response.status === 401) {
@@ -65,7 +98,7 @@ export function SaveResearchButton({
         return;
       }
 
-      setState("saved");
+      setState(state === "saved" ? "idle" : "saved");
     } catch {
       setState("error");
     }
@@ -77,7 +110,7 @@ export function SaveResearchButton({
     state === "saving"
       ? "Saving"
       : state === "saved"
-        ? "Saved"
+        ? "Unsave"
         : state === "error"
           ? "Try Again"
           : compact
