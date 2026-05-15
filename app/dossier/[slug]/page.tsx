@@ -2,7 +2,9 @@ import { notFound } from "next/navigation";
 import {
   type InstitutionalAccessState,
   CompetitiveLandscapeTable,
+  AccuracyConfidencePanel,
   ConfidenceScorePanel,
+  DataSnapshotPanel,
   DossierHero,
   DossierSourcesBlock,
   ExecutiveSummary,
@@ -10,6 +12,7 @@ import {
   InstitutionalDossierSections,
   MarketPositionSection,
   OverviewSection,
+  RelatedResearchGrid,
   SnapshotPanel,
   TechnicalSummarySection
 } from "@/components/dossier/DossierComponents";
@@ -68,9 +71,12 @@ export default async function DossierPage({ params }: DossierPageProps) {
           <TechnicalSummarySection entity={entity} />
           <MarketPositionSection entity={entity} />
           <CompetitiveLandscapeTable entity={entity} />
+          <DataSnapshotPanel entity={entity} />
           <DossierSourcesBlock sources={entity.dossier.sources} />
           <ConfidenceScorePanel entity={entity} />
-          <InstitutionalDossierSections accessState={accessState} />
+          <AccuracyConfidencePanel entity={entity} />
+          <InstitutionalDossierSections entity={entity} accessState={accessState} />
+          <RelatedResearchGrid entity={entity} />
         </div>
       </section>
     </PageShell>

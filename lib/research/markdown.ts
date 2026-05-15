@@ -1,40 +1,123 @@
 import type { ResearchEntity, Source } from "@/lib/types";
 
+const emptyCopy = "Not confirmed in public sources.";
+
+function valueOrEmpty(value?: string | number | null) {
+  if (value === null || value === undefined || value === "") return emptyCopy;
+  return String(value);
+}
+
+function bulletList(items: string[], fallback = "Limited public data found.") {
+  const visible = items.filter(Boolean);
+  if (visible.length === 0) return `- ${fallback}`;
+  return visible.map((item) => `- ${item}`).join("\n");
+}
+
 function sourceList(sources: Source[]) {
+  if (sources.length === 0) return "- Limited public data found.";
+
   return sources
-    .map((source, index) => `${index + 1}. [${source.title}](${source.url}) — ${source.type}`)
+    .map((source, index) => {
+      const meta = [
+        source.publisher,
+        source.type,
+        source.date,
+        source.retrievedAt ? `retrieved ${source.retrievedAt}` : null
+      ]
+        .filter(Boolean)
+        .join("; ");
+      return `${index + 1}. [${source.title}](${source.url})${meta ? ` — ${meta}` : ""}`;
+    })
     .join("\n");
 }
 
-export function articleMarkdown(entity: ResearchEntity) {
-  const showOpenQuestions =
-    entity.confidenceLabel !== "HIGH CONFIDENCE" &&
-    (entity.article.openQuestions?.length ?? 0) > 0;
+function competitiveLandscape(entity: ResearchEntity) {
+  return bulletList(
+    entity.dossier.competitiveLandscape.map(
+      (item) =>
+        `${item.companyOrApproach}: ${item.category}. Strength: ${item.strength}. Constraint: ${item.constraint}. Relevance: ${item.relevance}.`
+    )
+  );
+}
 
-  const openQuestionsSection = showOpenQuestions
-    ? `\n\n## Open Questions\n\n${entity.article.openQuestions!.map((q) => `- ${q}`).join("\n")}`
-    : "";
+function keySignals(entity: ResearchEntity) {
+  return bulletList([
+    entity.dossier.opportunity.government[0],
+    entity.dossier.opportunity.technical[0],
+    entity.dossier.companyPositioning.strategicWedge,
+    entity.dossier.accuracyAndConfidence.confirmed[0]
+  ].filter(Boolean));
+}
+
+function confidenceBlock(entity: ResearchEntity) {
+  const accuracy = entity.dossier.accuracyAndConfidence;
+  return `## Confidence
+
+${entity.confidenceLabel} (${entity.confidenceScore}/100)
+
+### Confirmed Facts
+
+${bulletList(accuracy.confirmed)}
+
+### Source-Attributed / Inferred Claims
+
+${bulletList(accuracy.inferred)}
+
+### Unverified Claims
+
+${bulletList(accuracy.unverified)}
+`;
+}
+
+export function articleMarkdown(entity: ResearchEntity) {
+  const openQuestions =
+    entity.article.openQuestions?.length
+      ? entity.article.openQuestions
+      : entity.dossier.accuracyAndConfidence.unverified;
 
   return `# ${entity.article.headline}
 
+## Summary
+
 ${entity.article.dek}
 
-Entity: ${entity.name}
-Sector: ${entity.sector}
-Confidence: ${entity.confidenceLabel} (${entity.confidenceScore}/100)
-Research dossier: /dossier/${entity.slug}
+## Research Snapshot
+
+- Entity: ${entity.name}
+- Sector: ${entity.sector}
+- Region: ${valueOrEmpty(entity.region)}
+- Stage: ${valueOrEmpty(entity.stage)}
+- Source count: ${entity.sourceCount}
+- Confidence: ${entity.confidenceLabel} (${entity.confidenceScore}/100)
+- Analyst: ${valueOrEmpty(entity.article.authorPersona)}
+- Published: ${valueOrEmpty(entity.article.publishedAt ?? entity.updatedAt)}
+
+## Article Body
 
 ${entity.article.sections
   .map(
-    (section) => `## ${section.title}
+    (section) => `### ${section.title}
 
 ${section.body.join("\n\n")}`
   )
-  .join("\n\n")}${openQuestionsSection}
+  .join("\n\n")}
+
+## Open Questions
+
+${bulletList(openQuestions, "DeepTechly could not confirm additional open questions from available public sources.")}
 
 ## Sources
 
 ${sourceList(entity.sources)}
+
+${confidenceBlock(entity)}
+
+## Related Pages
+
+- Article: /article/${entity.slug}
+- Public profile: /startup/${entity.slug}
+- Public dossier: /dossier/${entity.slug}
+- Dossier markdown: /dossier/${entity.slug}.md
 `;
 }
 
@@ -43,163 +126,94 @@ export function startupMarkdown(entity: ResearchEntity) {
 
 ${entity.summary}
 
-Entity type: ${entity.entityType}
-Primary sector: ${entity.sector}
-Secondary sectors: ${entity.secondarySectors.join(", ")}
-Region: ${entity.region}
-Stage: ${entity.stage}
-Confidence: ${entity.confidenceLabel} (${entity.confidenceScore}/100)
-Article: /article/${entity.slug}
-Dossier: /dossier/${entity.slug}
-
 ## Snapshot
 
-- Entity type: ${entity.snapshot.entityType}
-- Primary sector: ${entity.snapshot.primarySector}
-- Region: ${entity.snapshot.region}
-- Stage: ${entity.snapshot.stage}
-- Source count: ${entity.snapshot.sourceCount}
-- Confidence: ${entity.snapshot.confidence}
+- Entity type: ${valueOrEmpty(entity.entityType)}
+- Primary sector: ${valueOrEmpty(entity.sector)}
+- Secondary sectors: ${entity.secondarySectors.length ? entity.secondarySectors.join(", ") : emptyCopy}
+- Region: ${valueOrEmpty(entity.region)}
+- Stage: ${valueOrEmpty(entity.stage)}
+- Source count: ${entity.sourceCount}
+- Confidence: ${entity.confidenceLabel} (${entity.confidenceScore}/100)
+- Last updated: ${valueOrEmpty(entity.updatedAt ?? entity.lastResearchedAt)}
 
 ## Overview
 
-${entity.dossier.companyOverview.join("\n\n")}
+${entity.dossier.companyOverview.join("\n\n") || emptyCopy}
 
 ## Technical Summary
 
-${entity.dossier.productAndTechnology.join("\n\n")}
+${entity.dossier.productAndTechnology.join("\n\n") || emptyCopy}
 
 ## Market Position
 
-${entity.dossier.marketResearch.join("\n\n")}
+${entity.dossier.marketResearch.join("\n\n") || emptyCopy}
 
 ## Competitive Landscape
 
-${entity.dossier.competitiveLandscape
-  .map(
-    (item) =>
-      `- ${item.companyOrApproach}: ${item.category}. Strength: ${item.strength}. Constraint: ${item.constraint}. Relevance: ${item.relevance}.`
-  )
-  .join("\n")}
+${competitiveLandscape(entity)}
 
 ## Key Signals
 
-${[
-  entity.dossier.hiringSignal?.[0] ?? null,
-  entity.dossier.tractionAndMetrics?.[0] ?? null,
-  entity.dossier.socialAndPRSignal?.[0] ?? null,
-  entity.dossier.opportunity?.government?.[0] ?? null
-]
-  .filter(Boolean)
-  .map((signal) => `- ${signal}`)
-  .join("\n") || "- No confirmed signals in available public sources."}
+${keySignals(entity)}
 
 ## Open Questions
 
-${entity.dossier.accuracyAndConfidence.unverified.length > 0
-  ? entity.dossier.accuracyAndConfidence.unverified.map((item) => `- ${item}`).join("\n")
-  : "- No open questions identified in the current source set."}
-
-## Technology Tags
-
-${Array.from(new Set([entity.sector, ...entity.secondarySectors, ...entity.tags, ...(entity.sectorTags ?? [])]))
-  .map((tag) => `- ${tag}`)
-  .join("\n")}
-
-## Confidence Score
-
-${entity.confidenceScore}/100 — ${entity.confidenceLabel}
-
-## Accuracy and Confidence
-
-Confirmed:
-${entity.dossier.accuracyAndConfidence.confirmed.map((item) => `- ${item}`).join("\n")}
-
-Inferred:
-${entity.dossier.accuracyAndConfidence.inferred.map((item) => `- ${item}`).join("\n")}
-
-Unverified:
-${entity.dossier.accuracyAndConfidence.unverified.map((item) => `- ${item}`).join("\n")}
+${bulletList(entity.dossier.accuracyAndConfidence.unverified, "DeepTechly could not confirm this from available public sources.")}
 
 ## Sources
 
 ${sourceList(entity.sources)}
 
-## Related Pages
-
-- Article: /article/${entity.slug}
-- Dossier: /dossier/${entity.slug}
-`;
-}
-
-export function dossierMarkdown(entity: ResearchEntity) {
-  const competitiveLandscape = entity.dossier.competitiveLandscape
-    .map(
-      (item) =>
-        `- ${item.companyOrApproach}: ${item.category}. Strength: ${item.strength}. Constraint: ${item.constraint}. Relevance: ${item.relevance}.`
-    )
-    .join("\n");
-
-  return `# ${entity.name} Public Research Dossier
-
-${entity.summary}
-
-Entity type: ${entity.entityType}
-Primary sector: ${entity.sector}
-Region: ${entity.region}
-Confidence: ${entity.confidenceLabel} (${entity.confidenceScore}/100)
-Article: /article/${entity.slug}
-Profile: /startup/${entity.slug}
-
-## Executive Summary
-
-${entity.dossier.executiveSummary.join("\n\n")}
-
-## Overview
-
-${entity.dossier.companyOverview.join("\n\n")}
-
-## Key Facts
-
-- Source count: ${entity.sourceCount}
-- Research status: ${entity.snapshot.researchStatus}
-- Stage: ${entity.stage}
-- Secondary sectors: ${entity.secondarySectors.join(", ")}
-
-## Technical Summary
-
-${entity.dossier.productAndTechnology.join("\n\n")}
-
-## Market Position
-
-${entity.dossier.marketResearch.join("\n\n")}
-
-## Competitive Landscape
-
-${competitiveLandscape}
-
-## Confidence
-
-Label: ${entity.dossier.accuracyAndConfidence.label}
-
-Confirmed:
-${entity.dossier.accuracyAndConfidence.confirmed.map((item) => `- ${item}`).join("\n")}
-
-Inferred:
-${entity.dossier.accuracyAndConfidence.inferred.map((item) => `- ${item}`).join("\n")}
-
-Unverified:
-${entity.dossier.accuracyAndConfidence.unverified.map((item) => `- ${item}`).join("\n")}
-
-## Sources
-
-${sourceList(entity.dossier.sources)}
+${confidenceBlock(entity)}
 
 ## Related Pages
 
 - Article: /article/${entity.slug}
 - Article markdown: /article/${entity.slug}.md
+- Public dossier: /dossier/${entity.slug}
+- Public dossier markdown: /dossier/${entity.slug}.md
+`;
+}
+
+export function dossierMarkdown(entity: ResearchEntity) {
+  return `# ${entity.name} Public Research Dossier
+
+${entity.summary}
+
+## Overview
+
+${entity.dossier.companyOverview.join("\n\n") || emptyCopy}
+
+## Technical Summary
+
+${entity.dossier.productAndTechnology.join("\n\n") || emptyCopy}
+
+## Market Position
+
+${entity.dossier.marketResearch.join("\n\n") || emptyCopy}
+
+## Competitive Landscape
+
+${competitiveLandscape(entity)}
+
+## Sources
+
+${sourceList(entity.dossier.sources)}
+
+${confidenceBlock(entity)}
+
+## Public Dossier Link
+
+- Public dossier: /dossier/${entity.slug}
+
+## Related Pages
+
+- Feature article: /article/${entity.slug}
+- Feature article markdown: /article/${entity.slug}.md
 - Public profile: /startup/${entity.slug}
 - Public profile markdown: /startup/${entity.slug}.md
+
+Institutional sections are intentionally omitted from this public markdown route.
 `;
 }

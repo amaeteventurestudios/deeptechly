@@ -1,5 +1,3 @@
-"use client";
-
 import Link from "next/link";
 import {
   ArrowRight,
@@ -9,24 +7,12 @@ import {
   Star,
   ExternalLink as ExternalLinkIcon
 } from "lucide-react";
-import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  PolarAngleAxis,
-  PolarGrid,
-  Radar,
-  RadarChart,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis
-} from "recharts";
 import type { ResearchEntity, RevenuePath, Source } from "@/lib/types";
 
 const panelClass = "border border-black bg-white shadow-hard";
 const labelClass =
   "text-[10px] font-black uppercase tracking-[0.22em] text-deepOrange";
+const notConfirmed = "Not confirmed in public sources.";
 
 export type InstitutionalAccessState =
   | "signed-out"
@@ -62,9 +48,15 @@ function TextList({ items }: { items: string[] }) {
 }
 
 function BulletList({ items }: { items: string[] }) {
+  const visibleItems = items.filter(Boolean);
+
+  if (visibleItems.length === 0) {
+    return <p className="text-sm font-bold leading-6 text-charcoal">{notConfirmed}</p>;
+  }
+
   return (
     <ul className="space-y-3 text-sm leading-6 text-ink/84">
-      {items.map((item) => (
+      {visibleItems.map((item) => (
         <li key={item} className="flex gap-3">
           <span className="mt-2 h-2 w-2 shrink-0 border border-black bg-deepOrange" />
           <span>{item}</span>
@@ -75,11 +67,20 @@ function BulletList({ items }: { items: string[] }) {
 }
 
 export function DossierHero({ entity }: { entity: ResearchEntity }) {
+  const headerStats = [
+    ["Sector", entity.sector],
+    ["Region", entity.region],
+    ["Status", entity.snapshot.researchStatus],
+    ["Sources", `${entity.sourceCount}`],
+    ["Confidence", `${entity.confidenceLabel} (${entity.confidenceScore}/100)`],
+    ["Updated", entity.updatedAt ?? entity.lastResearchedAt]
+  ];
+
   return (
     <section className="w-full border-b border-black bg-deepOrange deeptech-texture">
-      <div className="mx-auto max-w-5xl px-4 py-12 sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-4xl">
-          <div className="mb-5 flex items-center justify-between gap-3">
+      <div className="mx-auto max-w-[1120px] px-4 py-12 text-center sm:px-6 lg:px-8 lg:text-left">
+        <div className="mx-auto max-w-5xl">
+          <div className="mb-5 flex flex-col items-center justify-between gap-3 sm:flex-row">
             <span className="text-[11px] font-black uppercase tracking-[0.28em]">
               DeepTechly Research
             </span>
@@ -92,13 +93,13 @@ export function DossierHero({ entity }: { entity: ResearchEntity }) {
           </div>
           <div className="grid gap-6 md:grid-cols-[1fr_auto] md:items-end">
             <div>
-              <h1 className="text-5xl font-black leading-[0.92] sm:text-6xl md:text-7xl">
+              <h1 className="mx-auto max-w-4xl text-5xl font-black leading-[0.92] sm:text-6xl md:text-7xl lg:mx-0">
                 {entity.name}
               </h1>
-              <p className="mt-4 max-w-2xl text-base font-semibold leading-7 text-ink/82 md:text-lg">
+              <p className="mx-auto mt-4 max-w-2xl text-base font-semibold leading-7 text-ink/82 md:text-lg lg:mx-0">
                 {entity.summary}
               </p>
-              <div className="mt-5 flex flex-wrap gap-2">
+              <div className="mt-5 flex flex-wrap justify-center gap-2 lg:justify-start">
                 {entity.tags.slice(0, 5).map((tag) => (
                   <span
                     key={tag}
@@ -109,26 +110,16 @@ export function DossierHero({ entity }: { entity: ResearchEntity }) {
                 ))}
               </div>
             </div>
-            <div className="border border-black bg-white p-4 text-sm shadow-hard md:w-64">
+            <div className="border border-black bg-white p-4 text-left text-sm shadow-hard md:w-72">
               <div className="grid gap-3">
-                <p>
-                  <span className="block text-[10px] font-black uppercase tracking-[0.18em] text-deepOrange">
-                    Confidence
-                  </span>
-                  <span className="font-black">{entity.confidenceLabel}</span>
-                </p>
-                <p>
-                  <span className="block text-[10px] font-black uppercase tracking-[0.18em] text-deepOrange">
-                    Sources Analyzed
-                  </span>
-                  <span className="font-black">{entity.sourceCount}</span>
-                </p>
-                <p>
-                  <span className="block text-[10px] font-black uppercase tracking-[0.18em] text-deepOrange">
-                    Last Researched
-                  </span>
-                  <span className="font-black">{entity.lastResearchedAt}</span>
-                </p>
+                {headerStats.map(([label, value]) => (
+                  <p key={label}>
+                    <span className="block text-[10px] font-black uppercase tracking-[0.18em] text-deepOrange">
+                      {label}
+                    </span>
+                    <span className="font-black">{value || notConfirmed}</span>
+                  </p>
+                ))}
                 <Link
                   href={`/article/${entity.slug}`}
                   className="inline-flex items-center justify-center gap-2 border border-black bg-ink px-3 py-2 text-[10px] font-black uppercase tracking-[0.14em] text-white"
@@ -173,21 +164,28 @@ export function ExternalLinksRow({ entity }: { entity: ResearchEntity }) {
   );
 }
 
-export function SnapshotPanel({ entity }: { entity: ResearchEntity }) {
+export function SnapshotPanel({
+  entity,
+  embedded = false
+}: {
+  entity: ResearchEntity;
+  embedded?: boolean;
+}) {
   const rows = [
-    ["Entity type", entity.snapshot.entityType],
-    ["Primary sector", entity.snapshot.primarySector],
-    ["Secondary sectors", entity.snapshot.secondarySectors.join(", ")],
-    ["Region", entity.snapshot.region],
-    ["Stage", entity.snapshot.stage],
+    ["Entity type", entity.snapshot.entityType || entity.entityType],
+    ["Primary sector", entity.snapshot.primarySector || entity.sector],
+    ["Secondary sectors", entity.snapshot.secondarySectors.join(", ") || entity.secondarySectors.join(", ")],
+    ["Region", entity.snapshot.region || entity.region],
+    ["Stage", entity.snapshot.stage || entity.stage],
     ["Source count", String(entity.snapshot.sourceCount)],
     ["Confidence", entity.snapshot.confidence],
+    ["Last updated", entity.updatedAt ?? entity.lastResearchedAt],
     ["Research status", entity.snapshot.researchStatus]
   ];
 
   return (
-    <section className="w-full bg-paper">
-      <div className="mx-auto max-w-4xl px-4 pt-8 sm:px-6 lg:px-8">
+    <section className="w-full bg-transparent">
+      <div className={embedded ? "mx-auto max-w-4xl" : "mx-auto max-w-4xl px-4 pt-8 sm:px-6 lg:px-8"}>
         <div className={panelClass}>
           <div className="border-b border-black bg-ink px-4 py-3 text-white">
             <p className="text-[10px] font-black uppercase tracking-[0.22em] text-deepOrange">
@@ -200,7 +198,7 @@ export function SnapshotPanel({ entity }: { entity: ResearchEntity }) {
                 <p className="text-[10px] font-black uppercase tracking-[0.16em] text-muted">
                   {label}
                 </p>
-                <p className="mt-1 text-sm font-bold">{value}</p>
+                <p className="mt-1 text-sm font-bold">{value || notConfirmed}</p>
               </div>
             ))}
           </div>
@@ -398,6 +396,28 @@ function ConfidenceScoreCard({ entity }: { entity: ResearchEntity }) {
   );
 }
 
+function SourceCountCard({ entity }: { entity: ResearchEntity }) {
+  const sourceTypes = new Set(entity.sources.map((source) => source.type));
+
+  return (
+    <div className={panelClass}>
+      <div className="border-b border-black bg-ink px-4 py-3 text-white">
+        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-deepOrange">
+          Source Count
+        </p>
+      </div>
+      <div className="p-4">
+        <p className="text-5xl font-black">{entity.sourceCount}</p>
+        <p className="mt-1 text-sm font-bold">
+          {sourceTypes.size > 0
+            ? `${sourceTypes.size} public source categories`
+            : "Limited public data found."}
+        </p>
+      </div>
+    </div>
+  );
+}
+
 function ReadinessBars({ entity }: { entity: ResearchEntity }) {
   const readiness = [
     { label: "TRL", value: entity.dossier.dataSnapshot.trl },
@@ -416,14 +436,19 @@ function ReadinessBars({ entity }: { entity: ResearchEntity }) {
           <div key={item.label}>
             <div className="mb-2 flex items-center justify-between text-xs font-black uppercase tracking-[0.14em]">
               <span>{item.label}</span>
-              <span>{item.value}/9</span>
+              <span>{item.value ? `${item.value}/9` : "Not scored"}</span>
             </div>
             <div className="h-4 border border-black bg-offWhite">
               <div
                 className="h-full bg-deepOrange"
-                style={{ width: `${(item.value / 9) * 100}%` }}
+                style={{ width: `${item.value ? (item.value / 9) * 100 : 0}%` }}
               />
             </div>
+            {!item.value ? (
+              <p className="mt-2 text-xs font-bold text-muted">
+                Not enough confirmed public data to score this section.
+              </p>
+            ) : null}
           </div>
         ))}
       </div>
@@ -433,6 +458,20 @@ function ReadinessBars({ entity }: { entity: ResearchEntity }) {
 
 function RiskRadarChart({ entity }: { entity: ResearchEntity }) {
   const base = entity.dossier.dataSnapshot.riskScore;
+  if (!base) {
+    return (
+      <div className={panelClass}>
+        <div className="border-b border-black bg-ink px-4 py-3 text-white">
+          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-deepOrange">
+            Risk Radar
+          </p>
+        </div>
+        <p className="p-4 text-sm font-bold leading-6">
+          Not enough confirmed public data to score this section.
+        </p>
+      </div>
+    );
+  }
   const data = [
     { subject: "Technical", risk: base },
     { subject: "MFG", risk: Math.min(92, base + 8) },
@@ -448,52 +487,18 @@ function RiskRadarChart({ entity }: { entity: ResearchEntity }) {
           Risk Radar
         </p>
       </div>
-      <div className="h-64 p-3">
-        <ResponsiveContainer width="100%" height="100%">
-          <RadarChart data={data}>
-            <PolarGrid stroke="#111111" />
-            <PolarAngleAxis dataKey="subject" tick={{ fill: "#0E0E0E", fontSize: 11 }} />
-            <Radar
-              dataKey="risk"
-              stroke="#FF5A00"
-              fill="#FF5A00"
-              fillOpacity={0.32}
-              isAnimationActive={false}
-            />
-            <Tooltip />
-          </RadarChart>
-        </ResponsiveContainer>
-      </div>
-    </div>
-  );
-}
-
-function SectorActivityChart({ entity }: { entity: ResearchEntity }) {
-  const activity = entity.dossier.dataSnapshot.sectorActivity;
-  const data = [
-    { name: "Sources", value: entity.sourceCount * 4 },
-    { name: "Sector", value: activity },
-    { name: "Risk", value: entity.dossier.dataSnapshot.riskScore },
-    { name: "Signal", value: entity.confidenceScore }
-  ];
-
-  return (
-    <div className={panelClass}>
-      <div className="border-b border-black bg-ink px-4 py-3 text-white">
-        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-deepOrange">
-          Market Signal
-        </p>
-      </div>
-      <div className="h-56 p-3">
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={data}>
-            <CartesianGrid stroke="#E5E0D8" />
-            <XAxis dataKey="name" tick={{ fontSize: 11, fill: "#0E0E0E" }} />
-            <YAxis tick={{ fontSize: 11, fill: "#0E0E0E" }} />
-            <Tooltip />
-            <Bar dataKey="value" fill="#FF5A00" stroke="#111111" isAnimationActive={false} />
-          </BarChart>
-        </ResponsiveContainer>
+      <div className="space-y-3 p-4">
+        {data.map((item) => (
+          <div key={item.subject}>
+            <div className="mb-1 flex items-center justify-between text-[10px] font-black uppercase tracking-[0.14em]">
+              <span>{item.subject}</span>
+              <span>{item.risk}/100</span>
+            </div>
+            <div className="h-3 border border-black bg-offWhite">
+              <div className="h-full bg-deepOrange" style={{ width: `${item.risk}%` }} />
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );
@@ -501,12 +506,12 @@ function SectorActivityChart({ entity }: { entity: ResearchEntity }) {
 
 export function DataSnapshotPanel({ entity }: { entity: ResearchEntity }) {
   return (
-    <SectionFrame title="Data snapshot">
+    <SectionFrame title="Evidence and readiness cards">
       <div className="grid gap-5 md:grid-cols-2">
         <ConfidenceScoreCard entity={entity} />
+        <SourceCountCard entity={entity} />
         <ReadinessBars entity={entity} />
         <RiskRadarChart entity={entity} />
-        <SectorActivityChart entity={entity} />
       </div>
     </SectionFrame>
   );
@@ -531,18 +536,24 @@ export function AccuracyConfidencePanel({ entity }: { entity: ResearchEntity }) 
           </p>
         </div>
         <div className="grid gap-0 md:grid-cols-3">
-          <div className="border-b border-black/20 p-4 md:border-b-0 md:border-r">
-            <h3 className="mb-3 text-sm font-black">Confirmed</h3>
-            <BulletList items={accuracy.confirmed} />
-          </div>
-          <div className="border-b border-black/20 p-4 md:border-b-0 md:border-r">
-            <h3 className="mb-3 text-sm font-black">Inferred</h3>
-            <BulletList items={accuracy.inferred} />
-          </div>
-          <div className="p-4">
-            <h3 className="mb-3 text-sm font-black">Unverified</h3>
-            <BulletList items={accuracy.unverified} />
-          </div>
+          {accuracy.confirmed.length > 0 ? (
+            <div className="border-b border-black/20 p-4 md:border-b-0 md:border-r">
+              <h3 className="mb-3 text-sm font-black">Confirmed facts</h3>
+              <BulletList items={accuracy.confirmed} />
+            </div>
+          ) : null}
+          {accuracy.inferred.length > 0 ? (
+            <div className="border-b border-black/20 p-4 md:border-b-0 md:border-r">
+              <h3 className="mb-3 text-sm font-black">Inferred claims</h3>
+              <BulletList items={accuracy.inferred} />
+            </div>
+          ) : null}
+          {accuracy.unverified.length > 0 ? (
+            <div className="p-4">
+              <h3 className="mb-3 text-sm font-black">Unverified claims</h3>
+              <BulletList items={accuracy.unverified} />
+            </div>
+          ) : null}
         </div>
       </div>
     </SectionFrame>
@@ -686,15 +697,18 @@ export function MembersOnlyBlock({
   title,
   items,
   intro,
-  accessState = "signed-out"
+  accessState = "signed-out",
+  previewItems
 }: {
   title: string;
   items: string[];
   intro?: string;
   accessState?: InstitutionalAccessState;
+  previewItems?: string[];
 }) {
   const isSignedIn = accessState !== "signed-out";
   const isVerified = accessState === "institutional";
+  const visibleItems = isVerified ? items : (previewItems ?? items);
 
   return (
     <section className="border-t border-black/20 py-8">
@@ -720,21 +734,22 @@ export function MembersOnlyBlock({
             <p className="mb-3 text-[10px] font-black uppercase tracking-[0.18em] text-muted">
               {isVerified ? "Institutional Access" : "Preview"}
             </p>
-            <BulletList items={items.slice(0, 5)} />
+            <div className={isVerified ? "" : "opacity-80 blur-[1px] motion-reduce:blur-none"}>
+              <BulletList items={visibleItems.slice(0, 5)} />
+            </div>
           </div>
           {!isVerified ? (
             <Link
               href={isSignedIn ? "/join?access=institutional" : "/join"}
               className="mt-5 inline-flex items-center justify-center gap-2 border border-black bg-deepOrange px-4 py-3 text-[11px] font-black uppercase tracking-[0.14em] shadow-hard"
             >
-              {isSignedIn ? "Request Verification" : "Request Institutional Access"}
+              Unlock institutional analysis
               <ArrowRight size={14} />
             </Link>
           ) : null}
           <p className="mt-4 text-xs leading-5 text-muted">
-            Institutional access includes technical stack, patent position,
-            readiness analysis, revenue scenarios, and commercialization risk
-            modeling.
+            Institutional access includes technical risk modeling, readiness
+            analysis, government relevance mapping, and commercialization scenarios.
           </p>
         </div>
       </div>
@@ -919,10 +934,14 @@ const institutionalLockedSections = [
 ];
 
 export function InstitutionalDossierSections({
+  entity,
   accessState
 }: {
+  entity: ResearchEntity;
   accessState: InstitutionalAccessState;
 }) {
+  const sections = institutionalSectionsForEntity(entity);
+
   return (
     <section className="border-t border-black/20 py-8">
       <div className="mb-5 flex items-center gap-3">
@@ -935,11 +954,12 @@ export function InstitutionalDossierSections({
         </div>
       </div>
       <div className="space-y-5">
-        {institutionalLockedSections.map((section) => (
+        {sections.map((section) => (
           <MembersOnlyBlock
             key={section.title}
             title={section.title}
             items={section.items}
+            previewItems={section.previewItems}
             intro={`${section.title} is part of the institutional dossier. The preview below names the diligence areas without exposing the gated analysis.`}
             accessState={accessState}
           />
@@ -947,6 +967,116 @@ export function InstitutionalDossierSections({
       </div>
     </section>
   );
+}
+
+function institutionalSectionsForEntity(entity: ResearchEntity) {
+  const readiness = entity.dossier.dataSnapshot;
+  return [
+    {
+      title: "Technology Stack",
+      items: [
+        entity.dossier.productTechnologyFacts.coreSystem,
+        entity.dossier.productTechnologyFacts.primaryTechnicalAdvantage,
+        entity.dossier.productTechnologyFacts.keyDependencies,
+        entity.dossier.productTechnologyFacts.validationNeeded,
+        entity.dossier.productTechnologyFacts.deploymentEnvironment
+      ],
+      previewItems: institutionalLockedSections[0].items
+    },
+    {
+      title: "White-Space Analysis",
+      items: entity.dossier.opportunity.technical,
+      previewItems: institutionalLockedSections[1].items
+    },
+    {
+      title: "Government Relevance",
+      items: entity.dossier.opportunity.government,
+      previewItems: institutionalLockedSections[2].items
+    },
+    {
+      title: "Patent Position",
+      items: entity.dossier.accuracyAndConfidence.inferred,
+      previewItems: institutionalLockedSections[3].items
+    },
+    {
+      title: "TRL / MRL Analysis",
+      items: readiness.trl || readiness.mrl
+        ? [`TRL ${readiness.trl || "not scored"} / 9`, `MRL ${readiness.mrl || "not scored"} / 9`]
+        : ["Not enough confirmed public data to score this section."],
+      previewItems: institutionalLockedSections[4].items
+    },
+    {
+      title: "Manufacturing Constraints",
+      items: entity.dossier.risksAndConstraints.filter((item) =>
+        /manufactur|yield|production|scale|supplier/i.test(item)
+      ),
+      previewItems: institutionalLockedSections[5].items
+    },
+    {
+      title: "Deployment Constraints",
+      items: entity.dossier.risksAndConstraints.filter((item) =>
+        /deployment|integration|customer|certification/i.test(item)
+      ),
+      previewItems: institutionalLockedSections[6].items
+    },
+    {
+      title: "Supply Chain Dependencies",
+      items: entity.dossier.risksAndConstraints.filter((item) =>
+        /supply|supplier|inputs|vendor/i.test(item)
+      ),
+      previewItems: institutionalLockedSections[7].items
+    },
+    {
+      title: "Revenue Scenarios",
+      items: entity.dossier.revenueAndUnitEconomics.map(
+        (path) => `${path.path}: ${path.whatMustBeTrue}`
+      ),
+      previewItems: institutionalLockedSections[8].items
+    },
+    {
+      title: "Commercialization Scenarios",
+      items: entity.dossier.scenarios.map(
+        (scenario) => `${scenario.title}: ${scenario.whatHappens}`
+      ),
+      previewItems: institutionalLockedSections[9].items
+    },
+    {
+      title: "Risk Modeling",
+      items: entity.dossier.risksAndConstraints,
+      previewItems: institutionalLockedSections[10].items
+    },
+    {
+      title: "Capital Intensity",
+      items: entity.dossier.revenueAndUnitEconomics.map(
+        (path) => `${path.path}: ${path.risk}`
+      ),
+      previewItems: institutionalLockedSections[11].items
+    },
+    {
+      title: "Regulatory Complexity",
+      items: entity.dossier.risksAndConstraints.filter((item) =>
+        /regulatory|certification|government|procurement|review/i.test(item)
+      ),
+      previewItems: institutionalLockedSections[12].items
+    },
+    {
+      title: "Acquisition Potential",
+      items: entity.dossier.scenarios
+        .filter((scenario) => /acquisition|strategic/i.test(scenario.title))
+        .map((scenario) => scenario.investorRead),
+      previewItems: institutionalLockedSections[13].items
+    },
+    {
+      title: "Strategic Outlook",
+      items: entity.dossier.strategicOutlook,
+      previewItems: institutionalLockedSections[14].items
+    }
+  ].map((section) => ({
+    ...section,
+    items: section.items.filter(Boolean).length
+      ? section.items.filter(Boolean)
+      : ["DeepTechly could not confirm this from available public sources."]
+  }));
 }
 
 export function InvestorReadSection({ entity }: { entity: ResearchEntity }) {
@@ -1002,27 +1132,22 @@ export function SocialPRSignalSection({ entity }: { entity: ResearchEntity }) {
 }
 
 function RevenueScenarioChart({ paths }: { paths: RevenuePath[] }) {
-  const data = paths.map((path, index) => ({
-    name: path.path,
-    score: [68, 74, 56, 44, 62][index] ?? 52
-  }));
-
   return (
-    <div className="h-64 border border-black bg-white p-3 shadow-hard">
-      <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={data} layout="vertical" margin={{ left: 20 }}>
-          <CartesianGrid stroke="#E5E0D8" />
-          <XAxis type="number" tick={{ fontSize: 11, fill: "#0E0E0E" }} />
-          <YAxis
-            dataKey="name"
-            type="category"
-            width={110}
-            tick={{ fontSize: 10, fill: "#0E0E0E" }}
-          />
-          <Tooltip />
-          <Bar dataKey="score" fill="#FF5A00" stroke="#111111" isAnimationActive={false} />
-        </BarChart>
-      </ResponsiveContainer>
+    <div className="space-y-3 border border-black bg-white p-4 shadow-hard">
+      {paths.map((path, index) => {
+        const score = [68, 74, 56, 44, 62][index] ?? 52;
+        return (
+          <div key={path.path}>
+            <div className="mb-1 flex items-center justify-between text-[10px] font-black uppercase tracking-[0.14em]">
+              <span>{path.path}</span>
+              <span>{score}/100</span>
+            </div>
+            <div className="h-3 border border-black bg-offWhite">
+              <div className="h-full bg-deepOrange" style={{ width: `${score}%` }} />
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -1123,34 +1248,49 @@ export function StrategicOutlookSection({ entity }: { entity: ResearchEntity }) 
 }
 
 export function DossierSourcesBlock({ sources }: { sources: Source[] }) {
+  if (!sources.length) return null;
+
   return (
     <SectionFrame title="Sources">
       <div className="space-y-3">
-        {sources.map((source) => (
-          <div key={source.url} className={`${panelClass} p-4`}>
-            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-deepOrange">
-              {source.type}
-            </p>
-            <h3 className="mt-1 text-base font-black">{source.title}</h3>
-            <p className="mt-1 text-xs leading-5 text-muted">
-              {source.publisher ?? "Unknown publisher"}
-              {source.date ? ` · ${source.date}` : ""}
-            </p>
-            <a
-              href={source.url}
-              className="mt-2 inline-flex items-center gap-2 text-xs font-black uppercase tracking-[0.12em] text-deepOrange underline"
-            >
-              Open source
-              <ExternalLinkIcon size={12} />
-            </a>
-          </div>
+        {sources.map((source, index) => (
+          <SourceCard key={`${source.url}-${index}`} source={source} index={index} />
         ))}
       </div>
     </SectionFrame>
   );
 }
 
+function SourceCard({ source, index }: { source: Source; index: number }) {
+  const meta = [
+    source.publisher,
+    source.date,
+    source.retrievedAt ? `Retrieved ${source.retrievedAt}` : null
+  ]
+    .filter(Boolean)
+    .join(" · ");
+
+  return (
+    <a
+      href={source.url}
+      className={`${panelClass} block p-4 transition-colors hover:bg-paleOrange focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-deepOrange`}
+    >
+      <p className="text-[10px] font-black uppercase tracking-[0.18em] text-deepOrange">
+        Source {index + 1} · {source.type.replace(/_/g, " ")}
+      </p>
+      <h3 className="mt-1 text-base font-black">{source.title}</h3>
+      {meta ? <p className="mt-1 text-xs leading-5 text-muted">{meta}</p> : null}
+      <span className="mt-2 inline-flex items-center gap-2 text-xs font-black uppercase tracking-[0.12em] text-deepOrange underline">
+        Open source
+        <ExternalLinkIcon size={12} />
+      </span>
+    </a>
+  );
+}
+
 export function RelatedResearchGrid({ entity }: { entity: ResearchEntity }) {
+  if (!entity.dossier.relatedResearch.length) return null;
+
   return (
     <SectionFrame title="Related research">
       <div className="grid gap-4 sm:grid-cols-2">
@@ -1163,6 +1303,9 @@ export function RelatedResearchGrid({ entity }: { entity: ResearchEntity }) {
             <p className={labelClass}>{item.sector}</p>
             <h3 className="mt-2 text-xl font-black">{item.name}</h3>
             <p className="mt-2 text-sm leading-6 text-charcoal">{item.summary}</p>
+            <p className="mt-4 text-[10px] font-black uppercase tracking-[0.14em] text-muted">
+              Related profile
+            </p>
           </Link>
         ))}
       </div>

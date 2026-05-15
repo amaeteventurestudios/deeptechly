@@ -1,13 +1,15 @@
 import { notFound } from "next/navigation";
 import {
   ArticleBody,
+  ArticleFooterActions,
   ArticleHero,
   ArticleSection,
-  ArticleVisualPanel,
+  ConfidenceEvidencePanel,
   ComparisonTable,
   DossierCTA,
-  InlineResearchStatus,
-  ShareResearchCard,
+  OpenQuestionsSection,
+  RelatedResearch,
+  ResearchSnapshotCallout,
   SourcesBlock
 } from "@/components/article/ArticleComponents";
 import { PageShell } from "@/components/layout/PageShell";
@@ -52,9 +54,8 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
   return (
     <PageShell>
       <ArticleHero entity={entity} />
-      <ArticleVisualPanel entity={entity} />
       <ArticleBody>
-        <InlineResearchStatus entity={entity} />
+        <ResearchSnapshotCallout entity={entity} />
         <ArticleSection section={whyItMatters} />
         <ArticleSection section={technicalWedge} />
         <ArticleSection section={marketContext} />
@@ -62,10 +63,13 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
         {remainingSections.map((section) => (
           <ArticleSection key={section.title} section={section} />
         ))}
+        <OpenQuestionsSection entity={entity} />
+        <ConfidenceEvidencePanel entity={entity} />
         <SourcesBlock sources={entity.sources} />
       </ArticleBody>
       <DossierCTA entity={entity} />
-      <ShareResearchCard entity={entity} />
+      <ArticleFooterActions entity={entity} />
+      <RelatedResearch entity={entity} />
     </PageShell>
   );
 }
