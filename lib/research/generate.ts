@@ -48,9 +48,13 @@ const articleSchema = {
         },
         required: ["title", "body"]
       }
+    },
+    openQuestions: {
+      type: "array",
+      items: { type: "string" }
     }
   },
-  required: ["headline", "dek", "sections"]
+  required: ["headline", "dek", "sections", "openQuestions"]
 };
 
 const dossierHighlightsSchema = {
@@ -70,10 +74,10 @@ const dossierHighlightsSchema = {
 };
 
 function confidenceLabel(score: number): ConfidenceLabel {
-  if (score >= 80) return "High";
-  if (score >= 55) return "Moderate";
-  if (score >= 35) return "Limited";
-  return "Unverified";
+  if (score >= 80) return "HIGH CONFIDENCE";
+  if (score >= 60) return "MODERATE CONFIDENCE";
+  if (score >= 35) return "LIMITED PUBLIC DATA";
+  return "LOW CONFIDENCE";
 }
 
 function asSource(summary: SourceSummary): Source {
@@ -82,7 +86,8 @@ function asSource(summary: SourceSummary): Source {
     url: summary.url,
     publisher: new URL(summary.url).host.replace(/^www\./, ""),
     date: new Date().toISOString().slice(0, 10),
-    type: summary.sourceType
+    type: summary.sourceType,
+    retrievedAt: new Date().toISOString()
   };
 }
 
@@ -97,7 +102,7 @@ function compactSources(summaries: SourceSummary[], facts: ExtractedEntityFacts)
         url,
         publisher: safeHost(url),
         date: new Date().toISOString().slice(0, 10),
-        type: url.includes("patent") ? "Patent" : "Other"
+        type: url.includes("patent") ? "patent" : "unknown"
       });
     }
   }
@@ -146,44 +151,44 @@ function externalLinks(facts: ExtractedEntityFacts): ExternalLink[] {
 function fallbackArticleSections(facts: ExtractedEntityFacts): ArticleSection[] {
   return [
     {
-      title: "Why it matters",
+      title: "Why this matters",
       body: [
-        `${facts.name} matters because its public positioning touches ${facts.sector.toLowerCase()}, a category where technical performance, qualification, and supply-chain trust can shape buyer behavior. Public sources indicate a product direction, but the current evidence still needs deeper validation before any hard commercial claims can be made.`,
-        `For DeepTechly, the important signal is not novelty alone. The question is whether the entity can turn a narrow technical capability into something buyers can test, procure, and support in real deployment environments.`
+        `Public sources indicate ${facts.name} is operating in ${facts.sector.toLowerCase()}, a category where technical performance, qualification, and supply-chain trust shape buyer decisions. Available evidence suggests a product direction, but the current source set requires deeper validation before any hard commercial claims can be made.`,
+        `For DeepTechly, the signal to watch is not novelty alone. The question is whether the entity can turn a narrow technical capability into something buyers can test, procure, and support in real deployment environments.`
       ]
     },
     {
-      title: "The technical wedge",
+      title: "The technical angle",
       body: [
-        `The technical wedge appears to be: ${facts.productSummary}. This should be treated as a public-positioning read, not a verified engineering audit.`,
-        `The diligence burden is to identify the real stack: hardware layers, software controls, materials, manufacturing process, validation data, and the dependencies required for customer integration.`
+        `Available evidence suggests the technical approach centers on: ${facts.productSummary}. This should be treated as a public-positioning read, not a verified engineering assessment.`,
+        `The diligence burden is to identify the actual technical stack: hardware layers, software controls, materials, manufacturing process, validation data, and the integration dependencies required for customer adoption.`
       ]
     },
     {
-      title: "Market context",
+      title: "The market position",
       body: [
-        `Likely customer segments include ${facts.customerSegments.join(", ").toLowerCase()}. These buyers tend to move cautiously when a technology touches operations, safety, mission assurance, or capital equipment decisions.`,
+        `Public sources indicate likely customer segments include ${facts.customerSegments.join(", ").toLowerCase()}. These buyers tend to move cautiously when a technology touches operations, safety, mission assurance, or capital equipment decisions.`,
         `The category may benefit from strategic demand around resilient supply chains and technical differentiation, but adoption will depend on evidence, not narrative.`
       ]
     },
     {
-      title: "The landscape of alternatives",
+      title: "What could go right",
       body: [
-        `Alternative paths include incumbent suppliers improving existing systems, research labs advancing adjacent techniques, and integrators building around the constraint instead of adopting a new supplier.`,
-        `${facts.name} would need to show why its approach is meaningfully better, easier to integrate, or more strategically valuable than those alternatives.`
+        `If the technical claim survives independent validation and a qualified buyer can integrate the capability without excessive burden, ${facts.name} could move from a research candidate to an active diligence target.`,
+        `Government or institutional program fit, patent activity, technical hiring, and named pilot deployments would all be positive signals. Available evidence suggests the sector context is present; what remains is customer-facing proof.`
       ]
     },
     {
-      title: "The constraints of commercialization",
+      title: "What could go wrong",
       body: [
-        `The main constraints are manufacturing readiness, customer qualification, funding runway, technical validation, and credible proof of deployment. Public sources do not confirm revenue, repeatable manufacturing, or production-scale customer adoption.`,
-        `If the company is deep tech, investors should expect longer cycles around pilots, certifications, reference customers, procurement, and supply-chain qualification.`
+        `DeepTechly could not confirm revenue, repeatable manufacturing, or production-scale customer adoption from available public sources. The main risks are technical validation failure, manufacturing readiness gaps, funding runway constraints, and slow qualification cycles.`,
+        `If incumbents improve existing approaches or a systems integrator builds around the problem instead, the addressable window for ${facts.name} narrows. The absence of public customer or deployment evidence is a material gap at this stage.`
       ]
     },
     {
       title: "The next twelve months",
       body: [
-        `The next twelve months should clarify whether the public story is becoming a verifiable company-building story. Watch for technical demos, pilot deployments, patents, team expansion, government award signals, manufacturing partners, and customer announcements.`,
+        `The next twelve months should clarify whether the public story is becoming a verifiable company-building story. Watch for technical demos, pilot deployments, patent filings, team expansion, government award signals, manufacturing partners, and customer announcements.`,
         `Without those signals, ${facts.name} remains a research candidate rather than a high-conviction institutional profile.`
       ]
     }
@@ -543,18 +548,26 @@ async function aiArticleSections(
 ) {
   const prompt = `You are an institutional deep-tech analyst writing for DeepTechly.
 
-Write a feature article based only on the provided source summaries and structured facts.
-Do not invent facts. If a fact is not confirmed, frame it as unconfirmed or omit it.
-The article must follow this section structure:
-1. Why it matters
-2. The technical wedge
-3. Market context
-4. The landscape of alternatives
-5. The constraints of commercialization
+Write a feature article based ONLY on the provided source summaries and structured facts.
+RULES:
+- Never invent founders, funding, investors, customers, patents, revenue, or technical metrics
+- If a fact cannot be confirmed from public sources, write: "DeepTechly could not confirm..." or "Not confirmed in public sources"
+- Use only these approved phrases: "Public sources indicate...", "The company states...", "Available evidence suggests...", "DeepTechly could not confirm...", "No public source was found for...", "This appears to...", "This may indicate..."
+- NEVER use: "This proves...", "Guaranteed...", "Revolutionary...", "Unmatched...", "Definitive...", "The company will..."
+- Use calm, institutional, hedged language throughout
+
+The article must follow this exact section structure:
+1. Why this matters
+2. The technical angle
+3. The market position
+4. What could go right
+5. What could go wrong
 6. The next twelve months
 
-Use calm institutional language. Return JSON only:
-{"headline":"","dek":"","sections":[{"title":"","body":["",""]}]}
+Also return openQuestions: an array of 2-4 specific questions that institutional analysts would need answered before reaching a high-confidence conclusion.
+
+Return JSON only:
+{"headline":"","dek":"","sections":[{"title":"","body":["",""]}],"openQuestions":[""]}
 
 Facts:
 ${JSON.stringify(facts)}
@@ -570,12 +583,15 @@ ${JSON.stringify(summaries.slice(0, 8))}`;
   const sections = response?.sections as ArticleSection[] | undefined;
   const headline = typeof response?.headline === "string" ? response.headline : null;
   const dek = typeof response?.dek === "string" ? response.dek : null;
+  const openQuestions = Array.isArray(response?.openQuestions)
+    ? (response.openQuestions as string[]).filter((q) => typeof q === "string")
+    : [];
 
   if (!headline || !dek || !sections || sections.length < 4) {
     return null;
   }
 
-  return { headline, dek, sections };
+  return { headline, dek, sections, openQuestions };
 }
 
 async function aiDossierHighlights(
@@ -583,10 +599,17 @@ async function aiDossierHighlights(
   verification: ClaimVerification,
   summaries: SourceSummary[]
 ) {
-  const prompt = `You are an institutional deep-tech diligence analyst.
+  const prompt = `You are an institutional deep-tech diligence analyst writing for DeepTechly.
 
-Generate only the executive summary and strategic outlook for a DeepTechly research dossier based on the provided source summaries and structured facts.
-Do not invent missing facts. Separate confirmed, inferred, and unverified in language.
+Generate only the executive summary and strategic outlook for a research dossier.
+RULES:
+- Never invent founders, funding, investors, customers, patents, revenue, or technical metrics
+- Explicitly separate: confirmed facts (source-backed), inferred signals (publicly suggested), and unverified claims (not confirmed)
+- Use: "Public sources indicate...", "Available evidence suggests...", "DeepTechly could not confirm...", "This appears to..."
+- NEVER use: "This proves...", "Guaranteed...", "Revolutionary...", "Definitive..."
+- Unknown fields must say: "Not confirmed in public sources"
+- Keep language institutional and hedged — no promotional claims
+
 Return JSON only:
 {"executiveSummary":["","",""],"strategicOutlook":["","",""]}
 
@@ -632,9 +655,9 @@ export async function generateResearchOutput({
   const sources = compactSources(summaries, facts);
   const sourceCount = Math.max(sources.length, facts.sourceUrls.length);
   const score = Math.min(
-    92,
+    100,
     Math.max(
-      38,
+      0,
       38 +
         sourceCount * 4 +
         verification.confirmed.length * 4 -
@@ -648,6 +671,11 @@ export async function generateResearchOutput({
   const aiArticle = await aiArticleSections(facts, summaries);
   const aiDossier = await aiDossierHighlights(facts, verification, summaries);
   const sections = aiArticle?.sections ?? fallbackArticleSections(facts);
+  const openQuestions = aiArticle?.openQuestions?.length
+    ? aiArticle.openQuestions
+    : verification.unverified.length > 0
+      ? verification.unverified.slice(0, 4)
+      : [];
   const headline =
     aiArticle?.headline ??
     `${facts.name}'s ${facts.sector} Signal Moves Into Deep-Tech Diligence`;
@@ -659,7 +687,7 @@ export async function generateResearchOutput({
     dossier.executiveSummary = aiDossier.executiveSummary;
     dossier.strategicOutlook = aiDossier.strategicOutlook;
   }
-  const tags = [facts.sector, ...secondary, label].slice(0, 5);
+  const tags = [facts.sector, ...secondary].slice(0, 5);
 
   dossier.sources = sources;
   const sectorTags = storySectorTags({
@@ -755,6 +783,7 @@ export async function generateResearchOutput({
       regionTag,
       entityTypeTag: "Company",
       sources,
+      openQuestions,
       publishedStatus: "draft"
     },
     dossier,

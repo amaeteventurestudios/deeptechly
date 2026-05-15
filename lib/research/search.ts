@@ -217,13 +217,13 @@ function demoSearch(query: string): SearchResult[] {
       title: `${query} patent search`,
       url: `https://patents.google.com/?q=${safe}`,
       snippet: "Patent database search for technical and intellectual property signals.",
-      sourceType: "Patent"
+      sourceType: "patent"
     },
     {
       title: `${query} SBIR search`,
       url: `https://www.sbir.gov/search?term=${safe}`,
       snippet: "Government award and program signal search.",
-      sourceType: "Government Source"
+      sourceType: "government"
     }
   ];
 }

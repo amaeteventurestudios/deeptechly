@@ -31,28 +31,43 @@ function titleCase(value: string) {
 function sourceTypeFor(url: string): SourceSummary["sourceType"] {
   const lower = url.toLowerCase();
   if (lower.includes("patents.google") || lower.includes("patent")) {
-    return "Patent";
+    return "patent";
   }
   if (
-    lower.includes("sbir.gov") ||
-    lower.includes("nasa.gov") ||
+    lower.includes(".gov") ||
     lower.includes("darpa.mil") ||
     lower.includes("defense.gov") ||
+    lower.includes("sbir.gov") ||
+    lower.includes("nasa.gov") ||
     lower.includes("energy.gov")
   ) {
-    return "Government Source";
+    return "government";
+  }
+  if (lower.includes("arxiv") || lower.includes("scholar.google") || lower.includes("pubmed")) {
+    return "academic";
+  }
+  if (lower.includes("crunchbase") || lower.includes("pitchbook") || lower.includes("angellist")) {
+    return "investor";
+  }
+  if (lower.includes("careers") || lower.includes("/jobs") || lower.includes("greenhouse.io") || lower.includes("lever.co")) {
+    return "jobs";
+  }
+  if (
+    lower.includes("techcrunch") ||
+    lower.includes("reuters") ||
+    lower.includes("bloomberg") ||
+    lower.includes("wsj.com") ||
+    lower.includes("ft.com") ||
+    lower.includes("businesswire") ||
+    lower.includes("prnewswire")
+  ) {
+    return "news";
   }
   if (lower.includes("linkedin") || lower.includes("x.com") || lower.includes("twitter")) {
-    return "Social Signal";
-  }
-  if (lower.includes("careers") || lower.includes("jobs")) {
-    return "Job Post";
-  }
-  if (lower.includes("arxiv") || lower.includes("scholar")) {
-    return "Research Paper";
+    return "unknown";
   }
 
-  return "Company Website";
+  return "company_site";
 }
 
 function extractSentences(text: string, count = 4) {
@@ -140,18 +155,15 @@ export function extractEntityFacts(
     .trim();
   const name = titleName && titleName.length <= 60 ? titleName : fallbackName;
   const year = /\b(19|20)\d{2}\b/.exec(allText)?.[0] ?? null;
-  const founders = sourceSummaries
-    .flatMap((summary) => summary.people)
-    .filter((person, index, all) => all.indexOf(person) === index)
-    .slice(0, 3);
+  const founders: string[] = [];
   const governmentLinks = sourceSummaries
-    .filter((summary) => summary.sourceType === "Government Source")
+    .filter((summary) => summary.sourceType === "government")
     .map((summary) => summary.url);
   const patents = sourceSummaries
-    .filter((summary) => summary.sourceType === "Patent")
+    .filter((summary) => summary.sourceType === "patent")
     .map((summary) => summary.url);
   const papers = sourceSummaries
-    .filter((summary) => summary.sourceType === "Research Paper")
+    .filter((summary) => summary.sourceType === "academic")
     .map((summary) => summary.url);
 
   return {
@@ -179,7 +191,7 @@ export function extractEntityFacts(
           : ["Aerospace partners", "Defense integrators", "Industrial technology teams"],
     businessModel: null,
     openRoles: sourceSummaries
-      .filter((summary) => summary.sourceType === "Job Post")
+      .filter((summary) => summary.sourceType === "jobs")
       .map((summary) => summary.title),
     patents,
     papers,
@@ -207,7 +219,7 @@ export function verifyClaims(
   const inferred = [
     `Customer segments are inferred as ${facts.customerSegments.join(", ")} from public positioning.`,
     `Deep-tech relevance is inferred from sector language and related source categories.`,
-    summaries.some((summary) => summary.sourceType === "Government Source")
+    summaries.some((summary) => summary.sourceType === "government")
       ? "Government relevance is supported by at least one government-oriented source candidate."
       : "Government relevance is inferred from category overlap, not confirmed awards."
   ];

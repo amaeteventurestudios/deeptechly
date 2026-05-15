@@ -50,35 +50,35 @@ const sourcesFor = (entity: EntityInput): Source[] => [
     publisher: "Company website",
     date: "2026-05-10",
     url: `https://example.com/${entity.slug}`,
-    type: "Company Website"
+    type: "company_site"
   },
   {
     title: `${entity.name} public patent search`,
     publisher: "Patent database",
     date: "2026-05-10",
     url: `https://patents.google.com/?q=${entity.slug}`,
-    type: "Patent"
+    type: "patent"
   },
   {
     title: `${entity.sector} technical literature scan`,
     publisher: "Research index",
     date: "2026-05-10",
     url: `https://scholar.google.com/scholar?q=${encodeURIComponent(entity.sector + " " + entity.wedge)}`,
-    type: "Research Paper"
+    type: "academic"
   },
   {
     title: `${entity.secondarySectors[0]} program database search`,
     publisher: "Government source",
     date: "2026-05-10",
     url: "https://www.sbir.gov/",
-    type: "Government Source"
+    type: "government"
   },
   {
     title: `${entity.name} market and hiring signal review`,
     publisher: "DeepTechly mock source index",
     date: "2026-05-10",
     url: `https://example.com/${entity.slug}/signals`,
-    type: "Other"
+    type: "unknown"
   }
 ];
 
@@ -239,7 +239,7 @@ const dossierFor = (entity: EntityInput, taxonomy: TaxonomySnapshot, sources: So
     confidenceScore: entity.confidenceScore,
     trl: entity.confidenceScore >= 72 ? 6 : 5,
     mrl: entity.confidenceScore >= 72 ? 4 : 3,
-    riskScore: entity.confidenceLabel === "High" ? 41 : entity.confidenceLabel === "Moderate" ? 58 : 72,
+    riskScore: entity.confidenceScore >= 80 ? 41 : entity.confidenceScore >= 60 ? 58 : 72,
     sectorActivity: entity.sector === "Semiconductors" ? 82 : entity.sector === "Energy" ? 76 : 68
   },
   accuracyAndConfidence: {
@@ -535,7 +535,7 @@ export const entities: ResearchEntity[] = [
     deployment: "High-reliability electronics and harsh environments",
     risk: "process validation, packaging proof, and thermal testing",
     confidenceScore: 66,
-    confidenceLabel: "Moderate",
+    confidenceLabel: "MODERATE CONFIDENCE",
     sourceCount: 14,
     lastResearchedAt: "12m ago"
   }),
@@ -555,7 +555,7 @@ export const entities: ResearchEntity[] = [
     deployment: "Factory, refinery, and industrial materials environments",
     risk: "site integration, duty-cycle proof, and capital project timing",
     confidenceScore: 61,
-    confidenceLabel: "Limited",
+    confidenceLabel: "MODERATE CONFIDENCE",
     sourceCount: 9,
     lastResearchedAt: "31m ago"
   }),
@@ -575,7 +575,7 @@ export const entities: ResearchEntity[] = [
     deployment: "Constrained infrastructure, field inspection, and remote sites",
     risk: "autonomy reliability, ruggedization, and buyer workflow adoption",
     confidenceScore: 72,
-    confidenceLabel: "Moderate",
+    confidenceLabel: "MODERATE CONFIDENCE",
     sourceCount: 16,
     lastResearchedAt: "44m ago"
   })

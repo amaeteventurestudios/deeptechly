@@ -1,19 +1,20 @@
 export type ConfidenceLabel =
-  | "High"
-  | "Moderate"
-  | "Limited"
-  | "Unverified";
+  | "HIGH CONFIDENCE"
+  | "MODERATE CONFIDENCE"
+  | "LIMITED PUBLIC DATA"
+  | "LOW CONFIDENCE";
 
 export type SourceType =
-  | "Company Website"
-  | "Patent"
-  | "Research Paper"
-  | "Government Source"
-  | "News"
-  | "Filing"
-  | "Job Post"
-  | "Social Signal"
-  | "Other";
+  | "company_site"
+  | "press_release"
+  | "patent"
+  | "government"
+  | "academic"
+  | "investor"
+  | "news"
+  | "jobs"
+  | "database"
+  | "unknown";
 
 export type ExternalLink = {
   label: string;
@@ -26,6 +27,8 @@ export type Source = {
   publisher?: string;
   date?: string;
   type: SourceType;
+  retrievedAt?: string;
+  supportsClaims?: string[];
 };
 
 export type TaxonomySnapshot = {
@@ -96,6 +99,7 @@ export type Article = {
   regionTag?: string;
   entityTypeTag?: string;
   sources?: Source[];
+  openQuestions?: string[];
   adminFeatured?: boolean;
   publishedStatus?: "draft" | "published";
 };

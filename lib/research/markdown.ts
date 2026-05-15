@@ -7,6 +7,14 @@ function sourceList(sources: Source[]) {
 }
 
 export function articleMarkdown(entity: ResearchEntity) {
+  const showOpenQuestions =
+    entity.confidenceLabel !== "HIGH CONFIDENCE" &&
+    (entity.article.openQuestions?.length ?? 0) > 0;
+
+  const openQuestionsSection = showOpenQuestions
+    ? `\n\n## Open Questions\n\n${entity.article.openQuestions!.map((q) => `- ${q}`).join("\n")}`
+    : "";
+
   return `# ${entity.article.headline}
 
 ${entity.article.dek}
@@ -22,7 +30,7 @@ ${entity.article.sections
 
 ${section.body.join("\n\n")}`
   )
-  .join("\n\n")}
+  .join("\n\n")}${openQuestionsSection}
 
 ## Sources
 
@@ -73,6 +81,24 @@ ${entity.dossier.competitiveLandscape
       `- ${item.companyOrApproach}: ${item.category}. Strength: ${item.strength}. Constraint: ${item.constraint}. Relevance: ${item.relevance}.`
   )
   .join("\n")}
+
+## Key Signals
+
+${[
+  entity.dossier.hiringSignal?.[0] ?? null,
+  entity.dossier.tractionAndMetrics?.[0] ?? null,
+  entity.dossier.socialAndPRSignal?.[0] ?? null,
+  entity.dossier.opportunity?.government?.[0] ?? null
+]
+  .filter(Boolean)
+  .map((signal) => `- ${signal}`)
+  .join("\n") || "- No confirmed signals in available public sources."}
+
+## Open Questions
+
+${entity.dossier.accuracyAndConfidence.unverified.length > 0
+  ? entity.dossier.accuracyAndConfidence.unverified.map((item) => `- ${item}`).join("\n")
+  : "- No open questions identified in the current source set."}
 
 ## Technology Tags
 

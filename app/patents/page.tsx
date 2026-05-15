@@ -15,7 +15,7 @@ export default async function PatentsPage() {
   const entities = await getPublishedEntities();
   const patentSources = entities.flatMap((entity) =>
     [...entity.sources, ...entity.dossier.sources]
-      .filter((source) => source.type === "Patent" || source.url.includes("patents"))
+      .filter((source) => source.type === "patent" || source.url.includes("patents"))
       .map((source) => ({ ...source, entityName: entity.name, slug: entity.slug }))
   );
   const visibleSources = patentSources.slice(0, 12);
