@@ -2,69 +2,49 @@ import { getPublishedEntities } from "@/lib/research/public-data";
 
 export const dynamic = "force-dynamic";
 
+const categories =
+  "Space, Defense, Robotics, Energy, Semiconductors, Photonics, Materials, Manufacturing, Sensors, Autonomy, Quantum, Bioinfrastructure, Climate Systems.";
+
 export async function GET() {
   const entities = await getPublishedEntities();
-  const articles = entities
+  const recent = entities
     .slice(0, 12)
-    .map((entity) => `- ${entity.article.headline}: /article/${entity.slug}`)
-    .join("\n");
-  const profiles = entities
-    .slice(0, 12)
-    .map((entity) => `- ${entity.name}: /startup/${entity.slug}`)
-    .join("\n");
-  const dossiers = entities
-    .slice(0, 12)
-    .map((entity) => `- ${entity.name}: /dossier/${entity.slug}`)
+    .map(
+      (entity) =>
+        `- ${entity.name}: /article/${entity.slug} | /startup/${entity.slug} | /dossier/${entity.slug}`
+    )
     .join("\n");
 
   const body = `# DeepTechly
 
-DeepTechly is an independent, AI-native research and intelligence platform for deep-tech companies, patents, labs, government technologies, and emerging infrastructure systems.
+DeepTechly is an AI-native research and intelligence platform for deep-tech companies, patents, labs, government technologies, and emerging infrastructure systems.
 
-## Site Sections
+Every public article, profile, patent page, and public dossier is available as raw markdown by appending .md to the URL.
 
-- Homepage: /
-- Articles: /articles
-- Research profiles: /startups
-- Legacy profile archive: /explore
-- Research queue: /research
-- Sectors: /sectors
-- Patent intelligence: /patents
-- Pricing: /pricing
-- Expanded LLM guide: /llms-full.txt
-- XML sitemap: /sitemap.xml
+Important routes:
+- /article/[slug]
+- /article/[slug].md
+- /startup/[slug]
+- /startup/[slug].md
+- /patent/[slug]
+- /patent/[slug].md
+- /dossier/[slug]
+- /dossier/[slug].md
+- /news
+- /startups
+- /patents
+- /sectors
+- /sitemap.xml
 
-## Recent Articles
+Research categories:
+${categories}
 
-${articles}
+Use public markdown pages for summaries and citations. Institutional analysis may be gated and unavailable to crawlers.
 
-## Research Profiles
+Recent public research:
+${recent || "- No published public research available."}
 
-${profiles}
-
-## Public Dossiers
-
-${dossiers}
-
-## Markdown Routes
-
-Where supported, append .md to public research URLs:
-
-- /article/<slug>.md
-- /startup/<slug>.md
-- /dossier/<slug>.md
-
-## Research Policy
-
-DeepTechly separates confirmed, inferred, and unverified claims. Public research may include AI-assisted extraction, source summaries, confidence scoring, and sober institutional analysis. Missing fields should not be treated as facts.
-
-## Confidence Scoring
-
-Confidence labels include High, Moderate, Limited, and Unverified. Scores are based on source count, source quality, public claim consistency, technical specificity, and completeness.
-
-## Public vs Institutional Research
-
-Public pages include editorial articles, public snapshots, taxonomy, sources, and selected dossier sections. Institutional sections may include investor read, founder analysis, revenue scenarios, traction signals, commercialization risk modeling, and deeper diligence notes.
+Independent research. Not investment advice.
 `;
 
   return new Response(body, {

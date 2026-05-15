@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { getEntityBySlugFromAll } from "@/lib/research/public-data";
+import { getPublishedEntityBySlug } from "@/lib/research/public-data";
 import { dossierMarkdown } from "@/lib/research/markdown";
 
 export const dynamic = "force-dynamic";
@@ -10,7 +10,7 @@ type RouteProps = {
 
 export async function GET(_request: Request, { params }: RouteProps) {
   const { slug } = await params;
-  const entity = await getEntityBySlugFromAll(slug);
+  const entity = await getPublishedEntityBySlug(slug);
 
   if (!entity) {
     notFound();

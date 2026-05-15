@@ -13,7 +13,7 @@ import {
 } from "@/components/dossier/DossierComponents";
 import { PageShell } from "@/components/layout/PageShell";
 import { entities } from "@/lib/data";
-import { getEntityBySlugFromAll } from "@/lib/research/public-data";
+import { getPublishedEntityBySlug } from "@/lib/research/public-data";
 import type { ResearchEntity } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -28,7 +28,7 @@ export function generateStaticParams() {
 
 export async function generateMetadata({ params }: StartupProfilePageProps) {
   const { slug } = await params;
-  const entity = await getEntityBySlugFromAll(slug);
+  const entity = await getPublishedEntityBySlug(slug);
 
   if (!entity) {
     return { title: "Profile not found | DeepTechly" };
@@ -36,7 +36,21 @@ export async function generateMetadata({ params }: StartupProfilePageProps) {
 
   return {
     title: `${entity.name} Research Profile | DeepTechly`,
-    description: entity.summary
+    description: entity.summary,
+    alternates: {
+      canonical: `/startup/${entity.slug}`
+    },
+    openGraph: {
+      title: `${entity.name} Research Profile | DeepTechly`,
+      description: entity.summary,
+      url: `/startup/${entity.slug}`,
+      type: "article",
+      modifiedTime: entity.updatedAt ?? undefined
+    },
+    other: {
+      "deeptechly:sector": entity.sector,
+      "deeptechly:confidence": entity.confidenceLabel
+    }
   };
 }
 
@@ -44,7 +58,7 @@ export default async function StartupProfilePage({
   params
 }: StartupProfilePageProps) {
   const { slug } = await params;
-  const entity = await getEntityBySlugFromAll(slug);
+  const entity = await getPublishedEntityBySlug(slug);
 
   if (!entity) {
     notFound();

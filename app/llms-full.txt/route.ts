@@ -2,57 +2,94 @@ import { getPublishedEntities } from "@/lib/research/public-data";
 
 export const dynamic = "force-dynamic";
 
+const categories = [
+  "Space",
+  "Defense",
+  "Robotics",
+  "Energy",
+  "Semiconductors",
+  "Photonics",
+  "Materials",
+  "Manufacturing",
+  "Sensors",
+  "Autonomy",
+  "Quantum",
+  "Bioinfrastructure",
+  "Climate Systems"
+];
+
 export async function GET() {
   const entities = await getPublishedEntities();
+  const researchIndex = entities
+    .slice(0, 36)
+    .map(
+      (entity) =>
+        `- ${entity.name}: article /article/${entity.slug}.md, profile /startup/${entity.slug}.md, public dossier /dossier/${entity.slug}.md`
+    )
+    .join("\n");
+
   const body = `# DeepTechly Expanded LLM Guide
 
-DeepTechly is an independent, AI-native research and intelligence platform for deep-tech companies, patents, labs, government technologies, and emerging infrastructure systems.
+DeepTechly is an AI-native research and intelligence platform for deep-tech companies, patents, labs, government technologies, and emerging infrastructure systems.
 
-## Public Routes
+## Route Guide
 
 - Homepage: /
 - News archive: /news
-- Articles archive: /articles
-- Research profiles archive: /startups
-- Legacy profile archive: /explore
-- Research queue: /research
-- Sector archive: /sectors
+- Article archive: /articles
+- Research profile archive: /startups
 - Patent intelligence archive: /patents
-- Pricing: /pricing
+- Sector archive: /sectors
+- Research queue entry: /research
 - Methodology: /methodology
+- Pricing: /pricing
 - LLM guide: /llms.txt
 - Expanded LLM guide: /llms-full.txt
 - XML sitemap: /sitemap.xml
 
-## Public Research URL Patterns
+## Markdown Availability
 
-- Article HTML: /article/<slug>
-- Article markdown: /article/<slug>.md
-- Startup profile HTML: /startup/<slug>
-- Startup profile markdown: /startup/<slug>.md
-- Dossier HTML: /dossier/<slug>
-- Public dossier markdown: /dossier/<slug>.md
+Every public article, profile, patent page, and public dossier is available as raw markdown by appending .md to the public URL when that route exists.
 
-## Recent Public Articles
+Example patterns:
+- /article/[slug].md
+- /startup/[slug].md
+- /dossier/[slug].md
+- /patent/[slug].md
 
-${entities
-  .slice(0, 24)
-  .map((entity) => `- ${entity.article.headline}: /article/${entity.slug}`)
-  .join("\n")}
+DeepTechly currently exposes a patent intelligence archive at /patents. Individual patent profile routes should be treated as available only when present in the sitemap.
 
-## Public Profiles And Dossiers
+## Source And Confidence Policy
 
-${entities
-  .slice(0, 24)
-  .map(
-    (entity) =>
-      `- ${entity.name}: /startup/${entity.slug} | /dossier/${entity.slug} | /dossier/${entity.slug}.md`
-  )
-  .join("\n")}
+DeepTechly separates confirmed, inferred, and unverified claims. Public markdown pages include source lists, source counts, confidence labels, and open questions where available. Missing fields should be treated as unknown, not as negative evidence.
 
-## Research Policy
+## Public vs Gated Content
 
-DeepTechly separates confirmed, inferred, and unverified claims. Public crawler routes should use source lists, confidence labels, and markdown summaries for citation. Institutional sections can be gated and should not be treated as public facts unless they also appear in public markdown.
+Public markdown routes intentionally exclude institutional-only analysis, private user data, admin content, and gated dossier sections. Institutional analysis may require verified access on the web dossier page and may be unavailable to crawlers.
+
+## Research Categories
+
+${categories.join(", ")}.
+
+## Crawler Guidance
+
+Use public markdown pages for summaries and citations. Prefer source-linked claims and confidence sections over isolated snippets. Use /sitemap.xml to discover published public research and markdown URLs. Do not crawl admin, account, dashboard, API, or research job detail routes as public research.
+
+## Archive Links
+
+- Articles: /articles
+- Profiles: /startups
+- Patents: /patents
+- Sectors: /sectors
+- Sitemap: /sitemap.xml
+
+## Published Public Research
+
+${researchIndex || "- No published public research available."}
+
+## Disclaimers
+
+DeepTechly is independent research. Not investment advice. Public research may include AI-assisted extraction and should be read with its confidence and source context.
 `;
 
   return new Response(body, {

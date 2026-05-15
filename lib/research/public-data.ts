@@ -3,11 +3,7 @@ import "server-only";
 import { entities as seedEntities, getEntityBySlug as getSeedEntityBySlug } from "@/lib/data";
 import type { ResearchEntity } from "@/lib/types";
 import type { StoredResearchArticle } from "./types";
-import {
-  isCompletedResearchFeedEligible,
-  listPublishedArticles,
-  readStore
-} from "./store";
+import { listPublishedArticles, readStore } from "./store";
 import {
   articleMetadataFromStoredArticle,
   inferRegionTag,
@@ -88,9 +84,7 @@ export async function getPublishedEntities() {
   try {
     const stored = await readStore();
     generated = stored.entities.filter(
-      (entity) =>
-        entity.publishedStatus === "published" ||
-        isCompletedResearchFeedEligible(entity)
+      (entity) => entity.publishedStatus === "published"
     );
   } catch (error) {
     console.error("Generated research store unavailable", error);
@@ -114,11 +108,7 @@ export async function getPublishedArticles() {
     const stored = await readStore();
     const eligibleGeneratedSlugs = new Set(
       stored.entities
-        .filter(
-          (entity) =>
-            entity.publishedStatus === "published" ||
-            isCompletedResearchFeedEligible(entity)
-        )
+        .filter((entity) => entity.publishedStatus === "published")
         .map((entity) => entity.slug)
     );
     generatedArticles = (await listPublishedArticles())
@@ -185,7 +175,7 @@ export async function getEntityBySlugFromAll(slug: string) {
 export async function getPublishedEntityBySlug(slug: string) {
   const entity = await getEntityBySlugFromAll(slug);
 
-  if (!entity || entity.publishedStatus === "draft") {
+  if (!entity || entity.publishedStatus !== "published") {
     return null;
   }
 
