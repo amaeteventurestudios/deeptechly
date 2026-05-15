@@ -697,20 +697,17 @@ export function ScenarioScroller({ entity }: { entity: ResearchEntity }) {
 export function MembersOnlyBlock({
   title,
   items,
-  intro,
-  accessState = "signed-out",
-  previewItems
+  accessState = "signed-out"
 }: {
   title: string;
   items: string[];
-  intro?: string;
   accessState?: InstitutionalAccessState;
-  previewItems?: string[];
 }) {
   const isSignedIn = accessState !== "signed-out";
   const isVerified = accessState === "institutional";
   const isPending = accessState === "pending";
-  const visibleItems = isVerified ? items : (previewItems ?? items);
+  const displayTitle = isVerified ? title : "Institutional section locked";
+  const visibleItems = isVerified ? items : safeLockedPreviewItems;
 
   return (
     <section className="border-t border-black/20 py-8">
@@ -718,7 +715,7 @@ export function MembersOnlyBlock({
         <div className="flex items-center justify-between gap-4 border-b border-black bg-white px-4 py-3">
           <div>
             <p className={labelClass}>Members Only</p>
-            <h2 className="mt-1 text-2xl font-black leading-tight">{title}</h2>
+            <h2 className="mt-1 text-2xl font-black leading-tight">{displayTitle}</h2>
           </div>
           <span
             className={`flex h-10 w-10 shrink-0 items-center justify-center border border-black ${
@@ -730,7 +727,7 @@ export function MembersOnlyBlock({
         </div>
         <div className="p-4 sm:p-5">
           <p className="max-w-2xl text-sm font-bold leading-6 text-ink/82">
-            {getMembersOnlyIntro({ title, intro, accessState })}
+            {getMembersOnlyIntro({ title: displayTitle, accessState })}
           </p>
           <div className="mt-4 border-l-4 border-deepOrange bg-white p-4">
             <p className="mb-3 text-[10px] font-black uppercase tracking-[0.18em] text-muted">
@@ -760,8 +757,8 @@ export function MembersOnlyBlock({
             </Link>
           ) : null}
           <p className="mt-4 text-xs leading-5 text-muted">
-            Institutional access includes technical risk modeling, readiness
-            analysis, government relevance mapping, and commercialization scenarios.
+            Verified access unlocks the private diligence layer without exposing
+            gated analysis in public HTML.
           </p>
         </div>
       </div>
@@ -771,11 +768,9 @@ export function MembersOnlyBlock({
 
 function getMembersOnlyIntro({
   title,
-  intro,
   accessState
 }: {
   title: string;
-  intro?: string;
   accessState: InstitutionalAccessState;
 }) {
   if (accessState === "institutional") {
@@ -791,162 +786,16 @@ function getMembersOnlyIntro({
   }
 
   return (
-    intro ??
-    `${title} is available to institutional users. The preview below shows the diligence categories included in the locked research block.`
+    `${title} is available to institutional users. This public view shows only a locked-access notice.`
   );
 }
 
-const institutionalLockedSections = [
-  {
-    title: "Technology Stack",
-    items: [
-      "Architecture layers",
-      "Critical hardware and software dependencies",
-      "Validation artifacts",
-      "System integration assumptions",
-      "Technical diligence questions"
-    ]
-  },
-  {
-    title: "White-Space Analysis",
-    items: [
-      "Underserved technical markets",
-      "Buyer pain points",
-      "Category formation signals",
-      "Adjacent capability gaps",
-      "No-dominant-player areas"
-    ]
-  },
-  {
-    title: "Government Relevance",
-    items: [
-      "Agency mapping",
-      "Dual-use relevance",
-      "Program-fit hypotheses",
-      "Public award signals",
-      "Procurement pathway questions"
-    ]
-  },
-  {
-    title: "Patent Position",
-    items: [
-      "Known and related patents",
-      "Research lineage",
-      "Licensing opportunities",
-      "Freedom-to-operate unknowns",
-      "IP diligence questions"
-    ]
-  },
-  {
-    title: "TRL / MRL Analysis",
-    items: [
-      "Estimated readiness ranges",
-      "Evidence required to adjust readiness",
-      "Manufacturing maturity assumptions",
-      "Certification and qualification gaps",
-      "Deployment proof points"
-    ]
-  },
-  {
-    title: "Manufacturing Constraints",
-    items: [
-      "Critical process steps",
-      "Yield and scale-up risks",
-      "Supplier concentration",
-      "Qualification requirements",
-      "Industrialization milestones"
-    ]
-  },
-  {
-    title: "Deployment Constraints",
-    items: [
-      "Field environment requirements",
-      "Integration dependencies",
-      "Reliability thresholds",
-      "Customer adoption blockers",
-      "Operational support needs"
-    ]
-  },
-  {
-    title: "Supply Chain Dependencies",
-    items: [
-      "Specialized components",
-      "Materials availability",
-      "Supplier qualification",
-      "Geographic concentration",
-      "Substitution options"
-    ]
-  },
-  {
-    title: "Revenue Scenarios",
-    items: [
-      "Conservative path",
-      "Base-case path",
-      "Aggressive path",
-      "Margin assumptions",
-      "Pricing evidence needed"
-    ]
-  },
-  {
-    title: "Commercialization Scenarios",
-    items: [
-      "Direct sales",
-      "Government pilot route",
-      "OEM integration",
-      "Strategic partnership",
-      "Licensing path"
-    ]
-  },
-  {
-    title: "Risk Modeling",
-    items: [
-      "Technical risk",
-      "Manufacturing risk",
-      "Regulatory risk",
-      "Deployment risk",
-      "Market adoption risk"
-    ]
-  },
-  {
-    title: "Capital Intensity",
-    items: [
-      "Facilities requirements",
-      "Certification cost",
-      "Working capital needs",
-      "Scale-up financing",
-      "Infrastructure leverage"
-    ]
-  },
-  {
-    title: "Regulatory Complexity",
-    items: [
-      "Certification exposure",
-      "Export-control review",
-      "Safety obligations",
-      "Government customer constraints",
-      "Compliance diligence"
-    ]
-  },
-  {
-    title: "Acquisition Potential",
-    items: [
-      "Strategic buyer categories",
-      "Capability adjacency",
-      "Integration fit",
-      "Timing signals",
-      "Exit-risk constraints"
-    ]
-  },
-  {
-    title: "Strategic Outlook",
-    items: [
-      "Milestones to watch",
-      "Market timing",
-      "Partnership paths",
-      "Technical validation needs",
-      "Institutional diligence read"
-    ]
-  }
+const safeLockedPreviewItems = [
+  "Verified-access research block",
+  "Private diligence notes withheld",
+  "Public evidence required for review",
+  "Source-backed analysis available after verification",
+  "No gated content serialized publicly"
 ];
 
 export function InstitutionalDossierSections({
@@ -970,19 +819,21 @@ export function InstitutionalDossierSections({
         </div>
       </div>
       <div className="space-y-5">
-        {sections.map((section) => (
+        {sections.map((section, index) => (
           <MembersOnlyBlock
-            key={section.title}
-            title={section.title}
+            key={isInstitutionalAccess(accessState) ? section.title : `locked-${index}`}
+            title={isInstitutionalAccess(accessState) ? section.title : "Institutional section locked"}
             items={section.items}
-            previewItems={section.previewItems}
-            intro={`${section.title} is part of the institutional dossier. The preview below names the diligence areas without exposing the gated analysis.`}
             accessState={accessState}
           />
         ))}
       </div>
     </section>
   );
+}
+
+function isInstitutionalAccess(accessState: InstitutionalAccessState) {
+  return accessState === "institutional";
 }
 
 function institutionalSectionsForEntity(entity: ResearchEntity) {
@@ -996,96 +847,81 @@ function institutionalSectionsForEntity(entity: ResearchEntity) {
         entity.dossier.productTechnologyFacts.keyDependencies,
         entity.dossier.productTechnologyFacts.validationNeeded,
         entity.dossier.productTechnologyFacts.deploymentEnvironment
-      ],
-      previewItems: institutionalLockedSections[0].items
+      ]
     },
     {
       title: "White-Space Analysis",
-      items: entity.dossier.opportunity.technical,
-      previewItems: institutionalLockedSections[1].items
+      items: entity.dossier.opportunity.technical
     },
     {
       title: "Government Relevance",
-      items: entity.dossier.opportunity.government,
-      previewItems: institutionalLockedSections[2].items
+      items: entity.dossier.opportunity.government
     },
     {
       title: "Patent Position",
-      items: entity.dossier.accuracyAndConfidence.inferred,
-      previewItems: institutionalLockedSections[3].items
+      items: entity.dossier.accuracyAndConfidence.inferred
     },
     {
       title: "TRL / MRL Analysis",
       items: readiness.trl || readiness.mrl
         ? [`TRL ${readiness.trl || "not scored"} / 9`, `MRL ${readiness.mrl || "not scored"} / 9`]
-        : ["Not enough confirmed public data to score this section."],
-      previewItems: institutionalLockedSections[4].items
+        : ["Not enough confirmed public data to score this section."]
     },
     {
       title: "Manufacturing Constraints",
       items: entity.dossier.risksAndConstraints.filter((item) =>
         /manufactur|yield|production|scale|supplier/i.test(item)
-      ),
-      previewItems: institutionalLockedSections[5].items
+      )
     },
     {
       title: "Deployment Constraints",
       items: entity.dossier.risksAndConstraints.filter((item) =>
         /deployment|integration|customer|certification/i.test(item)
-      ),
-      previewItems: institutionalLockedSections[6].items
+      )
     },
     {
       title: "Supply Chain Dependencies",
       items: entity.dossier.risksAndConstraints.filter((item) =>
         /supply|supplier|inputs|vendor/i.test(item)
-      ),
-      previewItems: institutionalLockedSections[7].items
+      )
     },
     {
       title: "Revenue Scenarios",
       items: entity.dossier.revenueAndUnitEconomics.map(
         (path) => `${path.path}: ${path.whatMustBeTrue}`
-      ),
-      previewItems: institutionalLockedSections[8].items
+      )
     },
     {
       title: "Commercialization Scenarios",
       items: entity.dossier.scenarios.map(
         (scenario) => `${scenario.title}: ${scenario.whatHappens}`
-      ),
-      previewItems: institutionalLockedSections[9].items
+      )
     },
     {
       title: "Risk Modeling",
-      items: entity.dossier.risksAndConstraints,
-      previewItems: institutionalLockedSections[10].items
+      items: entity.dossier.risksAndConstraints
     },
     {
       title: "Capital Intensity",
       items: entity.dossier.revenueAndUnitEconomics.map(
         (path) => `${path.path}: ${path.risk}`
-      ),
-      previewItems: institutionalLockedSections[11].items
+      )
     },
     {
       title: "Regulatory Complexity",
       items: entity.dossier.risksAndConstraints.filter((item) =>
         /regulatory|certification|government|procurement|review/i.test(item)
-      ),
-      previewItems: institutionalLockedSections[12].items
+      )
     },
     {
       title: "Acquisition Potential",
       items: entity.dossier.scenarios
         .filter((scenario) => /acquisition|strategic/i.test(scenario.title))
-        .map((scenario) => scenario.investorRead),
-      previewItems: institutionalLockedSections[13].items
+        .map((scenario) => scenario.investorRead)
     },
     {
       title: "Strategic Outlook",
-      items: entity.dossier.strategicOutlook,
-      previewItems: institutionalLockedSections[14].items
+      items: entity.dossier.strategicOutlook
     }
   ].map((section) => ({
     ...section,
@@ -1100,7 +936,6 @@ export function InvestorReadSection({ entity }: { entity: ResearchEntity }) {
     <MembersOnlyBlock
       title="Investor read"
       items={entity.dossier.investorRead}
-      intro="Founder analysis, investor read, revenue scenarios, traction signals, and commercialization risk modeling are gated for institutional users."
     />
   );
 }

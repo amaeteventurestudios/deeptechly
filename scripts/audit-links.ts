@@ -78,7 +78,7 @@ function get(url: string): Promise<{ status: number; finalUrl: string; body: str
   });
 }
 
-function extractLinks(html: string, sourcePage: string): Array<{ text: string; href: string }> {
+function extractLinks(html: string): Array<{ text: string; href: string }> {
   const links: Array<{ text: string; href: string }> = [];
   const anchorRe = /<a\s[^>]*href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi;
   let match: RegExpExecArray | null;
@@ -158,7 +158,7 @@ async function main() {
     process.stdout.write(`Crawling ${page} ... `);
     try {
       const result = await get(BASE_URL + page);
-      const links = extractLinks(result.body, page).map((l) => ({ ...l, sourcePage: page }));
+      const links = extractLinks(result.body).map((l) => ({ ...l, sourcePage: page }));
       console.log(`${result.status} · ${links.length} links`);
       allLinks.push(...links);
     } catch (err: unknown) {
