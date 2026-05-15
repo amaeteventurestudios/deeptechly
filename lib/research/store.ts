@@ -12,6 +12,7 @@ import type {
   StoredResearchArticle
 } from "./types";
 import type { ResearchEntity } from "@/lib/types";
+import { queueProgressByStage } from "./display";
 import { MIN_SOURCE_COUNT_TO_PUBLISH } from "./limits";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.replace(/\/$/, "") ?? null;
@@ -453,29 +454,7 @@ async function writeRedisStore(data: ResearchStoreData) {
   return true;
 }
 
-export const progressByStage: Record<ResearchStage, number> = {
-  queued: 3,
-  resolving_entity: 8,
-  finding_official_domain: 12,
-  confirming_company_identity: 16,
-  searching_web: 22,
-  reading_homepage: 30,
-  reading_technical_pages: 40,
-  distilling_facts: 50,
-  filling_gaps: 58,
-  verifying_claims: 66,
-  mapping_technology_stack: 72,
-  mapping_government_relevance: 78,
-  estimating_readiness: 82,
-  drafting_outputs: 88,
-  publishing_article: 92,
-  publishing_profile: 95,
-  finalizing_dossier: 98,
-  public_research_ready: 90,
-  done: 100,
-  failed: 100,
-  cancelled: 100
-};
+export const progressByStage: Record<ResearchStage, number> = queueProgressByStage;
 
 const statusLabelByStage: Record<ResearchStage, ResearchJob["statusLabel"]> = {
   queued: "QUEUED",

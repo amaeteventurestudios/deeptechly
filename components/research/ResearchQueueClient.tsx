@@ -1,21 +1,24 @@
 "use client";
 
 import Link from "next/link";
+import type { ReactNode } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  Ban,
+  AlertTriangle,
   Bell,
   CheckCircle2,
   ExternalLink,
   LoaderCircle,
-  RefreshCw,
-  RotateCcw,
-  Trash2,
-  XCircle
+  RefreshCw
 } from "lucide-react";
 import { ResearchSubmitForm } from "./ResearchSubmitForm";
 import { SaveResearchButton } from "@/components/saved/SaveResearchButton";
-import { formatRelativeTime } from "@/lib/story-metadata";
+import {
+  getQueueProgress,
+  getQueueStageLabel,
+  getQueueStatusLabel,
+  isActiveQueueStage
+} from "@/lib/research/display";
 import type { ResearchJob, ResearchStage } from "@/lib/research/types";
 
 type JobsResponse = {
@@ -25,216 +28,159 @@ type JobsResponse = {
   };
 };
 
-const stageDisplay: Record<
-  ResearchStage,
-  { label: string; title: string; detail: string }
-> = {
-  queued: {
-    label: "QUEUED",
-    title: "Queued",
-    detail: "Waiting to begin research"
-  },
-  resolving_entity: {
-    label: "SEARCHING",
-    title: "Resolving entity",
-    detail: "Checking whether the submission is a domain, company, lab, patent, or public program"
-  },
-  finding_official_domain: {
-    label: "SEARCHING",
-    title: "Finding official domain",
-    detail: "Searching public sources for the most likely official website"
-  },
-  confirming_company_identity: {
-    label: "SEARCHING",
-    title: "Confirming company identity",
-    detail: "Comparing source signals before continuing into the research workflow"
-  },
-  searching_web: {
-    label: "SEARCHING",
-    title: "Searching the web",
-    detail: "Finding public sources, company pages, articles, and technical references"
-  },
-  reading_homepage: {
-    label: "SEARCHING",
-    title: "Reading homepage",
-    detail: "Extracting title, metadata, images, and important internal links."
-  },
-  reading_technical_pages: {
-    label: "SEARCHING",
-    title: "Reading technical pages",
-    detail: "Scanning about, product, technology, careers, news, and documentation pages"
-  },
-  distilling_facts: {
-    label: "SEARCHING",
-    title: "Distilling structured facts",
-    detail: "Extracting company, technology, market, and source-level facts"
-  },
-  filling_gaps: {
-    label: "SEARCHING",
-    title: "Filling gaps",
-    detail: "Running targeted follow-up searches for missing fields"
-  },
-  verifying_claims: {
-    label: "SEARCHING",
-    title: "Verifying claims",
-    detail: "Running follow-up searches for team, technology, funding, patents, market, customers, and open roles"
-  },
-  mapping_technology_stack: {
-    label: "ANALYZING",
-    title: "Mapping technology stack",
-    detail: "Mapping product, architecture, materials, software, hardware, and deployment environment"
-  },
-  mapping_government_relevance: {
-    label: "ANALYZING",
-    title: "Mapping government relevance",
-    detail: "Checking DARPA, NASA, SBIR, DoD, DOE, Space Force, and related public signals"
-  },
-  estimating_readiness: {
-    label: "ANALYZING",
-    title: "Estimating readiness",
-    detail: "Estimating TRL, MRL, certification, manufacturing, and deployment constraints"
-  },
-  drafting_outputs: {
-    label: "WRITING",
-    title: "Drafting article, public profile, and investor dossier in parallel",
-    detail: "Axon Reyes, Sable Okoro, and Ilya Stone are preparing public and institutional outputs."
-  },
-  publishing_article: {
-    label: "WRITING",
-    title: "Publishing article",
-    detail: "Preparing the public feature article and source links"
-  },
-  publishing_profile: {
-    label: "FINALIZING",
-    title: "Publishing profile",
-    detail: "Preparing profile links, sources, and dossier metadata"
-  },
-  finalizing_dossier: {
-    label: "FINALIZING",
-    title: "Finalizing dossier",
-    detail: "Completing investor read, risks, scenarios, sources, and confidence notes"
-  },
-  public_research_ready: {
-    label: "READY",
-    title: "Public research ready",
-    detail: "Article and profile are published. Institutional dossier is still finalizing."
-  },
-  done: {
-    label: "DONE",
-    title: "Research complete",
-    detail: "Article, profile, and institutional dossier are ready."
-  },
-  failed: {
-    label: "FAILED",
-    title: "Research failed",
-    detail: "DeepTechly could not identify enough reliable public sources to generate a high-confidence profile."
-  },
-  cancelled: {
-    label: "CANCELLED",
-    title: "Cancelled",
-    detail: "This research job was cancelled before publication."
-  }
+type JobResponse = {
+  job?: ResearchJob;
+  error?: string;
 };
 
-function sortQueueJobs(jobs: ResearchJob[]) {
-  return [...jobs].sort((a, b) => {
-    const rankDelta = jobRank(a) - jobRank(b);
-    if (rankDelta !== 0) return rankDelta;
-    return jobSortTimestamp(b).localeCompare(jobSortTimestamp(a));
-  });
-}
+type StageHistoryItem = {
+  stage: ResearchStage;
+  startedAt?: string;
+  completedAt?: string;
+};
 
-function jobRank(job: ResearchJob) {
-  if (isActiveJob(job)) return 0;
-  if (job.stage === "public_research_ready" || job.stage === "done") return 1;
-  return 2;
-}
-
-function jobSortTimestamp(job: ResearchJob) {
-  return (
-    job.completedAt ??
-    job.publicResearchReadyAt ??
-    job.updatedAt ??
-    job.createdAt
-  );
-}
-
-export function ResearchQueueClient({ initialJobId }: { initialJobId?: string }) {
+export function ResearchQueueClient({
+  initialJobId,
+  focused = false
+}: {
+  initialJobId?: string;
+  focused?: boolean;
+}) {
   const [jobs, setJobs] = useState<ResearchJob[]>([]);
   const [queueStats, setQueueStats] = useState<JobsResponse["queueStats"]>();
   const [isLoading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [hasInteracted, setHasInteracted] = useState(false);
   const [soundAlerts, setSoundAlerts] = useState(true);
   const [toast, setToast] = useState<{ title: string; body: string } | null>(null);
+  const [now, setNow] = useState(() => Date.now());
   const latestJobsRef = useRef<ResearchJob[]>([]);
   const notifiedJobsRef = useRef<Set<string>>(new Set());
-  const defaultTitleRef = useRef<string>("");
+  const progressRef = useRef<Map<string, number>>(new Map());
 
   useEffect(() => {
     latestJobsRef.current = jobs;
   }, [jobs]);
-
-  useEffect(() => {
-    defaultTitleRef.current = document.title;
-  }, []);
 
   const markInteraction = useCallback(() => {
     setHasInteracted(true);
   }, []);
 
   const setServerJobs = useCallback((serverJobs: ResearchJob[]) => {
-    setJobs(sortQueueJobs(serverJobs));
+    const progressById = progressRef.current;
+    const withStableProgress = serverJobs.map((job) => {
+      const previousProgress = progressById.get(job.id) ?? 0;
+      const displayProgress = getQueueProgress(job);
+      const nextProgress =
+        job.stage === "failed" || job.stage === "cancelled"
+          ? Math.max(previousProgress, displayProgress)
+          : Math.max(previousProgress, displayProgress);
+      progressById.set(job.id, nextProgress);
+      return { ...job, progress: nextProgress };
+    });
+
+    setJobs(sortQueueJobs(withStableProgress));
   }, []);
 
   const loadJobs = useCallback(async () => {
     markInteraction();
+    setError(null);
+
     try {
-      const response = await fetch("/api/research", { cache: "no-store" });
-      if (!response.ok) {
+      if (focused && initialJobId) {
+        const response = await fetch(`/api/research/${initialJobId}`, {
+          cache: "no-store"
+        });
+        const body = (await response.json().catch(() => ({}))) as JobResponse;
+
+        if (!response.ok || !body.job) {
+          throw new Error(body.error ?? "Research job could not be found.");
+        }
+
+        setQueueStats({ activeCount: isActiveQueueStage(body.job.stage) ? 1 : 0 });
+        setServerJobs([body.job]);
         return;
       }
 
-      const body = (await response.json()) as JobsResponse;
+      const response = await fetch("/api/research", { cache: "no-store" });
+      const body = (await response.json().catch(() => ({}))) as JobsResponse;
+
+      if (!response.ok) {
+        throw new Error("Research queue could not be loaded.");
+      }
+
       setQueueStats(body.queueStats);
-      setServerJobs(body.jobs);
-    } catch {
-      // Keep the current rendered queue if the server is briefly unavailable.
+      setServerJobs(body.jobs ?? []);
+    } catch (loadError) {
+      setError(
+        loadError instanceof Error
+          ? cleanError(loadError.message)
+          : "Research queue could not be loaded."
+      );
     } finally {
       setLoading(false);
     }
-  }, [markInteraction, setServerJobs]);
+  }, [focused, initialJobId, markInteraction, setServerJobs]);
 
   const handleJobCreated = useCallback(
     (job: ResearchJob) => {
       markInteraction();
-      // Immediately prepend the new job so it appears without waiting for the next poll.
-      setJobs((current) => {
-        const withoutDupe = current.filter((j) => j.id !== job.id);
-        return sortQueueJobs([job, ...withoutDupe]);
-      });
-      // Sync with server state right away so progress begins reflecting.
+      setServerJobs([job, ...latestJobsRef.current.filter((item) => item.id !== job.id)]);
       void loadJobs();
     },
-    [markInteraction, loadJobs]
+    [loadJobs, markInteraction, setServerJobs]
   );
 
+  const cancelJob = useCallback(
+    async (jobId: string) => {
+      markInteraction();
+      const response = await fetch(`/api/research/${jobId}`, {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ action: "cancel" })
+      });
+
+      if (response.ok) {
+        const body = (await response.json().catch(() => ({}))) as { job?: ResearchJob };
+        if (body.job) {
+          setServerJobs([
+            body.job,
+            ...latestJobsRef.current.filter((item) => item.id !== body.job?.id)
+          ]);
+        }
+      }
+    },
+    [markInteraction, setServerJobs]
+  );
+
+  const hasActiveJobs = jobs.some((job) => isActiveQueueStage(job.stage));
+
   useEffect(() => {
-    const initial = window.setTimeout(() => {
+    const initialLoad = window.setTimeout(() => {
       void loadJobs();
     }, 0);
-    const interval = window.setInterval(() => {
-      void loadJobs();
-    }, 2500);
 
-    return () => {
-      window.clearTimeout(initial);
-      window.clearInterval(interval);
-    };
+    return () => window.clearTimeout(initialLoad);
   }, [loadJobs]);
 
   useEffect(() => {
+    if (!isLoading && !hasActiveJobs) return;
+
+    const interval = window.setInterval(() => {
+      void loadJobs();
+    }, 3000);
+
+    return () => window.clearInterval(interval);
+  }, [hasActiveJobs, isLoading, loadJobs]);
+
+  useEffect(() => {
+    const interval = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
     for (const job of jobs) {
-      if (!isNotificationStage(job.stage) || notifiedJobsRef.current.has(job.id)) {
+      if (job.stage !== "done" || notifiedJobsRef.current.has(job.id)) {
         continue;
       }
 
@@ -242,147 +188,80 @@ export function ResearchQueueClient({ initialJobId }: { initialJobId?: string })
       notifyReady(job, { hasInteracted, soundAlerts });
       setToast({
         title: "Research ready",
-        body: `${job.feed?.entityName ?? job.query} article and profile are ready to open.`
+        body: `${job.feed?.entityName ?? job.resolvedName ?? job.query} is ready to open.`
       });
-      document.title = `✓ ${job.feed?.entityName ?? job.query} ready · DeepTechly`;
+      document.title = `${job.feed?.entityName ?? job.resolvedName ?? job.query} ready · DeepTechly`;
       window.setTimeout(() => setToast(null), 5500);
     }
   }, [hasInteracted, jobs, soundAlerts]);
 
   const orderedJobs = useMemo(() => {
     const sorted = sortQueueJobs(jobs);
-    if (!initialJobId) return sorted;
+    if (!initialJobId || focused) return sorted;
 
     return [...sorted].sort((a, b) => {
-      if (a.id === initialJobId && isActiveJob(a)) return -1;
-      if (b.id === initialJobId && isActiveJob(b)) return 1;
+      if (a.id === initialJobId && isActiveQueueStage(a.stage)) return -1;
+      if (b.id === initialJobId && isActiveQueueStage(b.stage)) return 1;
       return 0;
     });
-  }, [initialJobId, jobs]);
+  }, [focused, initialJobId, jobs]);
 
-  const activeCount = orderedJobs.filter((job) => isActiveJob(job)).length;
+  const activeCount = orderedJobs.filter((job) => isActiveQueueStage(job.stage)).length;
   const jobsAhead = Math.max(0, activeCount - 1);
-
-  async function cancelJob(jobId: string) {
-    markInteraction();
-    const response = await fetch(`/api/research/${jobId}`, {
-      method: "PATCH",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ action: "cancel" })
-    });
-    if (response.ok) {
-      const body = (await response.json()) as { job?: ResearchJob };
-      if (body.job) {
-        setServerJobs([...latestJobsRef.current.filter((job) => job.id !== body.job?.id), body.job]);
-      }
-    }
-  }
-
-  async function removeJob(jobId: string) {
-    markInteraction();
-    const response = await fetch(`/api/research/${jobId}`, { method: "DELETE" });
-    if (response.ok) {
-      const nextJobs = latestJobsRef.current.filter((job) => job.id !== jobId);
-      setJobs(nextJobs);
-    }
-  }
-
-  async function restartJob(query: string) {
-    markInteraction();
-    const response = await fetch("/api/research", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ query, mode: "company" })
-    });
-    if (response.ok) {
-      const body = (await response.json()) as { job?: ResearchJob };
-      if (body.job) {
-        setServerJobs([...latestJobsRef.current, body.job]);
-      }
-    }
-  }
+  const allCaughtUp = orderedJobs.length > 0 && activeCount === 0;
 
   return (
-    <div className="space-y-8" onPointerDown={markInteraction}>
-      <section className="border border-black bg-white p-4 shadow-hard sm:p-5">
-        <HeadsUpBar />
-        <p className="mt-5 text-[10px] font-black uppercase tracking-[0.22em] text-deepOrange">
-          Research Queue
-        </p>
-        <h2 className="mt-2 text-2xl font-black leading-tight">
-          Queue deep-tech research
-        </h2>
-        <p className="mt-2 max-w-3xl text-sm leading-6 text-charcoal">
-          Type a company, patent, lab, technology, or government program.
-          DeepTechly will search public sources, distill the facts, verify
-          claims, and generate an institutional-grade profile, feature article,
-          and research dossier.
-        </p>
-        <div className="mt-5">
-          <ResearchSubmitForm compact onSubmitted={handleJobCreated} />
-        </div>
-      </section>
+    <div className="space-y-7" onPointerDown={markInteraction}>
+      {!focused ? (
+        <section className="border border-black bg-white p-4 shadow-hard sm:p-5">
+          <HeadsUpBar />
+          <div className="mt-5">
+            <ResearchSubmitForm compact onSubmitted={handleJobCreated} />
+          </div>
+        </section>
+      ) : null}
 
-      <section>
-        <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-          <div className="flex-1">
-            <div className="flex items-center justify-between gap-4">
-              <h2 className="text-[11px] font-black uppercase tracking-[0.24em] text-deepOrange">
-                My research queue
-              </h2>
-              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-ink">
-                {activeCount > 0
-                  ? `${activeCount} in progress`
-                  : "All caught up"}
-              </p>
-            </div>
-            <div className="mt-3 border-t border-black" />
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={() => setSoundAlerts((value) => !value)}
-              className="inline-flex items-center justify-center gap-2 border border-black bg-white px-3 py-2 text-[10px] font-black uppercase tracking-[0.14em] shadow-[3px_3px_0_#0f0f0f]"
-            >
-              <Bell size={13} />
-              Sound alerts: {soundAlerts ? "ON" : "OFF"}
-            </button>
-            <button
-              type="button"
-              onClick={() => void loadJobs()}
-              className="inline-flex items-center justify-center gap-2 border border-black bg-white px-3 py-2 text-[10px] font-black uppercase tracking-[0.14em] shadow-[3px_3px_0_#0f0f0f]"
-            >
-              <RefreshCw size={13} />
-              Refresh
-            </button>
-          </div>
-        </div>
+      <section aria-busy={isLoading} aria-live="polite">
+        <QueueHeader
+          activeCount={activeCount}
+          allCaughtUp={allCaughtUp}
+          focused={focused}
+          onRefresh={loadJobs}
+          soundAlerts={soundAlerts}
+          setSoundAlerts={setSoundAlerts}
+        />
 
         <BusyQueueMessage jobsAhead={jobsAhead} queueStats={queueStats} />
 
+        {error ? <QueueError message={error} /> : null}
+
         {isLoading && orderedJobs.length === 0 ? (
-          <div className="border border-black bg-white p-5 shadow-hard">
-            <p className="text-sm font-bold">Loading research jobs...</p>
-          </div>
-        ) : orderedJobs.length === 0 ? (
-          <div className="border border-black bg-white p-5 shadow-hard">
-            <p className="text-sm font-bold">
-              No jobs yet. Submit a query and the staged research pipeline will
-              appear here.
-            </p>
-          </div>
+          <QueueSkeleton focused={focused} />
+        ) : orderedJobs.length === 0 && !error ? (
+          <EmptyQueue />
         ) : (
           <ResearchQueueList
             jobs={orderedJobs}
+            now={now}
+            focused={focused}
             onCancel={cancelJob}
-            onRestart={restartJob}
-            onRemove={removeJob}
           />
         )}
       </section>
 
+      {focused ? (
+        <div className="border border-black bg-white p-4 shadow-hard">
+          <p className="text-[10px] font-black uppercase tracking-[0.18em] text-deepOrange">
+            Start Another Search
+          </p>
+          <div className="mt-4">
+            <ResearchSubmitForm compact />
+          </div>
+        </div>
+      ) : null}
+
       {toast ? (
-        <div className="fixed bottom-4 right-4 z-50 max-w-sm border border-black bg-white p-4 shadow-hard">
+        <div className="fixed bottom-4 left-4 right-4 z-50 border border-black bg-white p-4 shadow-hard sm:left-auto sm:max-w-sm">
           <p className="text-[10px] font-black uppercase tracking-[0.18em] text-deepOrange">
             {toast.title}
           </p>
@@ -393,16 +272,65 @@ export function ResearchQueueClient({ initialJobId }: { initialJobId?: string })
   );
 }
 
+function QueueHeader({
+  activeCount,
+  allCaughtUp,
+  focused,
+  onRefresh,
+  soundAlerts,
+  setSoundAlerts
+}: {
+  activeCount: number;
+  allCaughtUp: boolean;
+  focused: boolean;
+  onRefresh: () => void;
+  soundAlerts: boolean;
+  setSoundAlerts: (value: boolean) => void;
+}) {
+  return (
+    <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+      <div className="min-w-0 flex-1 text-center sm:text-left">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <h2 className="text-[11px] font-black uppercase tracking-[0.24em] text-deepOrange">
+            {focused ? "Research Status" : "My Research Queue"}
+          </h2>
+          <p className="text-[10px] font-black uppercase tracking-[0.18em] text-ink">
+            {allCaughtUp ? "ALL CAUGHT UP" : `${activeCount} in progress`}
+          </p>
+        </div>
+        <div className="mt-3 border-t border-black" />
+      </div>
+      <div className="flex flex-col gap-2 min-[390px]:flex-row sm:justify-end">
+        <button
+          type="button"
+          onClick={() => setSoundAlerts(!soundAlerts)}
+          className="inline-flex min-h-11 items-center justify-center gap-2 border border-black bg-white px-3 py-2 text-[10px] font-black uppercase tracking-[0.14em] shadow-[3px_3px_0_#0f0f0f] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-deepOrange"
+        >
+          <Bell size={13} />
+          Sound {soundAlerts ? "ON" : "OFF"}
+        </button>
+        <button
+          type="button"
+          onClick={() => void onRefresh()}
+          className="inline-flex min-h-11 items-center justify-center gap-2 border border-black bg-white px-3 py-2 text-[10px] font-black uppercase tracking-[0.14em] shadow-[3px_3px_0_#0f0f0f] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-deepOrange"
+        >
+          <RefreshCw size={13} />
+          Refresh
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function HeadsUpBar() {
   return (
     <div className="border border-black bg-ink p-4 text-white">
       <p className="text-[10px] font-black uppercase tracking-[0.18em] text-deepOrange">
-        Heads Up
+        HEADS UP
       </p>
       <p className="mt-1 text-sm font-bold leading-6">
-        Research can take up to 10 minutes per entity. Domains usually resolve
-        faster than names. Keep this tab open and we will notify you when public
-        research is ready.
+        Research can take several minutes per entity. Keep this tab open and we
+        will update the queue as each profile is prepared.
       </p>
     </div>
   );
@@ -420,242 +348,350 @@ function BusyQueueMessage({
   }
 
   return (
-    <div className="mb-4 border border-black bg-offWhite p-3 text-xs font-black uppercase tracking-[0.14em] shadow-[3px_3px_0_#0f0f0f]">
+    <div className="mb-4 border border-black bg-offWhite p-3 text-center text-xs font-black uppercase leading-5 tracking-[0.14em] shadow-[3px_3px_0_#0f0f0f] sm:text-left">
       {jobsAhead > 0
-        ? `BUSY QUEUE: there are ${jobsAhead} research jobs ahead of yours. You can safely close this tab and come back later.`
-        : "BUSY QUEUE: research is taking longer than usual. You can safely close this tab and come back later."}
+        ? `BUSY QUEUE: there are ${jobsAhead} research jobs ahead of yours.`
+        : "BUSY QUEUE: research is taking longer than usual."}
+    </div>
+  );
+}
+
+function QueueError({ message }: { message: string }) {
+  return (
+    <div className="mb-4 border border-black bg-white p-4 shadow-hard">
+      <div className="flex items-start gap-3">
+        <AlertTriangle className="mt-0.5 shrink-0 text-darkOrange" size={18} />
+        <div>
+          <p className="text-[10px] font-black uppercase tracking-[0.18em] text-darkOrange">
+            Queue Error
+          </p>
+          <p className="mt-1 text-sm font-bold leading-6">{cleanError(message)}</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function QueueSkeleton({ focused }: { focused: boolean }) {
+  return (
+    <div className="border border-black bg-white p-4 shadow-hard sm:p-5">
+      <p className="text-[10px] font-black uppercase tracking-[0.18em] text-deepOrange">
+        {focused ? "Loading Research Status" : "Loading Research Queue"}
+      </p>
+      <div className="mt-5 space-y-4">
+        <div className="h-5 w-3/4 animate-pulse bg-lightBorder" />
+        <div className="h-3 w-full animate-pulse bg-lightBorder" />
+        <div className="h-3 w-2/3 animate-pulse bg-lightBorder" />
+      </div>
+    </div>
+  );
+}
+
+function EmptyQueue() {
+  return (
+    <div className="border border-black bg-white p-6 text-center shadow-hard">
+      <p className="text-lg font-black">No research queued yet.</p>
+      <p className="mx-auto mt-2 max-w-xl text-sm font-semibold leading-6 text-charcoal">
+        Search any company, patent, lab, or technology to generate your first
+        DeepTechly dossier.
+      </p>
     </div>
   );
 }
 
 function ResearchQueueList({
   jobs,
-  onCancel,
-  onRestart,
-  onRemove
+  now,
+  focused,
+  onCancel
 }: {
   jobs: ResearchJob[];
+  now: number;
+  focused: boolean;
   onCancel: (jobId: string) => void;
-  onRestart: (query: string) => void;
-  onRemove: (jobId: string) => void;
 }) {
   return (
     <div className="border border-black bg-white shadow-hard">
-      {jobs.map((job) => (
-        <QueueRow
+      {jobs.map((job, index) => (
+        <QueueCard
           key={job.id}
           job={job}
+          now={now}
+          focused={focused}
           onCancel={onCancel}
-          onRestart={onRestart}
-          onRemove={onRemove}
+          priority={index === 0 && isActiveQueueStage(job.stage)}
         />
       ))}
     </div>
   );
 }
 
-function QueueRow({
+function QueueCard({
   job,
+  now,
+  focused,
   onCancel,
-  onRestart,
-  onRemove
+  priority
 }: {
   job: ResearchJob;
+  now: number;
+  focused: boolean;
   onCancel: (jobId: string) => void;
-  onRestart: (query: string) => void;
-  onRemove: (jobId: string) => void;
+  priority: boolean;
 }) {
-  if (isActiveJob(job)) {
-    return <ActiveQueueRow job={job} onCancel={onCancel} />;
-  }
+  const failed = job.stage === "failed" || job.stage === "cancelled";
+  const done = job.stage === "done";
+  const active = isActiveQueueStage(job.stage);
+  const stageLabel = getQueueStageLabel(job.stage);
+  const progress = getQueueProgress(job);
+  const elapsed = formatElapsed(job.createdAt, now);
+  const sourceCount = job.feed?.sourceCount ?? job.sourceCount;
+  const confidenceLabel = job.feed?.confidenceLabel;
+  const entityType = job.feed?.entityTypeTag ?? job.mode;
+  const history = getStageHistory(job);
+  const Icon = failed ? AlertTriangle : done ? CheckCircle2 : LoaderCircle;
 
-  return <TerminalQueueRow job={job} onRestart={onRestart} onRemove={onRemove} />;
+  return (
+    <article
+      className={`border-b border-black p-4 last:border-b-0 sm:p-5 ${
+        priority ? "bg-paleOrange/35" : "bg-white"
+      }`}
+    >
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
+        <span
+          className={`mx-auto flex h-10 w-10 shrink-0 items-center justify-center border border-black bg-offWhite sm:mx-0 ${
+            failed ? "text-darkOrange" : "text-deepOrange"
+          }`}
+        >
+          <Icon
+            size={19}
+            className={active ? "animate-spin motion-reduce:animate-none" : ""}
+            aria-hidden="true"
+          />
+          {active ? <span className="sr-only">Research in progress</span> : null}
+        </span>
+
+        <div className="min-w-0 flex-1 text-center sm:text-left">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+            <div className="min-w-0">
+              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-deepOrange">
+                {getQueueStatusLabel(job)}
+              </p>
+              <h3 className="mt-1 break-words text-xl font-black leading-tight">
+                {jobTitle(job)}
+              </h3>
+              <div className="mt-3 flex flex-wrap justify-center gap-2 sm:justify-start">
+                <QueueTag>{entityTypeLabel(entityType)}</QueueTag>
+                <QueueTag>{elapsed}</QueueTag>
+                {sourceCount > 0 ? <QueueTag>{sourceCount} sources</QueueTag> : null}
+                {confidenceLabel ? <QueueTag>{confidenceLabel}</QueueTag> : null}
+              </div>
+            </div>
+
+            <JobLinks job={job} onCancel={onCancel} />
+          </div>
+
+          <div className="mt-5">
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-sm font-black leading-5">{stageLabel}</p>
+              {!failed ? (
+                <p className="shrink-0 text-[10px] font-black uppercase tracking-[0.14em] text-muted">
+                  {progress}%
+                </p>
+              ) : null}
+            </div>
+            <div
+              className="mt-2 h-3 border border-black bg-offWhite"
+              role="progressbar"
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={failed ? undefined : progress}
+              aria-label={`Research progress: ${stageLabel}`}
+            >
+              <div
+                className={`h-full transition-[width] duration-700 motion-reduce:transition-none ${
+                  failed ? "bg-darkOrange" : "bg-deepOrange"
+                }`}
+                style={{ width: `${failed ? Math.max(progress, 8) : progress}%` }}
+              />
+            </div>
+          </div>
+
+          {failed ? (
+            <p className="mt-4 border border-black bg-offWhite p-3 text-sm font-bold leading-6 text-charcoal">
+              {cleanError(job.error ?? job.detail)}
+            </p>
+          ) : null}
+
+          {focused && history.length > 0 ? <StageHistory history={history} /> : null}
+        </div>
+      </div>
+    </article>
+  );
 }
 
-function ActiveQueueRow({
+function JobLinks({
   job,
   onCancel
 }: {
   job: ResearchJob;
   onCancel: (jobId: string) => void;
 }) {
-  const display = queueCopy(job);
+  const done = job.stage === "done";
+  const partialReady = job.stage === "public_research_ready";
 
-  return (
-    <article className="border-b border-neutral-200 p-4 last:border-b-0 sm:p-5">
-      <div className="flex gap-3">
-        <span className="mt-1 flex h-8 w-8 shrink-0 items-center justify-center border border-black bg-offWhite text-deepOrange">
-          <LoaderCircle size={17} className="animate-spin" />
-        </span>
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-            <h3 className="break-words text-lg font-black leading-tight">
-              {jobTitle(job)}
-            </h3>
-            <button
-              type="button"
-              onClick={() => onCancel(job.id)}
-              className="inline-flex w-full shrink-0 items-center justify-center gap-2 border border-black bg-white px-3 py-2 text-[10px] font-black uppercase tracking-[0.14em] sm:w-auto"
-            >
-              <Ban size={13} />
-              Cancel
-            </button>
-          </div>
-          <div className="mt-3 h-2.5 border border-black bg-offWhite">
-            <div
-              className="h-full bg-deepOrange"
-              style={{ width: `${Math.max(0, Math.min(job.progress, 100))}%` }}
-            />
-          </div>
-          <p className="mt-3 text-sm font-black leading-5">{display.title}</p>
-          <p className="mt-1 text-xs leading-5 text-muted">{display.detail}</p>
-          <p className="mt-3 text-[10px] font-black uppercase tracking-[0.16em] text-muted">
-            {display.label} · {formatRelativeTime(job.updatedAt)}
-          </p>
-        </div>
+  if (!done && !partialReady) {
+    return isActiveQueueStage(job.stage) ? (
+      <div className="flex flex-col gap-2 min-[430px]:flex-row lg:justify-end">
+        <button
+          type="button"
+          onClick={() => onCancel(job.id)}
+          className="inline-flex min-h-11 items-center justify-center border border-black bg-white px-3 py-2 text-[10px] font-black uppercase tracking-[0.14em] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-deepOrange"
+        >
+          CANCEL
+        </button>
       </div>
-    </article>
-  );
-}
-
-function TerminalQueueRow({
-  job,
-  onRestart,
-  onRemove
-}: {
-  job: ResearchJob;
-  onRestart: (query: string) => void;
-  onRemove: (jobId: string) => void;
-}) {
-  const failed = job.stage === "failed";
-  const cancelled = job.stage === "cancelled";
-  const ready = job.stage === "public_research_ready";
-  const display = queueCopy(job);
-  const Icon = failed || cancelled ? XCircle : CheckCircle2;
-
-  return (
-    <article className="border-b border-neutral-200 p-4 last:border-b-0 sm:p-5">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex min-w-0 gap-3">
-          <span
-            className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center border border-black bg-offWhite ${
-              failed || cancelled ? "text-darkOrange" : "text-deepOrange"
-            }`}
-          >
-            <Icon size={16} />
-          </span>
-          <div className="min-w-0">
-            <h3 className="break-words text-base font-black leading-tight">
-              {jobTitle(job)}
-            </h3>
-            <p className="mt-2 text-sm font-black leading-5">{display.title}</p>
-            <p className="mt-1 text-xs leading-5 text-muted">{display.detail}</p>
-            <p className="mt-2 text-[10px] font-black uppercase tracking-[0.16em] text-muted">
-              {display.label} ·{" "}
-              {formatRelativeTime(job.completedAt ?? job.publicResearchReadyAt ?? job.updatedAt)}
-            </p>
-          </div>
-        </div>
-
-        <div className="flex flex-wrap gap-2 sm:justify-end">
-          {ready || job.stage === "done" ? (
-            <>
-              <SaveResearchButton
-                href={job.profileUrl ?? job.articleUrl ?? "/research"}
-                itemId={job.entityId ?? job.id}
-                itemType="RESEARCH JOB"
-                title={jobTitle(job)}
-                sector={job.feed?.sector}
-                entityName={job.feed?.entityName ?? job.resolvedName ?? job.query}
-              />
-              {job.articleUrl ? (
-                <Link
-                  href={job.articleUrl}
-                  className="inline-flex w-full items-center justify-center gap-2 border border-black bg-white px-3 py-2 text-[10px] font-black uppercase tracking-[0.14em] sm:w-auto"
-                >
-                  Open Article
-                  <ExternalLink size={12} />
-                </Link>
-              ) : null}
-              {job.profileUrl ? (
-                <Link
-                  href={job.profileUrl}
-                  className="inline-flex w-full items-center justify-center gap-2 border border-black bg-deepOrange px-3 py-2 text-[10px] font-black uppercase tracking-[0.14em] sm:w-auto"
-                >
-                  Open Profile
-                  <ExternalLink size={12} />
-                </Link>
-              ) : null}
-              {ready ? (
-                <span className="inline-flex w-full items-center justify-center border border-black bg-offWhite px-3 py-2 text-[10px] font-black uppercase tracking-[0.14em] text-muted sm:w-auto">
-                  Dossier Finalizing
-                </span>
-              ) : job.dossierUrl ? (
-                <Link
-                  href={job.dossierUrl}
-                  className="inline-flex w-full items-center justify-center gap-2 border border-black bg-ink px-3 py-2 text-[10px] font-black uppercase tracking-[0.14em] text-white sm:w-auto"
-                >
-                  Open Dossier
-                  <ExternalLink size={12} />
-                </Link>
-              ) : null}
-            </>
-          ) : null}
-
-          {failed || cancelled ? (
-            <>
-              <button
-                type="button"
-                onClick={() => onRestart(job.query)}
-                className="inline-flex w-full items-center justify-center gap-2 border border-black bg-deepOrange px-3 py-2 text-[10px] font-black uppercase tracking-[0.14em] sm:w-auto"
-              >
-                <RotateCcw size={13} />
-                Restart Research
-              </button>
-              {cancelled ? (
-                <button
-                  type="button"
-                  onClick={() => onRemove(job.id)}
-                  className="inline-flex w-full items-center justify-center gap-2 border border-black bg-white px-3 py-2 text-[10px] font-black uppercase tracking-[0.14em] sm:w-auto"
-                >
-                  <Trash2 size={13} />
-                  Remove From Queue
-                </button>
-              ) : null}
-            </>
-          ) : null}
-        </div>
-      </div>
-    </article>
-  );
-}
-
-function queueCopy(job: ResearchJob) {
-  if (job.resolutionStatus === "limited" && job.stage === "confirming_company_identity") {
-    return {
-      label: "SEARCHING",
-      title: "Limited resolution",
-      detail:
-        "DeepTechly could not confirm an official domain yet. Continuing with public-source research."
-    };
+    ) : null;
   }
 
-  return stageDisplay[job.stage];
+  return (
+    <div className="flex flex-col gap-2 min-[430px]:flex-row lg:justify-end">
+      <SaveResearchButton
+        href={job.profileUrl ?? job.articleUrl ?? "/research"}
+        itemId={job.entityId ?? job.feed?.slug ?? job.normalizedQuery}
+        itemType="RESEARCH JOB"
+        title={jobTitle(job)}
+        sector={job.feed?.sector}
+        entityName={job.feed?.entityName ?? job.resolvedName ?? job.query}
+      />
+      {job.articleUrl ? <QueueLink href={job.articleUrl}>OPEN ARTICLE</QueueLink> : null}
+      {job.profileUrl ? <QueueLink href={job.profileUrl}>OPEN PROFILE</QueueLink> : null}
+      {done && job.dossierUrl ? (
+        <QueueLink href={job.dossierUrl} dark>
+          OPEN DOSSIER
+        </QueueLink>
+      ) : null}
+    </div>
+  );
 }
 
-function isActiveJob(job: ResearchJob) {
-  return !["done", "failed", "cancelled", "public_research_ready"].includes(job.stage);
+function QueueLink({
+  href,
+  children,
+  dark = false
+}: {
+  href: string;
+  children: string;
+  dark?: boolean;
+}) {
+  return (
+    <Link
+      href={href}
+      className={`inline-flex min-h-11 items-center justify-center gap-2 border border-black px-3 py-2 text-[10px] font-black uppercase tracking-[0.14em] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-deepOrange ${
+        dark ? "bg-ink text-white" : "bg-deepOrange text-ink"
+      }`}
+    >
+      {children}
+      <ExternalLink size={12} />
+    </Link>
+  );
 }
 
-function isNotificationStage(stage: ResearchStage) {
-  return stage === "done" || stage === "public_research_ready";
+function QueueTag({ children }: { children: ReactNode }) {
+  return (
+    <span className="inline-flex min-h-7 items-center border border-black bg-offWhite px-2 py-1 text-[10px] font-black uppercase leading-4 tracking-[0.13em] text-charcoal">
+      {children}
+    </span>
+  );
+}
+
+function StageHistory({ history }: { history: StageHistoryItem[] }) {
+  return (
+    <div className="mt-5 border border-black bg-offWhite p-3 text-left">
+      <p className="text-[10px] font-black uppercase tracking-[0.18em] text-deepOrange">
+        Stage History
+      </p>
+      <ol className="mt-3 space-y-2">
+        {history.map((item, index) => (
+          <li
+            key={`${item.stage}-${item.startedAt ?? index}`}
+            className="flex flex-col gap-1 text-xs font-bold leading-5 text-charcoal sm:flex-row sm:items-center sm:justify-between"
+          >
+            <span>{getQueueStageLabel(item.stage)}</span>
+            {item.startedAt ? <span>{formatShortTime(item.startedAt)}</span> : null}
+          </li>
+        ))}
+      </ol>
+    </div>
+  );
+}
+
+function sortQueueJobs(jobs: ResearchJob[]) {
+  return [...jobs].sort((a, b) => {
+    const rankDelta = jobRank(a) - jobRank(b);
+    if (rankDelta !== 0) return rankDelta;
+    return jobSortTimestamp(b).localeCompare(jobSortTimestamp(a));
+  });
+}
+
+function jobRank(job: ResearchJob) {
+  if (isActiveQueueStage(job.stage)) return 0;
+  if (job.stage === "done") return 1;
+  return 2;
+}
+
+function jobSortTimestamp(job: ResearchJob) {
+  return (
+    job.completedAt ??
+    job.publicResearchReadyAt ??
+    job.updatedAt ??
+    job.createdAt
+  );
 }
 
 function jobTitle(job: ResearchJob) {
-  if (job.resolvedDomain && !job.query.includes(job.resolvedDomain)) {
-    return `${job.resolvedName ?? job.query} · ${job.resolvedDomain}`;
-  }
-  return job.resolvedName ?? job.query;
+  return job.feed?.entityName ?? job.resolvedName ?? job.query;
+}
+
+function entityTypeLabel(value: string) {
+  return value.replace(/_/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+function formatElapsed(createdAt: string, now: number) {
+  const started = new Date(createdAt).getTime();
+  if (!Number.isFinite(started)) return "Elapsed time unavailable";
+  const seconds = Math.max(0, Math.floor((now - started) / 1000));
+  if (seconds < 60) return `${seconds}s elapsed`;
+  const minutes = Math.floor(seconds / 60);
+  const remainingSeconds = seconds % 60;
+  if (minutes < 60) return `${minutes}m ${remainingSeconds}s elapsed`;
+  const hours = Math.floor(minutes / 60);
+  return `${hours}h ${minutes % 60}m elapsed`;
+}
+
+function formatShortTime(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return new Intl.DateTimeFormat("en-US", {
+    hour: "numeric",
+    minute: "2-digit"
+  }).format(date);
+}
+
+function getStageHistory(job: ResearchJob) {
+  const maybeHistory = (job as ResearchJob & { stageHistory?: StageHistoryItem[] }).stageHistory;
+  if (!Array.isArray(maybeHistory)) return [];
+  return maybeHistory.filter((item) => item.stage);
+}
+
+function cleanError(message: string) {
+  const fallback =
+    "DeepTechly could not complete this research run from the available public sources. You can submit another search when ready.";
+
+  if (!message) return fallback;
+  if (/stack|trace|error:/i.test(message) || message.length > 220) return fallback;
+  if (message === "sign_in_required") return "Please sign in to view or submit research.";
+  return message;
 }
 
 function notifyReady(
@@ -674,7 +710,7 @@ function notifyReady(
 
   if (Notification.permission === "granted") {
     new Notification("Research ready", {
-      body: `${entityName} article and profile are ready to open.`
+      body: `${entityName} article, profile, and dossier are ready to open.`
     });
     return;
   }
@@ -683,7 +719,7 @@ function notifyReady(
     void Notification.requestPermission().then((permission) => {
       if (permission === "granted") {
         new Notification("Research ready", {
-          body: `${entityName} article and profile are ready to open.`
+          body: `${entityName} article, profile, and dossier are ready to open.`
         });
       }
     });
@@ -711,6 +747,6 @@ function playBell() {
     oscillator.start();
     oscillator.stop(context.currentTime + 0.24);
   } catch {
-    // Browser audio can be blocked; notifications still provide feedback.
+    // Browser audio can be blocked; visual notification remains available.
   }
 }

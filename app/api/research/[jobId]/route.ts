@@ -32,27 +32,8 @@ export async function GET(_request: Request, { params }: RouteProps) {
     );
 
     return NextResponse.json({
-      jobId: job.id,
-      query: job.query,
-      stage: job.stage,
-      statusLabel: job.statusLabel,
-      progress: job.progress,
-      message: job.message,
-      detail: job.detail,
-      resolvedDomain: job.resolvedDomain ?? null,
-      resolvedName: job.resolvedName ?? null,
-      resolutionStatus: job.resolutionStatus ?? null,
-      publicResearchReadyAt: job.publicResearchReadyAt ?? null,
-      sourceCount: job.sourceCount,
-      elapsedSeconds,
-      articleUrl: job.articleUrl,
-      profileUrl: job.profileUrl,
-      dossierUrl: job.dossierUrl,
-      feed: job.feed ?? null,
-      createdAt: job.createdAt,
-      updatedAt: job.updatedAt,
-      completedAt: job.completedAt,
-      error: job.error
+      job,
+      elapsedSeconds
     });
   } catch (error) {
     console.error("Research service unavailable", error);

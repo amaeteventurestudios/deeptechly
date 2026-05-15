@@ -9,7 +9,7 @@ export function ResearchSubmitForm({
   compact = false,
   onSubmitted,
   placeholder = "e.g. Anduril, NASA SiGe on sapphire, DARPA NOM4D, or openai.com",
-  submitLabel = "Begin"
+  submitLabel = "RESEARCH"
 }: {
   compact?: boolean;
   onSubmitted?: (job: ResearchJob) => void;
@@ -58,7 +58,7 @@ export function ResearchSubmitForm({
       if (onSubmitted && body.job) {
         onSubmitted(body.job);
       } else {
-        router.push(`/research?jobId=${body.jobId}`);
+        router.push(`/research/${body.jobId}`);
       }
     } catch (submitError) {
       setError(
@@ -74,26 +74,27 @@ export function ResearchSubmitForm({
   return (
     <form
       onSubmit={onSubmit}
-      className={`flex max-w-2xl flex-col gap-3 border border-black bg-white p-2 shadow-hard sm:flex-row ${
+      className={`mx-auto flex w-full max-w-3xl flex-col gap-3 border border-black bg-white p-2 shadow-hard sm:flex-row ${
         compact ? "" : "mt-7"
       }`}
     >
       <label className="flex min-w-0 flex-1 items-center gap-3 px-3">
+        <span className="sr-only">Research query</span>
         <Search size={18} />
         <input
           aria-label="Research query"
-          className="h-11 min-w-0 flex-1 bg-transparent text-sm font-bold outline-none"
+          className="h-11 min-w-0 flex-1 bg-transparent text-sm font-bold outline-none focus-visible:ring-2 focus-visible:ring-deepOrange"
           placeholder={placeholder}
           value={query}
           onChange={(event) => setQuery(event.target.value)}
         />
       </label>
       <button
-        className="border border-black bg-ink px-5 py-3 text-[11px] font-black uppercase tracking-[0.14em] text-white disabled:cursor-not-allowed disabled:bg-muted"
+        className="min-h-11 border border-black bg-ink px-5 py-3 text-[11px] font-black uppercase tracking-[0.14em] text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-deepOrange disabled:cursor-not-allowed disabled:bg-muted"
         type="submit"
         disabled={isSubmitting}
       >
-        {isSubmitting ? "Queuing" : submitLabel}
+        {isSubmitting ? "QUEUING" : submitLabel}
       </button>
       {error ? (
         <p className="px-3 pb-2 text-xs font-bold text-darkOrange sm:basis-full">
