@@ -32,8 +32,13 @@ export function LatestArticles() {
                 label={`${article.sector} editorial visual`}
               />
               <HomeSaveButton
+                entityName={article.entityName}
+                href={article.href}
+                itemId={article.id}
+                itemType="ARTICLE"
                 label={article.headline}
                 className="absolute right-2 top-2 h-8 w-8 shadow-none"
+                sector={article.sector}
               />
             </div>
             <div className="flex flex-1 flex-col items-center p-4 text-center lg:items-start lg:text-left">

@@ -34,7 +34,15 @@ export function MyResearch() {
                   {item.sector}
                 </p>
               </div>
-              <HomeSaveButton label={item.entityName} className="h-8 w-8 shadow-none" />
+              <HomeSaveButton
+                entityName={item.entityName}
+                href={item.profileHref}
+                itemId={item.id}
+                itemType="PROFILE"
+                label={item.entityName}
+                className="h-8 w-8 shadow-none"
+                sector={item.sector}
+              />
             </div>
             <div className="mt-3 flex w-full flex-wrap justify-center gap-2 lg:justify-start">
               <span className="inline-flex min-h-7 items-center justify-center border border-black bg-paleOrange px-2 py-1 text-center text-[9px] font-black uppercase tracking-[0.1em]">

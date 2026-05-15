@@ -34,10 +34,13 @@ export async function SiteHeader() {
           </Link>
           {session ? (
             <>
-              <span className="flex max-w-[14rem] items-center gap-2 truncate border border-white/30 px-3 py-1.5 text-white/78">
+              <Link
+                className="flex max-w-[14rem] items-center gap-2 truncate border border-white/30 px-3 py-1.5 text-white/78 hover:border-deepOrange hover:text-deepOrange"
+                href="/dashboard"
+              >
                 <UserRound size={13} />
                 <span className="truncate">{accountLabel}</span>
-              </span>
+              </Link>
               <form action="/api/auth/sign-out" method="post">
                 <button
                   className="flex items-center gap-2 hover:text-deepOrange"
@@ -63,10 +66,13 @@ export async function SiteHeader() {
         <div className="flex w-full flex-wrap items-center justify-center gap-2 text-[10px] font-bold uppercase tracking-[0.12em] md:hidden">
           {session ? (
             <>
-              <span className="flex min-w-0 items-center gap-2 border border-white/30 px-3 py-1.5 text-white/78">
+              <Link
+                className="flex min-w-0 items-center gap-2 border border-white/30 px-3 py-1.5 text-white/78 hover:border-deepOrange hover:text-deepOrange"
+                href="/dashboard"
+              >
                 <UserRound size={13} className="shrink-0" />
                 <span className="truncate">{accountLabel}</span>
-              </span>
+              </Link>
               <form action="/api/auth/sign-out" method="post">
                 <button
                   className="flex items-center gap-2 border border-white px-3 py-1.5 text-white hover:border-deepOrange hover:text-deepOrange"

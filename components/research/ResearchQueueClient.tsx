@@ -14,6 +14,7 @@ import {
   XCircle
 } from "lucide-react";
 import { ResearchSubmitForm } from "./ResearchSubmitForm";
+import { SaveResearchButton } from "@/components/saved/SaveResearchButton";
 import { formatRelativeTime } from "@/lib/story-metadata";
 import type { ResearchJob, ResearchStage } from "@/lib/research/types";
 
@@ -559,6 +560,14 @@ function TerminalQueueRow({
         <div className="flex flex-wrap gap-2 sm:justify-end">
           {ready || job.stage === "done" ? (
             <>
+              <SaveResearchButton
+                href={job.profileUrl ?? job.articleUrl ?? "/research"}
+                itemId={job.entityId ?? job.id}
+                itemType="RESEARCH JOB"
+                title={jobTitle(job)}
+                sector={job.feed?.sector}
+                entityName={job.feed?.entityName ?? job.resolvedName ?? job.query}
+              />
               {job.articleUrl ? (
                 <Link
                   href={job.articleUrl}

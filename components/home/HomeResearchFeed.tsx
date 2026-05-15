@@ -120,7 +120,14 @@ function TopStoryRow({
           </div>
         </div>
         <div className="flex justify-center lg:block">
-          <HomeSaveButton label={story.headline} />
+          <HomeSaveButton
+            entityName={story.entityName}
+            href={story.href}
+            itemId={story.id}
+            itemType="ARTICLE"
+            label={story.headline}
+            sector={story.sector}
+          />
         </div>
       </div>
     </article>
@@ -152,7 +159,14 @@ function AlsoReading({ stories }: { stories: HomepageStory[] }) {
                   {story.analyst} · {story.time}
                 </p>
               </div>
-              <HomeSaveButton label={story.headline} />
+              <HomeSaveButton
+                entityName={story.entityName}
+                href={story.href}
+                itemId={story.id}
+                itemType="ARTICLE"
+                label={story.headline}
+                sector={story.sector}
+              />
             </div>
           </article>
         ))}

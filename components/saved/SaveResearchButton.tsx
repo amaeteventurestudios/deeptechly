@@ -1,0 +1,108 @@
+"use client";
+
+import { useState } from "react";
+import { Check, LoaderCircle, Star } from "lucide-react";
+
+export type SaveResearchButtonProps = {
+  itemId: string;
+  itemType: string;
+  title: string;
+  href: string;
+  sector?: string;
+  entityName?: string;
+  className?: string;
+  compact?: boolean;
+  source?: string;
+};
+
+export function SaveResearchButton({
+  itemId,
+  itemType,
+  title,
+  href,
+  sector,
+  entityName,
+  className = "",
+  compact = false,
+  source = "deeptechly"
+}: SaveResearchButtonProps) {
+  const [state, setState] = useState<"idle" | "saving" | "saved" | "error">(
+    "idle"
+  );
+
+  async function saveItem() {
+    if (state === "saving") {
+      return;
+    }
+
+    setState("saving");
+
+    try {
+      const response = await fetch("/api/saved-research", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          itemId,
+          itemType,
+          title,
+          href,
+          sector,
+          entityName,
+          source
+        })
+      });
+
+      if (response.status === 401) {
+        const redirectTo = encodeURIComponent(
+          `${window.location.pathname}${window.location.search}`
+        );
+        window.location.href = `/sign-in?redirectTo=${redirectTo}`;
+        return;
+      }
+
+      if (!response.ok) {
+        setState("error");
+        return;
+      }
+
+      setState("saved");
+    } catch {
+      setState("error");
+    }
+  }
+
+  const Icon =
+    state === "saving" ? LoaderCircle : state === "saved" ? Check : Star;
+  const label =
+    state === "saving"
+      ? "Saving"
+      : state === "saved"
+        ? "Saved"
+        : state === "error"
+          ? "Try Again"
+          : compact
+            ? "Save"
+            : "Save Research";
+
+  return (
+    <button
+      type="button"
+      aria-label={`${label}: ${title}`}
+      aria-live="polite"
+      className={
+        className ||
+        "inline-flex min-h-10 items-center justify-center gap-2 border border-black bg-white px-3 py-2 text-[10px] font-black uppercase tracking-[0.14em] text-ink shadow-[3px_3px_0_#0f0f0f] hover:bg-deepOrange disabled:cursor-wait"
+      }
+      disabled={state === "saving"}
+      onClick={saveItem}
+      title={state === "error" ? "Save failed. Try again." : undefined}
+    >
+      <Icon
+        size={compact ? 14 : 13}
+        aria-hidden="true"
+        className={state === "saving" ? "animate-spin" : undefined}
+      />
+      {compact ? <span className="sr-only">{label}</span> : label}
+    </button>
+  );
+}

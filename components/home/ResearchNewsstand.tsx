@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ArrowRight, LockKeyhole } from "lucide-react";
+import { SaveResearchButton } from "@/components/saved/SaveResearchButton";
 import { homepageSeed, type HomepageContentType } from "@/lib/seed-homepage";
 
 const labelClasses: Record<HomepageContentType, string> = {
@@ -74,6 +75,16 @@ export function ResearchNewsstand() {
                 {item.cta}
                 <ArrowRight size={11} aria-hidden="true" />
               </Link>
+              <SaveResearchButton
+                compact
+                className="mt-2 inline-flex min-h-8 items-center justify-center gap-1 border border-black bg-white px-2 py-1 text-center text-[10px] font-black uppercase tracking-[0.14em] hover:bg-deepOrange"
+                entityName={item.entity}
+                href={item.href}
+                itemId={item.id}
+                itemType={item.type}
+                sector={item.sector}
+                title={item.title}
+              />
             </article>
           ))}
         </div>
