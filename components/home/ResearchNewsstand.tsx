@@ -1,7 +1,11 @@
 import Link from "next/link";
 import { ArrowRight, LockKeyhole } from "lucide-react";
 import { SaveResearchButton } from "@/components/saved/SaveResearchButton";
-import { homepageSeed, type HomepageContentType } from "@/lib/seed-homepage";
+import {
+  homepageSeed,
+  type HomepageContentType,
+  type NewsstandItem
+} from "@/lib/seed-homepage";
 
 const labelClasses: Record<HomepageContentType, string> = {
   ARTICLE: "bg-deepOrange text-ink",
@@ -11,7 +15,9 @@ const labelClasses: Record<HomepageContentType, string> = {
   "GOVERNMENT SIGNAL": "bg-[#16A34A] text-white"
 };
 
-export function ResearchNewsstand() {
+export function ResearchNewsstand({ items }: { items?: NewsstandItem[] }) {
+  const visibleItems = items?.length ? items : homepageSeed.newsstand;
+
   return (
     <section className="w-full border-t border-black bg-paper">
       <div className="mx-auto w-full max-w-7xl px-4 py-7 sm:px-6 lg:px-8">
@@ -29,7 +35,7 @@ export function ResearchNewsstand() {
         </div>
 
         <div className="grid grid-cols-1 gap-px border border-black bg-black sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6">
-          {homepageSeed.newsstand.map((item) => (
+          {visibleItems.map((item) => (
             <article
               key={item.id}
               className="mx-auto flex min-h-[168px] w-full max-w-md flex-col bg-white p-3 text-center sm:max-w-none lg:text-left"

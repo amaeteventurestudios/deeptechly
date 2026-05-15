@@ -46,6 +46,10 @@ export function ResearchSubmitForm({
       };
 
       if (!response.ok || !body.jobId) {
+        if (response.status === 401) {
+          router.push(`/sign-in?redirectTo=${encodeURIComponent("/research")}`);
+          return;
+        }
         throw new Error(body.error ?? "Research job could not be created.");
       }
 

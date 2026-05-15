@@ -29,6 +29,7 @@ export type PublishedStatus = "draft" | "published";
 
 export type ResearchJob = {
   id: string;
+  userId?: string | null;
   query: string;
   normalizedQuery: string;
   mode: ResearchMode;

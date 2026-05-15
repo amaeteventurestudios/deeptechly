@@ -2,9 +2,19 @@ import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { FallbackVisual } from "./FallbackVisual";
 import { HomeSaveButton } from "./HomeSaveButton";
-import { homepageSeed } from "@/lib/seed-homepage";
+import {
+  homepageSeed,
+  type HomepageStory,
+  type HomepageVisualKind
+} from "@/lib/seed-homepage";
 
-export function LatestArticles() {
+type LatestArticle = HomepageStory & {
+  visual?: HomepageVisualKind;
+};
+
+export function LatestArticles({ articles }: { articles?: LatestArticle[] }) {
+  const visibleArticles = articles?.length ? articles : homepageSeed.latestArticles;
+
   return (
     <section className="w-full">
       <div className="mb-3 flex flex-col items-center gap-3 border-b border-black pb-2 text-center sm:flex-row sm:justify-between sm:text-left">
@@ -21,14 +31,14 @@ export function LatestArticles() {
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {homepageSeed.latestArticles.map((article) => (
+        {visibleArticles.map((article) => (
           <article
             key={article.id}
             className="group mx-auto flex w-full max-w-sm flex-col border border-black bg-white transition hover:-translate-y-0.5 hover:border-deepOrange sm:max-w-none"
           >
             <div className="relative">
               <FallbackVisual
-                kind={article.visual}
+                kind={article.visual ?? visualForSector(article.sector)}
                 label={`${article.sector} editorial visual`}
               />
               <HomeSaveButton
@@ -57,4 +67,16 @@ export function LatestArticles() {
       </div>
     </section>
   );
+}
+
+function visualForSector(sector: string): HomepageVisualKind {
+  const normalized = sector.toLowerCase();
+  if (normalized.includes("space")) return "orbit";
+  if (normalized.includes("robot") || normalized.includes("autonomy")) return "robotics";
+  if (normalized.includes("energy") || normalized.includes("climate")) return "energy";
+  if (normalized.includes("material") || normalized.includes("manufacturing")) {
+    return "materials";
+  }
+  if (normalized.includes("sensor") || normalized.includes("bio")) return "sensing";
+  return "chip";
 }

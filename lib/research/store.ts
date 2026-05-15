@@ -14,16 +14,14 @@ import type {
 import type { ResearchEntity } from "@/lib/types";
 import { MIN_SOURCE_COUNT_TO_PUBLISH } from "./limits";
 
-const storeKey =
-  process.env.DEEPTECHLY_RESEARCH_STORE_KEY ?? "deeptechly:research-store:v1";
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.replace(/\/$/, "") ?? null;
 const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY ?? null;
-const supabaseStoreTable =
-  process.env.SUPABASE_RESEARCH_STORE_TABLE ?? "deeptechly_research_store";
 const redisRestUrl =
   process.env.UPSTASH_REDIS_REST_URL ?? process.env.KV_REST_API_URL ?? null;
 const redisRestToken =
   process.env.UPSTASH_REDIS_REST_TOKEN ?? process.env.KV_REST_API_TOKEN ?? null;
+const storeKey =
+  process.env.DEEPTECHLY_RESEARCH_STORE_KEY ?? "deeptechly:research-store:v1";
 
 const initialStore: ResearchStoreData = {
   jobs: [],
@@ -76,27 +74,43 @@ function supabaseHeaders() {
   };
 }
 
+type ResearchJobRow = {
+  data: ResearchJob | null;
+};
+
+type EntityRow = {
+  id: string;
+  slug: string;
+  data: ResearchEntity | null;
+};
+
+type ArticleRow = {
+  data: StoredResearchArticle | null;
+};
+
+type DossierRow = {
+  data: StoredDossier | null;
+};
+
 async function readSupabaseStore() {
   if (!hasSupabaseStore()) {
     return structuredClone(initialStore);
   }
 
-  const response = await fetch(
-    `${supabaseUrl}/rest/v1/${supabaseStoreTable}?id=eq.${encodeURIComponent(
-      storeKey
-    )}&select=data`,
-    {
-      headers: supabaseHeaders(),
-      cache: "no-store"
-    }
-  );
+  const [jobs, entities, articles, dossiers] = await Promise.all([
+    readSupabaseRows<ResearchJobRow>("research_jobs", "data", "updated_at.desc"),
+    readSupabaseRows<EntityRow>("entities", "id,slug,data", "updated_at.desc"),
+    readSupabaseRows<ArticleRow>("articles", "data", "updated_at.desc"),
+    readSupabaseRows<DossierRow>("dossiers", "data", "updated_at.desc")
+  ]);
 
-  if (!response.ok) {
-    throw new Error(`Research Supabase read failed: ${response.status}`);
-  }
-
-  const rows = (await response.json()) as { data?: ResearchStoreData | null }[];
-  return normalizeStoreData(rows[0]?.data);
+  return normalizeStoreData({
+    jobs: jobs.map((row) => row.data).filter(isPresent),
+    entities: entities.map((row) => row.data).filter(isPresent),
+    articles: articles.map((row) => row.data).filter(isPresent),
+    dossiers: dossiers.map((row) => row.data).filter(isPresent),
+    searchEvents: []
+  });
 }
 
 async function writeSupabaseStore(data: ResearchStoreData) {
@@ -104,27 +118,280 @@ async function writeSupabaseStore(data: ResearchStoreData) {
     return false;
   }
 
+  const normalized = normalizeStoreData(data);
+  const entityRows = await upsertSupabaseRows<EntityRow>(
+    "entities",
+    "slug",
+    normalized.entities.map(entityToRow),
+    "id,slug,data"
+  );
+  const entityIdsBySlug = new Map(entityRows.map((row) => [row.slug, row.id]));
+
+  const articleRows = await upsertSupabaseRows<{ id: string; slug: string }>(
+    "articles",
+    "slug",
+    normalized.articles.map((article) =>
+      articleToRow(article, entityIdsBySlug.get(article.slug) ?? null)
+    ),
+    "id,slug"
+  );
+  const articleIdsBySlug = new Map(articleRows.map((row) => [row.slug, row.id]));
+
+  const dossierRows = await upsertSupabaseRows<{ id: string; slug: string }>(
+    "dossiers",
+    "slug",
+    normalized.dossiers.map((dossier) =>
+      dossierToRow(dossier, entityIdsBySlug.get(dossier.slug) ?? null)
+    ),
+    "id,slug"
+  );
+  const dossierIdsBySlug = new Map(dossierRows.map((row) => [row.slug, row.id]));
+
+  await upsertSupabaseRows(
+    "research_jobs",
+    "id",
+    normalized.jobs.map((job) =>
+      jobToRow(
+        job,
+        job.feed?.slug ? entityIdsBySlug.get(job.feed.slug) ?? null : null,
+        job.feed?.slug ? articleIdsBySlug.get(job.feed.slug) ?? null : null,
+        job.feed?.slug ? dossierIdsBySlug.get(job.feed.slug) ?? null : null
+      )
+    ),
+    "id"
+  );
+
+  await replaceSourceRows(normalized.entities, entityIdsBySlug);
+
+  return true;
+}
+
+async function readSupabaseRows<T>(
+  table: string,
+  select: string,
+  order?: string
+) {
+  const params = new URLSearchParams({ select });
+  if (order) {
+    params.set("order", order);
+  }
+  const response = await fetch(`${supabaseUrl}/rest/v1/${table}?${params}`, {
+    headers: supabaseHeaders(),
+    cache: "no-store"
+  });
+
+  if (!response.ok) {
+    throw new Error(`Research Supabase read failed for ${table}: ${response.status}`);
+  }
+
+  return (await response.json()) as T[];
+}
+
+async function upsertSupabaseRows<T>(
+  table: string,
+  conflictTarget: string,
+  rows: Record<string, unknown>[],
+  select: string
+) {
+  if (rows.length === 0) {
+    return [] as T[];
+  }
+
   const response = await fetch(
-    `${supabaseUrl}/rest/v1/${supabaseStoreTable}?on_conflict=id`,
+    `${supabaseUrl}/rest/v1/${table}?on_conflict=${encodeURIComponent(conflictTarget)}&select=${encodeURIComponent(select)}`,
     {
       method: "POST",
       headers: {
         ...supabaseHeaders(),
-        prefer: "resolution=merge-duplicates,return=minimal"
+        prefer: "resolution=merge-duplicates,return=representation"
       },
-      body: JSON.stringify({
-        id: storeKey,
-        data: normalizeStoreData(data),
-        updated_at: new Date().toISOString()
-      })
+      body: JSON.stringify(rows)
     }
   );
 
   if (!response.ok) {
-    throw new Error(`Research Supabase write failed: ${response.status}`);
+    const body = await response.text().catch(() => "");
+    throw new Error(`Research Supabase write failed for ${table}: ${response.status} ${body}`);
   }
 
-  return true;
+  return (await response.json()) as T[];
+}
+
+async function replaceSourceRows(
+  entities: ResearchEntity[],
+  entityIdsBySlug: Map<string, string>
+) {
+  for (const entity of entities) {
+    const entityId = entityIdsBySlug.get(entity.slug);
+    if (!entityId) {
+      continue;
+    }
+
+    await fetch(`${supabaseUrl}/rest/v1/sources?entity_id=eq.${entityId}`, {
+      method: "DELETE",
+      headers: supabaseHeaders()
+    });
+
+    const rows = entity.sources.map((source) => ({
+      id: randomUUID(),
+      entity_id: entityId,
+      title: source.title,
+      url: source.url,
+      publisher: source.publisher ?? null,
+      source_type: source.type
+    }));
+
+    if (rows.length > 0) {
+      await upsertSupabaseRows("sources", "id", rows, "id");
+    }
+  }
+}
+
+function entityToRow(entity: ResearchEntity) {
+  const technicalSummary = [
+    ...entity.dossier.productAndTechnology,
+    ...(entity.dossier.productTechnologyFacts
+      ? [entity.dossier.productTechnologyFacts.coreSystem]
+      : [])
+  ]
+    .filter(Boolean)
+    .join("\n\n");
+
+  return {
+    slug: entity.slug,
+    name: entity.name,
+    entity_type: entity.entityType,
+    sector: entity.sector,
+    region: entity.region,
+    stage: entity.stage,
+    summary: entity.summary,
+    technical_summary: technicalSummary || entity.description,
+    market_position: entity.dossier.companyPositioning.whereItCompetes,
+    competitive_landscape: entity.dossier.competitiveLandscape
+      .map((item) => `${item.companyOrApproach}: ${item.relevance}`)
+      .join("\n"),
+    confidence: entity.confidenceLabel,
+    source_count: entity.sourceCount,
+    published: entity.publishedStatus !== "draft",
+    data: entity,
+    created_at: entity.createdAt ?? new Date().toISOString(),
+    updated_at: entity.updatedAt ?? new Date().toISOString()
+  };
+}
+
+function articleToRow(article: StoredResearchArticle, entityId: string | null) {
+  return {
+    entity_id: entityId,
+    slug: article.slug,
+    title: article.title,
+    dek: article.dek,
+    body_md: articleToMarkdown(article),
+    sector: article.sectorTags?.[0] ?? null,
+    author_name: article.authorPersona,
+    confidence: null,
+    source_count: article.sources.length,
+    hero_image_url: article.heroImage,
+    published: article.publishedStatus === "published",
+    published_at: article.publishedAt,
+    data: article,
+    created_at: article.createdAt,
+    updated_at: article.updatedAt
+  };
+}
+
+function dossierToRow(dossier: StoredDossier, entityId: string | null) {
+  return {
+    entity_id: entityId,
+    slug: dossier.slug,
+    public_md: dossierToPublicMarkdown(dossier),
+    institutional_md: dossierToInstitutionalMarkdown(dossier),
+    confidence: dossier.dossier.accuracyAndConfidence.label,
+    source_count: dossier.dossier.sources.length,
+    published: dossier.publishedStatus === "published",
+    data: dossier,
+    created_at: dossier.createdAt,
+    updated_at: dossier.updatedAt
+  };
+}
+
+function jobToRow(
+  job: ResearchJob,
+  entityId: string | null,
+  articleId: string | null,
+  dossierId: string | null
+) {
+  return {
+    id: job.id,
+    user_id: job.userId ?? null,
+    entity_name: job.feed?.entityName ?? job.resolvedName ?? job.query,
+    entity_type: job.mode,
+    input_query: job.query,
+    status: job.stage,
+    stage: stageMessage(job.stage).message,
+    progress: job.progress,
+    source_count: job.sourceCount,
+    confidence: job.feed?.confidenceLabel ?? null,
+    article_id: articleId,
+    entity_id: entityId,
+    dossier_id: dossierId,
+    error_message: job.error,
+    data: job,
+    created_at: job.createdAt,
+    updated_at: job.updatedAt
+  };
+}
+
+function articleToMarkdown(article: StoredResearchArticle) {
+  return [
+    `# ${article.title}`,
+    article.dek,
+    ...article.bodySections.map((section) =>
+      [`## ${section.title}`, ...section.body].join("\n\n")
+    ),
+    "## Sources",
+    ...article.sources.map((source) => `- [${source.title}](${source.url})`)
+  ].join("\n\n");
+}
+
+function dossierToPublicMarkdown(dossier: StoredDossier) {
+  return [
+    "# Research Dossier",
+    "## Overview",
+    ...dossier.dossier.executiveSummary,
+    "## Technical Summary",
+    ...dossier.dossier.productAndTechnology,
+    "## Market Position",
+    ...dossier.dossier.marketResearch,
+    "## Competitive Landscape",
+    ...dossier.dossier.competitiveLandscape.map(
+      (item) => `- ${item.companyOrApproach}: ${item.relevance}`
+    ),
+    "## Sources",
+    ...dossier.dossier.sources.map((source) => `- [${source.title}](${source.url})`)
+  ].join("\n\n");
+}
+
+function dossierToInstitutionalMarkdown(dossier: StoredDossier) {
+  return [
+    "## Technology Stack",
+    dossier.dossier.productTechnologyFacts.coreSystem,
+    "## White-Space Analysis",
+    ...dossier.dossier.opportunity.technical,
+    "## Government Relevance",
+    ...dossier.dossier.opportunity.government,
+    "## Patent Position",
+    ...dossier.dossier.accuracyAndConfidence.inferred,
+    "## Revenue Scenarios",
+    ...dossier.dossier.revenueAndUnitEconomics.map(
+      (path) => `${path.path}: ${path.whatMustBeTrue}`
+    ),
+    "## Strategic Outlook",
+    ...dossier.dossier.strategicOutlook
+  ].join("\n\n");
+}
+
+function isPresent<T>(value: T | null | undefined): value is T {
+  return value !== null && value !== undefined;
 }
 
 function hasRedisStore() {
@@ -335,7 +602,7 @@ export async function readStore(): Promise<ResearchStoreData> {
       globalThis.__deeptechlyResearchStore = data;
       return data;
     } catch (error) {
-      console.error("Supabase research store unavailable", error);
+      throw error;
     }
   }
 
@@ -361,7 +628,7 @@ export async function writeStore(data: ResearchStoreData) {
       globalThis.__deeptechlyResearchStore = normalizedData;
       return;
     } catch (error) {
-      console.error("Supabase research store unavailable", error);
+      throw error;
     }
   }
 
@@ -395,7 +662,11 @@ export function normalizeQuery(query: string) {
   return query.trim().replace(/^https?:\/\//, "").replace(/\/$/, "");
 }
 
-export async function createResearchJob(query: string, mode: ResearchMode) {
+export async function createResearchJob(
+  query: string,
+  mode: ResearchMode,
+  userId?: string | null
+) {
   const now = new Date().toISOString();
   const normalizedQuery = normalizeQuery(query);
   const stage = "queued" satisfies ResearchStage;
@@ -403,7 +674,8 @@ export async function createResearchJob(query: string, mode: ResearchMode) {
   const data = await readStore();
 
   const job: ResearchJob = {
-    id: `job_${randomUUID().slice(0, 8)}`,
+    id: randomUUID(),
+    userId: userId ?? null,
     query,
     normalizedQuery,
     mode,
@@ -479,8 +751,11 @@ export async function getResearchJob(id: string) {
   return data.jobs.find((job) => job.id === id) ?? null;
 }
 
-export async function listResearchJobs() {
+export async function listResearchJobs(userId?: string | null) {
   const data = await readStore();
+  const scopedJobs = userId
+    ? data.jobs.filter((job) => job.userId === userId)
+    : data.jobs;
   const rank = (job: ResearchJob) => {
     if (isActiveResearchStage(job.stage)) return 0;
     if (job.stage === "public_research_ready") return 1;
@@ -492,7 +767,7 @@ export async function listResearchJobs() {
       ? job.completedAt ?? job.updatedAt
       : job.updatedAt ?? job.createdAt;
 
-  return [...data.jobs].sort((a, b) => {
+  return [...scopedJobs].sort((a, b) => {
     const rankDelta = rank(a) - rank(b);
     if (rankDelta !== 0) return rankDelta;
     return timestamp(b).localeCompare(timestamp(a));

@@ -7,11 +7,17 @@ import {
 import { runResearchJob } from "@/lib/research/pipeline";
 import type { ResearchMode } from "@/lib/research/types";
 import { MAX_ACTIVE_USER_JOBS } from "@/lib/research/limits";
+import { getAuthSession } from "@/lib/auth/session";
 
 export const dynamic = "force-dynamic";
 
 export async function POST(request: Request) {
   try {
+    const session = await getAuthSession();
+    if (!session) {
+      return NextResponse.json({ error: "sign_in_required" }, { status: 401 });
+    }
+
     const body = (await request.json().catch(() => ({}))) as {
       query?: string;
       mode?: ResearchMode;
@@ -22,7 +28,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "query is required" }, { status: 400 });
     }
 
-    const existingJobs = await listResearchJobs();
+    const existingJobs = await listResearchJobs(session.userId);
     const activeCount = existingJobs.filter((job) => isActiveResearchStage(job.stage)).length;
     if (activeCount >= MAX_ACTIVE_USER_JOBS) {
       return NextResponse.json(
@@ -34,7 +40,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const job = await createResearchJob(query, body.mode ?? "company");
+    const job = await createResearchJob(query, body.mode ?? "company", session.userId);
 
     void runResearchJob(job.id, query);
 
@@ -54,7 +60,12 @@ export async function POST(request: Request) {
 
 export async function GET() {
   try {
-    const jobs = await listResearchJobs();
+    const session = await getAuthSession();
+    if (!session) {
+      return NextResponse.json({ jobs: [], queueStats: { activeCount: 0 } });
+    }
+
+    const jobs = await listResearchJobs(session.userId);
     const activeCount = jobs.filter((job) => isActiveResearchStage(job.stage)).length;
     return NextResponse.json({ jobs, queueStats: { activeCount } });
   } catch (error) {

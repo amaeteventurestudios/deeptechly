@@ -9,9 +9,34 @@ import { PatentIntelligence } from "./PatentIntelligence";
 import { ResearchNewsstand } from "./ResearchNewsstand";
 import { TechnologySignals } from "./TechnologySignals";
 import { WhiteSpaceOpportunities } from "./WhiteSpaceOpportunities";
-import { homepageSeed, type HomepageStory } from "@/lib/seed-homepage";
+import { getPublishedEntities } from "@/lib/research/public-data";
+import {
+  formatRelativeTime,
+  storyFromEntity,
+  storyTags
+} from "@/lib/story-metadata";
+import {
+  homepageSeed,
+  type DeepTechlyAnalyst,
+  type HomepageConfidence,
+  type HomepageStory,
+  type NewsstandItem
+} from "@/lib/seed-homepage";
+import type { ResearchEntity } from "@/lib/types";
 
-export function HomeResearchFeed() {
+export async function HomeResearchFeed() {
+  const generatedStories = await getGeneratedHomepageStories();
+  const topStories = mergeStories(generatedStories, homepageSeed.topStories).slice(0, 4);
+  const alsoReadingStories = mergeStories(
+    generatedStories.slice(4),
+    homepageSeed.alsoReading
+  ).slice(0, 6);
+  const latestArticles = mergeStories(generatedStories, homepageSeed.latestArticles).slice(0, 4);
+  const newsstandItems = mergeNewsstandItems(
+    generatedStories.flatMap(newsstandItemsFromStory),
+    homepageSeed.newsstand
+  ).slice(0, 12);
+
   return (
     <>
       <section className="w-full bg-paper">
@@ -23,7 +48,7 @@ export function HomeResearchFeed() {
               actionLabel="Browse All"
             />
             <div className="border-t border-black/10">
-              {homepageSeed.topStories.slice(0, 4).map((story, index) => (
+              {topStories.map((story, index) => (
                 <TopStoryRow
                   key={story.id}
                   story={story}
@@ -35,14 +60,14 @@ export function HomeResearchFeed() {
           </div>
 
           <aside className="mx-auto w-full max-w-md space-y-8 lg:max-w-none lg:border-l lg:border-black/20 lg:pl-6">
-            <AlsoReading stories={homepageSeed.alsoReading} />
+            <AlsoReading stories={alsoReadingStories} />
           </aside>
         </div>
       </section>
 
       <section className="w-full border-t border-black bg-offWhite">
         <div className="mx-auto grid max-w-7xl gap-8 px-4 py-8 sm:px-6 lg:grid-cols-[minmax(0,1.1fr)_minmax(420px,0.9fr)] lg:px-8">
-          <LatestArticles />
+          <LatestArticles articles={latestArticles} />
           <MyResearch />
         </div>
       </section>
@@ -58,10 +83,113 @@ export function HomeResearchFeed() {
         </div>
       </section>
 
-      <ResearchNewsstand />
+      <ResearchNewsstand items={newsstandItems} />
       <BrowseBySector />
     </>
   );
+}
+
+async function getGeneratedHomepageStories() {
+  try {
+    const entities = await getPublishedEntities();
+    return entities
+      .filter(isGeneratedEntity)
+      .map(homepageStoryFromEntity);
+  } catch {
+    return [];
+  }
+}
+
+function isGeneratedEntity(entity: ResearchEntity) {
+  return entity.stage === "Generated research" || entity.id?.startsWith("entity_");
+}
+
+function homepageStoryFromEntity(entity: ResearchEntity): HomepageStory {
+  const story = storyFromEntity(entity);
+  return {
+    id: `generated-${entity.slug}`,
+    entityName: story.entityName,
+    sector: entity.sector,
+    headline: story.headline,
+    dek: story.dek,
+    analyst: story.authorPersona as DeepTechlyAnalyst,
+    href: story.articleUrl,
+    tags: storyTags(story).slice(0, 3),
+    time: story.publishedAt ? formatRelativeTime(story.publishedAt) : "JUST NOW",
+    confidence: confidenceForLabel(story.confidenceLabel),
+    sourceCount: story.sourceCount
+  };
+}
+
+function confidenceForLabel(label?: string | null): HomepageConfidence {
+  if (label?.toLowerCase().includes("high")) return "High";
+  if (label?.toLowerCase().includes("limited")) return "Limited";
+  return "Moderate";
+}
+
+function mergeStories(primary: HomepageStory[], fallback: HomepageStory[]) {
+  const seen = new Set<string>();
+  return [...primary, ...fallback].filter((story) => {
+    const key = story.href;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function newsstandItemsFromStory(story: HomepageStory): NewsstandItem[] {
+  return [
+    {
+      id: `${story.id}-article`,
+      type: "ARTICLE",
+      title: story.headline,
+      entity: story.entityName,
+      sector: story.sector,
+      analyst: story.analyst,
+      time: story.time,
+      sourceCount: story.sourceCount ?? 0,
+      confidence: story.confidence ?? "Moderate",
+      href: story.href,
+      cta: "Read Article"
+    },
+    {
+      id: `${story.id}-profile`,
+      type: "PROFILE",
+      title: `${story.entityName} public research profile`,
+      entity: story.entityName,
+      sector: story.sector,
+      analyst: story.analyst,
+      time: story.time,
+      sourceCount: story.sourceCount ?? 0,
+      confidence: story.confidence ?? "Moderate",
+      href: story.href.replace("/article/", "/startup/"),
+      cta: "Open Profile"
+    },
+    {
+      id: `${story.id}-dossier`,
+      type: "DOSSIER",
+      title: `${story.entityName} investor dossier`,
+      entity: story.entityName,
+      sector: story.sector,
+      analyst: story.analyst,
+      time: story.time,
+      sourceCount: story.sourceCount ?? 0,
+      confidence: story.confidence ?? "Moderate",
+      href: story.href.replace("/article/", "/dossier/"),
+      cta: "Open Dossier",
+      gated: true
+    }
+  ];
+}
+
+function mergeNewsstandItems(primary: NewsstandItem[], fallback: NewsstandItem[]) {
+  const seen = new Set<string>();
+  return [...primary, ...fallback].filter((item) => {
+    const key = `${item.type}:${item.href}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }
 
 function TopStoryRow({

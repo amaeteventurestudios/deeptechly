@@ -4,6 +4,7 @@ import {
   getResearchJob,
   removeResearchJob
 } from "@/lib/research/store";
+import { getAuthSession } from "@/lib/auth/session";
 
 export const dynamic = "force-dynamic";
 
@@ -13,10 +14,15 @@ type RouteProps = {
 
 export async function GET(_request: Request, { params }: RouteProps) {
   try {
+    const session = await getAuthSession();
+    if (!session) {
+      return NextResponse.json({ error: "sign_in_required" }, { status: 401 });
+    }
+
     const { jobId } = await params;
     const job = await getResearchJob(jobId);
 
-    if (!job) {
+    if (!job || job.userId !== session.userId) {
       return NextResponse.json({ error: "Research job not found" }, { status: 404 });
     }
 
@@ -59,6 +65,11 @@ export async function GET(_request: Request, { params }: RouteProps) {
 
 export async function PATCH(request: Request, { params }: RouteProps) {
   try {
+    const session = await getAuthSession();
+    if (!session) {
+      return NextResponse.json({ error: "sign_in_required" }, { status: 401 });
+    }
+
     const { jobId } = await params;
     const body = (await request.json().catch(() => ({}))) as {
       action?: "cancel";
@@ -68,11 +79,12 @@ export async function PATCH(request: Request, { params }: RouteProps) {
       return NextResponse.json({ error: "Unsupported action" }, { status: 400 });
     }
 
-    const job = await cancelResearchJob(jobId);
-
-    if (!job) {
+    const existingJob = await getResearchJob(jobId);
+    if (!existingJob || existingJob.userId !== session.userId) {
       return NextResponse.json({ error: "Research job not found" }, { status: 404 });
     }
+
+    const job = await cancelResearchJob(jobId);
 
     return NextResponse.json({ job });
   } catch (error) {
@@ -86,7 +98,16 @@ export async function PATCH(request: Request, { params }: RouteProps) {
 
 export async function DELETE(_request: Request, { params }: RouteProps) {
   try {
+    const session = await getAuthSession();
+    if (!session) {
+      return NextResponse.json({ error: "sign_in_required" }, { status: 401 });
+    }
+
     const { jobId } = await params;
+    const job = await getResearchJob(jobId);
+    if (!job || job.userId !== session.userId) {
+      return NextResponse.json({ error: "Research job not found" }, { status: 404 });
+    }
     await removeResearchJob(jobId);
     return NextResponse.json({ ok: true });
   } catch (error) {
