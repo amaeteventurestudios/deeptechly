@@ -35,6 +35,7 @@ import {
   searchWeb,
   selectHeroImage
 } from "./search";
+import { normalizeSearchResults } from "./source-quality";
 import type { ReadablePage, ResearchStage, SearchResult } from "./types";
 
 const stageDelayMs = Number(process.env.RESEARCH_STAGE_DELAY_MS ?? 450);
@@ -220,7 +221,7 @@ async function resolveEntity(jobId: string, query: string, startedAt: number) {
       resultGroups.at(-1)?.length ?? 0
     );
   }
-  const searchResults = resultGroups.flat();
+  const searchResults = normalizeSearchResults(resultGroups.flat());
   const official = searchResults.find((result) => isLikelyOfficialResult(result, query));
   const domain = official ? hostFromUrl(official.url) : null;
 
@@ -265,7 +266,7 @@ async function collectSources({
       ? domainToUrl(originalQuery)
       : null;
   const pages: ReadablePage[] = [];
-  let searchResults: SearchResult[] = resolverResults;
+  let searchResults: SearchResult[] = normalizeSearchResults(resolverResults);
   let homepage: ReadablePage | null = null;
   let usedSearches = searchesUsed;
 
@@ -281,7 +282,7 @@ async function collectSources({
   if (usedSearches < MAX_WEB_SEARCHES) {
     const primaryResults = await safeSearch(resolvedQuery);
     usedSearches += 1;
-    searchResults = [...searchResults, ...primaryResults];
+    searchResults = normalizeSearchResults([...searchResults, ...primaryResults]);
     await recordSearchEvent(
       jobId,
       resolvedQuery,
@@ -315,7 +316,7 @@ async function collectSources({
   return {
     homepage,
     pages: pages.slice(0, MAX_PAGES_READ),
-    searchResults: searchResults.slice(0, MAX_SOURCE_COUNT),
+    searchResults: normalizeSearchResults(searchResults).slice(0, MAX_SOURCE_COUNT),
     searchesUsed: usedSearches
   };
 }
@@ -341,7 +342,7 @@ export async function runResearchJob(jobId: string, query: string) {
     });
 
     await move(jobId, "distilling_facts", startedAt, {
-      sourceCount: Math.max(1, pages.length + searchResults.length)
+      sourceCount: pages.length + searchResults.length
     });
     let summaries = summarizeSources(pages, searchResults).slice(0, MAX_SOURCE_COUNT);
     let facts = extractEntityFacts(resolution.researchQuery, homepage, summaries);
@@ -362,10 +363,10 @@ export async function runResearchJob(jobId: string, query: string) {
       process.env.SEARCH_PROVIDER ?? "openai",
       followUpResults.length
     );
-    summaries = summarizeSources(pages, [...searchResults, ...followUpResults]).slice(
-      0,
-      MAX_SOURCE_COUNT
-    );
+    summaries = summarizeSources(
+      pages,
+      normalizeSearchResults([...searchResults, ...followUpResults])
+    ).slice(0, MAX_SOURCE_COUNT);
     facts = extractEntityFacts(resolution.researchQuery, homepage, summaries);
 
     await move(jobId, "verifying_claims", startedAt, {

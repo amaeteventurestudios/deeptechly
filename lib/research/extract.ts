@@ -7,6 +7,18 @@ import type {
   SearchResult,
   SourceSummary
 } from "./types";
+import {
+  classifySource,
+  dedupeSourceSummaries,
+  displaySourceType,
+  normalizeSearchResults,
+  normalizeSourceUrl,
+  publisherFromUrl,
+  qualityForSourceType,
+  supportsClaimsForSource,
+  type EnrichedSearchResult,
+  type EnrichedSourceSummary
+} from "./source-quality";
 
 const deepTechSectorTerms = [
   ["Semiconductors", ["semiconductor", "chip", "rf", "substrate", "wafer", "compute"]],
@@ -26,48 +38,6 @@ function titleCase(value: string) {
     .replace(/[-_]+/g, " ")
     .replace(/\b\w/g, (letter) => letter.toUpperCase())
     .trim();
-}
-
-function sourceTypeFor(url: string): SourceSummary["sourceType"] {
-  const lower = url.toLowerCase();
-  if (lower.includes("patents.google") || lower.includes("patent")) {
-    return "patent";
-  }
-  if (
-    lower.includes(".gov") ||
-    lower.includes("darpa.mil") ||
-    lower.includes("defense.gov") ||
-    lower.includes("sbir.gov") ||
-    lower.includes("nasa.gov") ||
-    lower.includes("energy.gov")
-  ) {
-    return "government";
-  }
-  if (lower.includes("arxiv") || lower.includes("scholar.google") || lower.includes("pubmed")) {
-    return "academic";
-  }
-  if (lower.includes("crunchbase") || lower.includes("pitchbook") || lower.includes("angellist")) {
-    return "investor";
-  }
-  if (lower.includes("careers") || lower.includes("/jobs") || lower.includes("greenhouse.io") || lower.includes("lever.co")) {
-    return "jobs";
-  }
-  if (
-    lower.includes("techcrunch") ||
-    lower.includes("reuters") ||
-    lower.includes("bloomberg") ||
-    lower.includes("wsj.com") ||
-    lower.includes("ft.com") ||
-    lower.includes("businesswire") ||
-    lower.includes("prnewswire")
-  ) {
-    return "news";
-  }
-  if (lower.includes("linkedin") || lower.includes("x.com") || lower.includes("twitter")) {
-    return "unknown";
-  }
-
-  return "company_site";
 }
 
 function extractSentences(text: string, count = 4) {
@@ -91,10 +61,19 @@ export function summarizeSources(
   pages: ReadablePage[],
   searchResults: SearchResult[]
 ): SourceSummary[] {
-  const pageSummaries = pages.map((page) => ({
-    url: page.url,
+  const pageSummaries: EnrichedSourceSummary[] = pages.map((page) => {
+    const url = normalizeSourceUrl(page.url);
+    const sourceTypeCategory = classifySource(url, page.title);
+    const sourceText = `${page.title} ${page.description} ${page.text}`;
+    return {
+    url,
     title: page.title,
-    sourceType: sourceTypeFor(page.url),
+    sourceType: displaySourceType(sourceTypeCategory),
+    sourceTypeCategory,
+    publisher: publisherFromUrl(url),
+    retrievedAt: new Date().toISOString(),
+    qualityTier: qualityForSourceType(sourceTypeCategory),
+    supportsClaims: supportsClaimsForSource(sourceTypeCategory, sourceText),
     keyFacts: extractSentences(`${page.description}. ${page.text}`, 5),
     claims: extractSentences(page.text, 5),
     numbers: Array.from(page.text.matchAll(/\b(?:19|20)\d{2}\b|[$€£]\s?\d+(?:\.\d+)?[MBK]?|\d+\s?(?:employees|customers|patents|MW|kW|GHz)/gi)).map(
@@ -108,14 +87,30 @@ export function summarizeSources(
       (match) => match[0]
     ).slice(0, 8),
     uncertainty: ["Public extraction requires source verification before hard claims are published."]
-  }));
+    };
+  });
 
-  const resultSummaries = searchResults
+  const normalizedResults = normalizeSearchResults(searchResults);
+  const resultSummaries: EnrichedSourceSummary[] = normalizedResults
     .filter((result) => !pages.some((page) => page.url === result.url))
     .map((result) => ({
       url: result.url,
       title: result.title,
-      sourceType: result.sourceType ?? sourceTypeFor(result.url),
+      sourceType: result.sourceType ?? displaySourceType(
+        (result as EnrichedSearchResult).sourceTypeCategory ??
+          classifySource(result.url, result.title)
+      ),
+      sourceTypeCategory:
+        (result as EnrichedSearchResult).sourceTypeCategory ??
+        classifySource(result.url, result.title),
+      publisher: (result as EnrichedSearchResult).publisher ?? publisherFromUrl(result.url),
+      retrievedAt: (result as EnrichedSearchResult).retrievedAt ?? new Date().toISOString(),
+      qualityTier:
+        (result as EnrichedSearchResult).qualityTier ??
+        qualityForSourceType(classifySource(result.url, result.title)),
+      supportsClaims:
+        (result as EnrichedSearchResult).supportsClaims ??
+        supportsClaimsForSource(classifySource(result.url, result.title), result.snippet),
       keyFacts: result.snippet ? [result.snippet] : [],
       claims: result.snippet ? [result.snippet] : [],
       numbers: [],
@@ -125,7 +120,7 @@ export function summarizeSources(
       uncertainty: ["Search result snippet only; page content not fully verified."]
     }));
 
-  return [...pageSummaries, ...resultSummaries].slice(0, 18);
+  return dedupeSourceSummaries([...pageSummaries, ...resultSummaries]).slice(0, 18);
 }
 
 export function extractEntityFacts(

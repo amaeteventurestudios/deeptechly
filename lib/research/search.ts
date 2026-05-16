@@ -1,5 +1,6 @@
 import "server-only";
 
+import { normalizeSearchResults } from "./source-quality";
 import type { ReadablePage, SearchResult } from "./types";
 
 const provider = process.env.SEARCH_PROVIDER ?? "openai";
@@ -205,36 +206,13 @@ async function searchWithOpenAI(query: string): Promise<SearchResult[]> {
   }
 }
 
-function demoSearch(query: string): SearchResult[] {
-  const safe = encodeURIComponent(query);
-  return [
-    {
-      title: `${query} official website`,
-      url: isProbableDomain(query) ? domainToUrl(query) : `https://example.com/search?q=${safe}`,
-      snippet: "Homepage or primary public source for the submitted entity."
-    },
-    {
-      title: `${query} patent search`,
-      url: `https://patents.google.com/?q=${safe}`,
-      snippet: "Patent database search for technical and intellectual property signals.",
-      sourceType: "patent"
-    },
-    {
-      title: `${query} SBIR search`,
-      url: `https://www.sbir.gov/search?term=${safe}`,
-      snippet: "Government award and program signal search.",
-      sourceType: "government"
-    }
-  ];
-}
-
 export async function searchWeb(query: string): Promise<SearchResult[]> {
   const results =
     provider === "tavily"
       ? await searchWithTavily(query)
       : await searchWithOpenAI(query);
 
-  return results.length > 0 ? results : demoSearch(query);
+  return normalizeSearchResults(results);
 }
 
 export function selectHeroImage(page: ReadablePage | null) {

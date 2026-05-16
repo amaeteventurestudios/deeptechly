@@ -23,6 +23,11 @@ import type {
   ResearchEntity,
   Source
 } from "@/lib/types";
+import {
+  normalizeStoredSources,
+  sourceMix,
+  type EnrichedSourceSummary
+} from "./source-quality";
 
 const profilePersona = "Axon Reyes";
 const dossierPersona = "Daxon Pierce";
@@ -81,13 +86,15 @@ function confidenceLabel(score: number): ConfidenceLabel {
 }
 
 function asSource(summary: SourceSummary): Source {
+  const enriched = summary as EnrichedSourceSummary;
   return {
     title: summary.title || summary.url,
     url: summary.url,
-    publisher: new URL(summary.url).host.replace(/^www\./, ""),
-    date: new Date().toISOString().slice(0, 10),
+    publisher: enriched.publisher ?? new URL(summary.url).host.replace(/^www\./, ""),
+    date: enriched.retrievedAt?.slice(0, 10) ?? new Date().toISOString().slice(0, 10),
     type: summary.sourceType,
-    retrievedAt: new Date().toISOString()
+    retrievedAt: enriched.retrievedAt ?? new Date().toISOString(),
+    supportsClaims: enriched.supportsClaims
   };
 }
 
@@ -107,7 +114,7 @@ function compactSources(summaries: SourceSummary[], facts: ExtractedEntityFacts)
     }
   }
 
-  return sources.slice(0, 14);
+  return normalizeStoredSources(sources).slice(0, 14);
 }
 
 function safeHost(url: string) {
@@ -126,26 +133,34 @@ function externalLinks(facts: ExtractedEntityFacts): ExternalLink[] {
   if (facts.governmentLinks?.[0]) {
     links.push({ label: "GOVERNMENT", href: facts.governmentLinks[0] });
   }
-  links.push(
-    {
-      label: "SBIR",
-      href: `https://www.sbir.gov/search?term=${encodeURIComponent(facts.name)}`
-    },
-    {
-      label: "NASA TECH",
-      href: `https://technology.nasa.gov/search?search=${encodeURIComponent(facts.name)}`
-    },
-    {
-      label: "DARPA",
-      href: `https://www.darpa.mil/search?search=${encodeURIComponent(facts.name)}`
-    },
-    {
-      label: "NEWS",
-      href: `https://www.google.com/search?q=${encodeURIComponent(`${facts.name} news`)}`
-    }
-  );
-
   return links.slice(0, 8);
+}
+
+function confidenceScoreForSources(
+  summaries: SourceSummary[],
+  verification: ClaimVerification
+) {
+  const mix = sourceMix(summaries);
+  const moderate = Math.max(0, mix.total - mix.strongOrBetter - mix.weak);
+  const score =
+    18 +
+    mix.official * 16 +
+    (mix.strongOrBetter - mix.official) * 11 +
+    moderate * 5 +
+    Math.min(mix.weak, 3) * 2 +
+    verification.confirmed.length * 3 -
+    verification.unverified.length * 4;
+  let bounded = Math.min(100, Math.max(0, score));
+
+  if (!mix.hasReliableEvidence) {
+    bounded = Math.min(bounded, 34);
+  } else if (mix.official === 0) {
+    bounded = Math.min(bounded, 59);
+  } else if (mix.official < 2 || mix.strongOrBetter < 3) {
+    bounded = Math.min(bounded, 79);
+  }
+
+  return bounded;
 }
 
 function fallbackArticleSections(facts: ExtractedEntityFacts): ArticleSection[] {
@@ -654,16 +669,7 @@ export async function generateResearchOutput({
   const slug = slugify(facts.name || query);
   const sources = compactSources(summaries, facts);
   const sourceCount = Math.max(sources.length, facts.sourceUrls.length);
-  const score = Math.min(
-    100,
-    Math.max(
-      0,
-      38 +
-        sourceCount * 4 +
-        verification.confirmed.length * 4 -
-        verification.unverified.length * 2
-    )
-  );
+  const score = confidenceScoreForSources(summaries, verification);
   const label = confidenceLabel(score);
   const secondary = facts.secondarySectors.length
     ? facts.secondarySectors
