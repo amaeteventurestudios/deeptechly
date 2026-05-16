@@ -217,6 +217,21 @@ export type ResearchEntity = {
   heroImage?: string | null;
   publishedStatus?: "draft" | "published";
   searchCount?: number;
+  resolutionMetadata?: {
+    normalizedName: string;
+    normalizedDomain?: string | null;
+    aliases: string[];
+    entityInputType:
+      | "company"
+      | "domain"
+      | "patent"
+      | "lab"
+      | "government_program"
+      | "technology"
+      | "unknown";
+    resolutionConfidence: "high" | "medium" | "low";
+    resolutionNotes: string[];
+  };
   createdAt?: string;
   updatedAt?: string;
   externalLinks: ExternalLink[];

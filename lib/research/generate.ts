@@ -28,6 +28,7 @@ import {
   sourceMix,
   type EnrichedSourceSummary
 } from "./source-quality";
+import type { EntityResolutionMetadata, EntityInputType } from "./entity-resolution";
 
 const profilePersona = "Axon Reyes";
 const dossierPersona = "Daxon Pierce";
@@ -657,16 +658,24 @@ export async function generateResearchOutput({
   facts,
   verification,
   summaries,
-  heroImage
+  heroImage,
+  resolution
 }: {
   query: string;
   facts: ExtractedEntityFacts;
   verification: ClaimVerification;
   summaries: SourceSummary[];
   heroImage: string | null;
+  resolution?: {
+    slug: string;
+    entityId?: string | null;
+    entityType: string;
+    inputType: EntityInputType;
+    metadata: EntityResolutionMetadata;
+  };
 }): Promise<ResearchOutput> {
   const now = new Date().toISOString();
-  const slug = slugify(facts.name || query);
+  const slug = resolution?.slug ?? slugify(facts.name || query);
   const sources = compactSources(summaries, facts);
   const sourceCount = Math.max(sources.length, facts.sourceUrls.length);
   const score = confidenceScoreForSources(summaries, verification);
@@ -720,10 +729,10 @@ export async function generateResearchOutput({
   ]);
 
   const entity: ResearchEntity = {
-    id: `entity_${randomUUID().slice(0, 8)}`,
+    id: resolution?.entityId ?? `entity_${randomUUID().slice(0, 8)}`,
     slug,
     name: facts.name,
-    entityType: "Company",
+    entityType: resolution?.entityType ?? "Company",
     domain: facts.domain ?? null,
     website: facts.website ?? null,
     sector: facts.sector,
@@ -743,7 +752,7 @@ export async function generateResearchOutput({
     sectorTags,
     stageTag,
     regionTag,
-    entityTypeTag: "Company",
+    entityTypeTag: resolution?.entityType ?? "Company",
     sourceCount,
     confidenceScore: score,
     confidenceLabel: label,
@@ -751,11 +760,12 @@ export async function generateResearchOutput({
     heroImage,
     publishedStatus: "draft",
     searchCount: 1,
+    resolutionMetadata: resolution?.metadata,
     createdAt: now,
     updatedAt: now,
     externalLinks: externalLinks(facts),
     snapshot: {
-      entityType: "Company",
+      entityType: resolution?.entityType ?? "Company",
       primarySector: facts.sector,
       secondarySectors: secondary,
       region: facts.headquarters ?? "Not confirmed",
@@ -787,7 +797,7 @@ export async function generateResearchOutput({
       sectorTags,
       stageTag,
       regionTag,
-      entityTypeTag: "Company",
+      entityTypeTag: resolution?.entityType ?? "Company",
       sources,
       openQuestions,
       publishedStatus: "draft"
@@ -814,7 +824,7 @@ export async function generateResearchOutput({
     sectorTags,
     stageTag,
     regionTag,
-    entityTypeTag: "Company",
+    entityTypeTag: resolution?.entityType ?? "Company",
     sources,
     publishedStatus: entity.publishedStatus,
     adminFeatured: false,

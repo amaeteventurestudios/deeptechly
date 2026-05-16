@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import {
   createResearchJob,
+  createLinkedResearchJob,
+  findReusableEntityForInput,
   isActiveResearchStage,
   listResearchJobs
 } from "@/lib/research/store";
@@ -8,6 +10,7 @@ import { runResearchJob } from "@/lib/research/pipeline";
 import type { ResearchMode } from "@/lib/research/types";
 import { MAX_ACTIVE_USER_JOBS } from "@/lib/research/limits";
 import { getAuthSession } from "@/lib/auth/session";
+import { classifyEntityInput } from "@/lib/research/entity-resolution";
 
 export const dynamic = "force-dynamic";
 
@@ -28,6 +31,23 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "query is required" }, { status: 400 });
     }
 
+    const inputType = classifyEntityInput(query);
+    const requestedMode = body.mode ?? inputTypeToMode(inputType);
+    const reusableEntity = await findReusableEntityForInput(query);
+    if (reusableEntity) {
+      const job = await createLinkedResearchJob(
+        query,
+        requestedMode,
+        session.userId,
+        reusableEntity.entity
+      );
+      return NextResponse.json({
+        jobId: job.id,
+        status: job.stage,
+        job
+      });
+    }
+
     const existingJobs = await listResearchJobs(session.userId);
     const activeCount = existingJobs.filter((job) => isActiveResearchStage(job.stage)).length;
     if (activeCount >= MAX_ACTIVE_USER_JOBS) {
@@ -40,7 +60,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const job = await createResearchJob(query, body.mode ?? "company", session.userId);
+    const job = await createResearchJob(query, requestedMode, session.userId);
 
     void runResearchJob(job.id, query);
 
@@ -56,6 +76,16 @@ export async function POST(request: Request) {
       { status: 500 }
     );
   }
+}
+
+function inputTypeToMode(inputType: ReturnType<typeof classifyEntityInput>): ResearchMode {
+  if (inputType === "domain") return "domain";
+  if (inputType === "patent") return "patent";
+  if (inputType === "lab") return "lab";
+  if (inputType === "government_program") return "government_program";
+  if (inputType === "technology") return "technology";
+  if (inputType === "unknown") return "unknown";
+  return "company";
 }
 
 export async function GET() {

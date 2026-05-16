@@ -1,6 +1,17 @@
 import type { ResearchEntity, Source } from "@/lib/types";
+import type {
+  EntityInputType,
+  EntityResolutionMetadata
+} from "./entity-resolution";
 
-export type ResearchMode = "company" | "patent" | "lab" | "technology" | "domain";
+export type ResearchMode =
+  | "company"
+  | "patent"
+  | "lab"
+  | "technology"
+  | "domain"
+  | "government_program"
+  | "unknown";
 
 export type ResearchStage =
   | "queued"
@@ -52,6 +63,8 @@ export type ResearchJob = {
   resolvedDomain?: string | null;
   resolvedName?: string | null;
   resolutionStatus?: "resolved" | "limited" | null;
+  entityInputType?: EntityInputType;
+  resolutionMetadata?: EntityResolutionMetadata;
   stageStartedAt?: string;
   publicResearchReadyAt?: string | null;
   cancellationRequested?: boolean;

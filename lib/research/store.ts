@@ -12,6 +12,17 @@ import type {
   StoredResearchArticle
 } from "./types";
 import type { ResearchEntity } from "@/lib/types";
+import { entities as seedEntities } from "@/lib/data";
+import {
+  buildEntityCandidates,
+  classifyEntityInput,
+  createCanonicalSlug,
+  createCollisionSafeSlug,
+  entityTypeForInput,
+  metadataForResolution,
+  resolveExistingEntity,
+  type EntityCandidate
+} from "./entity-resolution";
 import { queueProgressByStage } from "./display";
 import { MIN_SOURCE_COUNT_TO_PUBLISH } from "./limits";
 
@@ -625,16 +636,7 @@ export async function writeStore(data: ResearchStoreData) {
 }
 
 export function slugify(value: string) {
-  const slug = value
-    .toLowerCase()
-    .replace(/^https?:\/\//, "")
-    .replace(/^www\./, "")
-    .replace(/\/.*$/, "")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 80);
-
-  return slug || `entity-${Date.now()}`;
+  return createCanonicalSlug(value);
 }
 
 export function normalizeQuery(query: string) {
@@ -648,6 +650,7 @@ export async function createResearchJob(
 ) {
   const now = new Date().toISOString();
   const normalizedQuery = normalizeQuery(query);
+  const inputType = classifyEntityInput(query);
   const stage = "queued" satisfies ResearchStage;
   const copy = stageMessage(stage, normalizedQuery.includes(".") ? normalizedQuery : null);
   const data = await readStore();
@@ -667,6 +670,7 @@ export async function createResearchJob(
     resolvedDomain: null,
     resolvedName: null,
     resolutionStatus: null,
+    entityInputType: inputType,
     stageStartedAt: now,
     publicResearchReadyAt: null,
     cancellationRequested: false,
@@ -686,6 +690,115 @@ export async function createResearchJob(
   data.jobs = [job, ...data.jobs].slice(0, 50);
   await writeStore(data);
   return job;
+}
+
+export async function createLinkedResearchJob(
+  query: string,
+  mode: ResearchMode,
+  userId: string | null | undefined,
+  entity: ResearchEntity
+) {
+  const data = await readStore();
+  const now = new Date().toISOString();
+  const inputType = classifyEntityInput(query);
+  const candidate = buildEntityCandidates({
+    input: query,
+    name: entity.name,
+    entityType: entity.entityType,
+    domain: entity.domain ?? entity.website,
+    sources: entity.sources
+  });
+  const match = resolveExistingEntity(candidate, [entity]);
+  const article = data.articles.find((item) => item.slug === entity.slug);
+  const dossier = data.dossiers.find((item) => item.slug === entity.slug);
+  const publishedAt = article?.publishedAt ?? entity.article.publishedAt ?? now;
+
+  const job: ResearchJob = {
+    id: randomUUID(),
+    userId: userId ?? null,
+    query,
+    normalizedQuery: normalizeQuery(query),
+    mode,
+    stage: "done",
+    progress: 100,
+    message: "Done",
+    detail: "Existing public research matched this entity.",
+    statusLabel: "DONE",
+    sourceCount: entity.sourceCount,
+    resolvedDomain: entity.domain ?? null,
+    resolvedName: entity.name,
+    resolutionStatus: "resolved",
+    entityInputType: inputType,
+    resolutionMetadata: metadataForResolution(candidate, match),
+    stageStartedAt: now,
+    publicResearchReadyAt: publishedAt,
+    cancellationRequested: false,
+    error: null,
+    articleId: article?.id ?? entity.article.entitySlug ?? entity.slug,
+    entityId: entity.id ?? entity.slug,
+    dossierId: dossier?.id ?? entity.slug,
+    articleUrl: `/article/${entity.slug}`,
+    profileUrl: `/startup/${entity.slug}`,
+    dossierUrl: `/dossier/${entity.slug}`,
+    feed: {
+      slug: entity.slug,
+      entityName: entity.name,
+      articleTitle: entity.article.headline,
+      articleDek: entity.article.dek,
+      summary: entity.summary,
+      sector: entity.sector,
+      confidenceLabel: entity.confidenceLabel,
+      confidenceScore: entity.confidenceScore,
+      sourceCount: entity.sourceCount,
+      heroImage: entity.heroImage ?? entity.article.heroImage ?? null,
+      authorPersona: entity.article.authorPersona,
+      sectorTags: entity.article.sectorTags ?? entity.sectorTags ?? [],
+      stageTag: entity.article.stageTag ?? entity.stageTag ?? "UNKNOWN",
+      regionTag: entity.article.regionTag ?? entity.regionTag ?? "UNKNOWN",
+      entityTypeTag: entity.article.entityTypeTag ?? entity.entityTypeTag ?? entity.entityType,
+      publishedAt
+    },
+    createdAt: now,
+    updatedAt: now,
+    completedAt: now
+  };
+
+  data.jobs = [job, ...data.jobs].slice(0, 50);
+  await writeStore(data);
+  return job;
+}
+
+export async function findReusableEntityForInput(query: string) {
+  const data = await readStore();
+  const candidate = buildEntityCandidates({ input: query });
+  const match = resolveExistingEntity(candidate, allKnownResearchEntities(data.entities));
+
+  return match?.confidence === "high" ? match : null;
+}
+
+export async function resolveCanonicalEntity(candidate: EntityCandidate) {
+  const data = await readStore();
+  const knownEntities = allKnownResearchEntities(data.entities);
+  const match = resolveExistingEntity(candidate, knownEntities);
+  const reusable = match?.confidence === "high" ? match : null;
+  const slug = reusable
+    ? reusable.entity.slug
+    : createCollisionSafeSlug(candidate, knownEntities);
+
+  return {
+    slug,
+    match: reusable,
+    metadata: metadataForResolution(candidate, reusable),
+    entityType: reusable?.entity.entityType ?? entityTypeForInput(candidate.inputType)
+  };
+}
+
+function allKnownResearchEntities(generated: ResearchEntity[]) {
+  const generatedSlugs = new Set(generated.map((entity) => entity.slug));
+  return [
+    ...generated,
+    ...seedEntities.filter((entity) => !generatedSlugs.has(entity.slug))
+  ];
 }
 
 export async function updateResearchJob(

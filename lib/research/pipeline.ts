@@ -17,11 +17,17 @@ import {
   MIN_SOURCE_COUNT_TO_PUBLISH
 } from "./limits";
 import {
+  buildEntityCandidates,
+  classifyEntityInput,
+  entityTypeForInput
+} from "./entity-resolution";
+import {
   getResearchJob,
   isActiveResearchStage,
   listResearchJobs,
   progressByStage,
   recordSearchEvent,
+  resolveCanonicalEntity,
   savePublicResearchReady,
   saveResearchOutput,
   stageMessage,
@@ -189,6 +195,7 @@ function isLikelyOfficialResult(result: SearchResult, query: string) {
 }
 
 async function resolveEntity(jobId: string, query: string, startedAt: number) {
+  const inputType = classifyEntityInput(query);
   const normalized = query.replace(/^https?:\/\//, "").replace(/\/.*$/, "");
 
   if (isProbableDomain(query)) {
@@ -201,12 +208,31 @@ async function resolveEntity(jobId: string, query: string, startedAt: number) {
     return {
       researchQuery: domain,
       domain,
+      inputType,
       searchResults: [] as SearchResult[],
       searchesUsed: 0
     };
   }
 
   await move(jobId, "resolving_entity", startedAt);
+
+  if (!["company", "domain", "lab"].includes(inputType)) {
+    await updateResearchJob(jobId, {
+      resolvedDomain: null,
+      resolvedName: query,
+      resolutionStatus: "limited",
+      entityInputType: inputType,
+      detail: `Classified input as ${entityTypeForInput(inputType).toLowerCase()}. Continuing with public-source research.`
+    });
+    return {
+      researchQuery: query,
+      domain: null,
+      inputType,
+      searchResults: [] as SearchResult[],
+      searchesUsed: 0
+    };
+  }
+
   await move(jobId, "finding_official_domain", startedAt);
 
   const queries = resolverQueries(query).slice(0, 3);
@@ -238,6 +264,7 @@ async function resolveEntity(jobId: string, query: string, startedAt: number) {
   return {
     researchQuery: domain ?? query,
     domain,
+    inputType,
     searchResults,
     searchesUsed: queries.length
   };
@@ -373,6 +400,20 @@ export async function runResearchJob(jobId: string, query: string) {
       sourceCount: summaries.length
     });
     const verification = verifyClaims(facts, summaries);
+    const entityCandidate = buildEntityCandidates({
+      input: query,
+      name: facts.name,
+      entityType: entityTypeForInput(resolution.inputType),
+      domain: facts.domain ?? resolution.domain,
+      sources: summaries
+    });
+    const canonicalEntity = await resolveCanonicalEntity(entityCandidate);
+    await updateResearchJob(jobId, {
+      resolvedName: canonicalEntity.match?.entity.name ?? facts.name,
+      resolutionStatus: canonicalEntity.match ? "resolved" : "limited",
+      entityInputType: resolution.inputType,
+      resolutionMetadata: canonicalEntity.metadata
+    });
 
     if (summaries.length < MIN_SOURCE_COUNT_TO_PUBLISH) {
       await updateResearchJob(jobId, {
@@ -405,7 +446,14 @@ export async function runResearchJob(jobId: string, query: string) {
       facts,
       verification,
       summaries,
-      heroImage
+      heroImage,
+      resolution: {
+        slug: canonicalEntity.slug,
+        entityId: canonicalEntity.match?.entity.id ?? null,
+        entityType: canonicalEntity.entityType,
+        inputType: resolution.inputType,
+        metadata: canonicalEntity.metadata
+      }
     });
 
     await move(jobId, "publishing_article", startedAt, {
