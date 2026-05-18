@@ -16,6 +16,11 @@ export type UserProfile = {
   updated_at: string;
 };
 
+export type EditableUserProfile = Pick<
+  UserProfile,
+  "full_name" | "organization"
+>;
+
 export type InviteResolution = {
   accessTier: string;
   isInstitutionalVerified: boolean;
@@ -56,6 +61,63 @@ export async function getUserProfile(authUserId: string) {
   }
 
   return data;
+}
+
+export async function updateEditableUserProfile(
+  authUserId: string,
+  input: EditableUserProfile
+) {
+  const admin = createSupabaseAdminClient();
+
+  if (!admin) {
+    return { ok: false as const, reason: "configuration" };
+  }
+
+  const { data, error } = await admin
+    .from("users_profile")
+    .update({
+      full_name: input.full_name,
+      organization: input.organization
+    })
+    .eq("auth_user_id", authUserId)
+    .select(
+      "id, auth_user_id, full_name, email, organization, access_tier, is_institutional_verified, institutional_request_pending, created_at, updated_at"
+    )
+    .maybeSingle<UserProfile>();
+
+  if (error) {
+    console.error("Supabase editable profile update failed", {
+      code: error.code,
+      message: error.message
+    });
+    return { ok: false as const, reason: "write_failed" };
+  }
+
+  if (!data) {
+    return { ok: false as const, reason: "missing_profile" };
+  }
+
+  return { ok: true as const, profile: data };
+}
+
+export async function syncUserProfileEmail(authUserId: string, email: string) {
+  const admin = createSupabaseAdminClient();
+
+  if (!admin) {
+    return;
+  }
+
+  const { error } = await admin
+    .from("users_profile")
+    .update({ email })
+    .eq("auth_user_id", authUserId);
+
+  if (error) {
+    console.error("Supabase profile email sync failed", {
+      code: error.code,
+      message: error.message
+    });
+  }
 }
 
 export async function resolveInstitutionalInvite(

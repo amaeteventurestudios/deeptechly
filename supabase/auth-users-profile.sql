@@ -48,8 +48,20 @@ for select
 to authenticated
 using (auth.uid() = auth_user_id);
 
+drop policy if exists "Users can update own editable DeepTechly profile"
+  on public.users_profile;
+
+create policy "Users can update own editable DeepTechly profile"
+on public.users_profile
+for update
+to authenticated
+using (auth.uid() = auth_user_id)
+with check (auth.uid() = auth_user_id);
+
 grant usage on schema public to authenticated, service_role;
 grant select on public.users_profile to authenticated;
+revoke update on public.users_profile from authenticated;
+grant update (full_name, organization) on public.users_profile to authenticated;
 grant select, insert, update, delete on public.users_profile to service_role;
 
 create table if not exists public.invite_codes (

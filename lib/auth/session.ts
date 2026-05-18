@@ -1,5 +1,9 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { getUserProfile, type UserProfile } from "./profiles";
+import {
+  getUserProfile,
+  syncUserProfileEmail,
+  type UserProfile
+} from "./profiles";
 
 export type InstitutionalAccessState =
   | "signed-out"
@@ -34,6 +38,10 @@ export async function getAuthSession(): Promise<DeeptechlyAuthSession | null> {
   }
 
   const profile = await getUserProfile(user.id);
+  if (profile && profile.email !== user.email) {
+    await syncUserProfileEmail(user.id, user.email);
+    profile.email = user.email;
+  }
   const metadataName =
     typeof user.user_metadata?.full_name === "string"
       ? user.user_metadata.full_name

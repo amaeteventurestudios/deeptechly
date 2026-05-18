@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowRight, LogOut, UserRound } from "lucide-react";
+import { ArrowRight, LogOut } from "lucide-react";
+import { ProfileSettings } from "@/components/account/ProfileSettings";
 import { PageShell } from "@/components/layout/PageShell";
 import { getAuthSession } from "@/lib/auth/session";
 
@@ -20,6 +21,11 @@ export default async function AccountPage() {
 
   const profile = session.profile;
   const accessAction = getAccessAction(session);
+  const verification = session.isInstitutionalVerified
+    ? "Verified"
+    : session.institutionalRequestPending
+      ? "Pending Review"
+      : "Not Verified";
 
   return (
     <PageShell>
@@ -36,48 +42,18 @@ export default async function AccountPage() {
 
       <section className="w-full bg-paper">
         <div className="mx-auto grid max-w-5xl gap-6 px-4 py-10 sm:px-6 lg:grid-cols-[minmax(0,1fr)_320px] lg:px-8">
-          <section className="border border-black bg-white p-6 shadow-hard">
-            <div className="flex flex-col items-center gap-3 border-b border-black pb-4 text-center sm:flex-row sm:text-left">
-              <span className="flex h-12 w-12 items-center justify-center border border-black bg-offWhite text-deepOrange">
-                <UserRound size={22} />
-              </span>
-              <div>
-                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-deepOrange">
-                  DeepTechly Profile
-                </p>
-                <h2 className="mt-1 text-2xl font-black leading-tight">
-                  {session.name ?? session.email}
-                </h2>
-              </div>
-            </div>
-
-            <dl className="mt-5 grid grid-cols-1 gap-px border border-black bg-black sm:grid-cols-2">
-              <ProfileTile label="Full Name" value={session.name ?? "Not provided"} />
-              <ProfileTile label="Email" value={session.email} />
-              <ProfileTile
-                label="Organization"
-                value={profile?.organization ?? "Not provided"}
-              />
-              <ProfileTile
-                label="Access Level"
-                value={formatAccessTier(session.accessTier)}
-              />
-              <ProfileTile
-                label="Institutional Verification"
-                value={
-                  session.isInstitutionalVerified
-                    ? "Verified"
-                    : session.institutionalRequestPending
-                      ? "Pending Review"
-                      : "Not Verified"
-                }
-              />
-              <ProfileTile
-                label="Account Created"
-                value={profile?.created_at ? formatDate(profile.created_at) : "Unknown"}
-              />
-            </dl>
-          </section>
+          <ProfileSettings
+            initialProfile={{
+              fullName: session.name ?? "",
+              email: session.email,
+              organization: profile?.organization ?? "",
+              accessLevel: formatAccessTier(session.accessTier),
+              verification,
+              accountCreated: profile?.created_at
+                ? formatDate(profile.created_at)
+                : "Unknown"
+            }}
+          />
 
           <aside className="space-y-4">
             <section className="border border-black bg-white p-5 shadow-hard">
@@ -156,17 +132,6 @@ function getAccessAction(session: {
     cta: "Request Access",
     href: "/join?access=institutional"
   };
-}
-
-function ProfileTile({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="bg-white p-4">
-      <dt className="text-[9px] font-black uppercase tracking-[0.16em] text-muted">
-        {label}
-      </dt>
-      <dd className="mt-1 break-words text-base font-black text-ink">{value}</dd>
-    </div>
-  );
 }
 
 function formatAccessTier(value: string) {
