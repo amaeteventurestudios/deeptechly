@@ -4,6 +4,7 @@ import {
   classifyEntityInput,
   compareEntityCandidates,
   createCanonicalSlug,
+  createCollisionSafeSlug,
   normalizeDomain,
   normalizeEntityName
 } from "@/lib/research/entity-resolution";
@@ -156,6 +157,7 @@ assert(classifyEntityInput("anduril.com") === "domain", "classifies domains");
 assert(classifyEntityInput("US 20240123456 patent") === "patent", "classifies patents");
 assert(classifyEntityInput("DARPA NOM4D program") === "government_program", "classifies programs");
 assert(createCanonicalSlug("LatticeArc Robotics") === "latticearc-robotics", "creates stable slugs");
+assert(createCanonicalSlug("DARPA NOM4D program", "government_program") === "darpa-nom4d-program", "keeps program slugs stable");
 
 const existingCompany = entityFixture({});
 const domainCandidate = buildEntityCandidates({
@@ -177,6 +179,47 @@ const patentCandidate = buildEntityCandidates({
 assert(
   compareEntityCandidates(existingCompany, patentCandidate).confidence !== "high",
   "does not merge patent into company"
+);
+
+const punctuationCandidate = buildEntityCandidates({
+  input: "ANDURIL INDUSTRIES, INC.",
+  name: "Anduril Industries, Inc.",
+  sources: [{ title: "Official", url: "https://www.anduril.com/about", type: "company_site" }]
+});
+assert(
+  compareEntityCandidates(existingCompany, punctuationCandidate).confidence === "high",
+  "matches punctuation, case, and company suffix variants"
+);
+
+const programCandidate = buildEntityCandidates({
+  input: "DARPA NOM4D program",
+  name: "DARPA NOM4D program",
+  sources: [{ title: "DARPA NOM4D", url: "https://www.darpa.mil/program/nom4d", type: "government" }]
+});
+assert(
+  compareEntityCandidates(existingCompany, programCandidate).confidence !== "high",
+  "does not merge government program input into company"
+);
+
+const conflictingDomainCandidate = buildEntityCandidates({
+  input: "Anduril",
+  name: "Anduril",
+  domain: "anduril-example.com",
+  sources: [{ title: "Weak mention", url: "https://example.com/anduril", type: "unknown" }]
+});
+assert(
+  compareEntityCandidates(existingCompany, conflictingDomainCandidate).confidence !== "high",
+  "keeps ambiguous same-name conflicting-domain matches below high confidence"
+);
+
+const collisionPatentCandidate = buildEntityCandidates({
+  input: "US 20240123456 patent",
+  name: "Anduril",
+  sources: [{ title: "Patent", url: "https://patents.google.com/patent/US20240123456A1", type: "patent" }]
+});
+assert(
+  createCollisionSafeSlug(collisionPatentCandidate, [existingCompany]) === "anduril-patent",
+  "adds deterministic collision suffix for non-reused patent entity"
 );
 
 console.log("Entity resolution verification passed.");

@@ -33,9 +33,23 @@ assert.equal(
   classifyPublicSectorSource({ url: "https://arpa-e.energy.gov/technologies/programs" }),
   "government"
 );
+assert.equal(classifyPublicSectorSource({ url: "https://www.energy.gov/science" }), "government");
+assert.equal(classifyPublicSectorSource({ url: "https://www.defense.gov/news/" }), "government");
+assert.equal(classifyPublicSectorSource({ url: "https://www.af.mil/News/" }), "government");
+assert.equal(classifyPublicSectorSource({ url: "https://www.spaceforce.mil/News/" }), "government");
+assert.equal(classifyPublicSectorSource({ url: "https://www.army.mil/" }), "government");
+assert.equal(classifyPublicSectorSource({ url: "https://www.navy.mil/" }), "government");
+assert.equal(classifyPublicSectorSource({ url: "https://www.dhs.gov/science-and-technology" }), "government");
+assert.equal(classifyPublicSectorSource({ url: "https://www.nsf.gov/awardsearch/" }), "government");
+assert.equal(classifyPublicSectorSource({ url: "https://www.nih.gov/research-training" }), "government");
+assert.equal(classifyPublicSectorSource({ url: "https://www.nist.gov/programs-projects" }), "government");
+assert.equal(classifyPublicSectorSource({ url: "https://www.noaa.gov/research" }), "government");
+assert.equal(classifyPublicSectorSource({ url: "https://www.faa.gov/uas" }), "government");
+assert.equal(classifyPublicSectorSource({ url: "https://www.epa.gov/research" }), "government");
 assert.equal(classifyPublicSectorSource({ url: "https://patents.google.com/patent/US7654321B2" }), "patent");
 assert.equal(classifyPublicSectorSource({ url: "https://www.uspto.gov/patents/search" }), "patent");
 assert.equal(classifyPublicSectorSource({ url: "https://patents.justia.com/patent/11223344" }), "patent");
+assert.equal(classifyPublicSectorSource({ url: "https://www.lens.org/lens/patent/123-456" }), "patent");
 
 const sbirText = "The company received an SBIR Phase II award through an STTR-related topic.";
 assert.equal(detectSBIRReference(sbirText), true);
@@ -56,6 +70,18 @@ includes(patentClaims, "patent");
 assert.ok(!patentClaims.includes("patent_assignee"));
 assert.ok(!patentClaims.includes("patent_license_available"));
 assert.ok(!patentClaims.includes("patent_exclusivity"));
+
+const governmentClaims = mapPublicSectorSignalsToClaims(
+  extractPublicSectorSignals({
+    url: "https://www.nasa.gov/missions/",
+    title: "NASA mission overview"
+  })
+);
+includes(governmentClaims, "government_relevance");
+assert.ok(!governmentClaims.includes("government_contract"));
+assert.ok(!governmentClaims.includes("government_funding"));
+assert.ok(!governmentClaims.includes("government_customer"));
+assert.ok(!governmentClaims.includes("procurement_signal"));
 
 const weak = extractPublicSectorSignals({
   url: "https://example.com/blog/interesting-robotics-startup",

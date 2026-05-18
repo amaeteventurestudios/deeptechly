@@ -6,7 +6,8 @@
     "dev": "next dev",
     "lint": "eslint .",
     "build": "next build",
-    "audit:links": "npx tsx scripts/audit-links.ts"
+    "audit:links": "npx tsx scripts/audit-links.ts",
+    "verify:research-quality": "npx tsx scripts/verify-entity-resolution.ts && npx tsx scripts/verify-public-sector-recognition.ts && npx tsx scripts/verify-research-quality.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.10.3",
