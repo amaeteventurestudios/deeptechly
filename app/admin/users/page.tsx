@@ -13,7 +13,12 @@ import { AuthSubmitButton } from "@/components/auth/AuthSubmitButton";
 import { PageShell } from "@/components/layout/PageShell";
 import { getAuthSession } from "@/lib/auth/session";
 import { isAdminEmail } from "@/lib/admin/invite-codes";
-import { listAllUsers, type AdminUserRow } from "@/lib/admin/users";
+import {
+  displayAdminStoredValue,
+  getAdminUserInstitutionalStatus,
+  listAllUsers,
+  type AdminUserRow
+} from "@/lib/admin/users";
 import { verifyUserAction, revokeUserAction } from "./actions";
 
 export const dynamic = "force-dynamic";
@@ -107,14 +112,15 @@ export default async function AdminUsersPage({ searchParams }: UsersPageProps) {
               </div>
 
               <div className="overflow-x-auto">
-                <table className="min-w-[800px] w-full border-collapse text-left">
+                <table className="min-w-[980px] w-full border-collapse text-left">
                   <thead className="bg-ink text-white">
                     <tr className="text-[10px] font-black uppercase tracking-[0.14em]">
                       <th className="px-4 py-3">User</th>
                       <th className="px-4 py-3">Organization</th>
                       <th className="px-4 py-3">Access Tier</th>
                       <th className="px-4 py-3">Institutional</th>
-                      <th className="px-4 py-3">Joined</th>
+                      <th className="px-4 py-3">Invite Code</th>
+                      <th className="px-4 py-3">Dates</th>
                       <th className="px-4 py-3">Actions</th>
                     </tr>
                   </thead>
@@ -134,17 +140,19 @@ export default async function AdminUsersPage({ searchParams }: UsersPageProps) {
 }
 
 function UserRow({ user }: { user: AdminUserRow }) {
+  const institutionalStatus = getAdminUserInstitutionalStatus(user);
+
   return (
     <tr className="border-t border-black/20 align-top hover:bg-offWhite">
       <td className="px-4 py-4">
         <p className="font-black text-sm text-ink">
-          {user.fullName ?? <span className="italic text-muted">No name</span>}
+          {displayAdminStoredValue(user.fullName)}
         </p>
         <p className="mt-0.5 text-[10px] font-semibold text-charcoal">{user.email}</p>
       </td>
 
       <td className="px-4 py-4 text-sm font-semibold text-charcoal">
-        {user.organization ?? <span className="italic text-muted/60">—</span>}
+        {displayAdminStoredValue(user.organization)}
       </td>
 
       <td className="px-4 py-4">
@@ -155,13 +163,22 @@ function UserRow({ user }: { user: AdminUserRow }) {
 
       <td className="px-4 py-4">
         <InstitutionalStatus
-          verified={user.isInstitutionalVerified}
-          pending={user.institutionalRequestPending}
+          status={institutionalStatus}
         />
+        <p className="mt-2 text-[10px] font-black uppercase tracking-[0.12em] text-muted">
+          Pending review: {user.institutionalRequestPending ? "Yes" : "No"}
+        </p>
+      </td>
+
+      <td className="px-4 py-4 text-sm font-semibold text-muted">
+        {displayAdminStoredValue(user.inviteCodeUsed)}
       </td>
 
       <td className="px-4 py-4 text-sm font-semibold text-charcoal">
-        {formatDate(user.createdAt)}
+        <p>Joined {formatDate(user.createdAt)}</p>
+        <p className="mt-1 text-xs text-muted">
+          Updated {user.updatedAt ? formatDate(user.updatedAt) : "Not stored"}
+        </p>
       </td>
 
       <td className="px-4 py-4">
@@ -195,14 +212,8 @@ function UserRow({ user }: { user: AdminUserRow }) {
   );
 }
 
-function InstitutionalStatus({
-  verified,
-  pending
-}: {
-  verified: boolean;
-  pending: boolean;
-}) {
-  if (verified) {
+function InstitutionalStatus({ status }: { status: string }) {
+  if (status === "Verified") {
     return (
       <span className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.12em] text-deepOrange">
         <CheckCircle2 size={13} />
@@ -211,11 +222,11 @@ function InstitutionalStatus({
     );
   }
 
-  if (pending) {
+  if (status === "Pending review") {
     return (
       <span className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.12em] text-charcoal">
         <Clock3 size={13} />
-        Pending
+        Pending review
       </span>
     );
   }

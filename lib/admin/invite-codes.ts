@@ -4,7 +4,7 @@ import { randomInt } from "crypto";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 const CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-const CODE_PREFIX = "INST";
+const CODE_PREFIX = "DTLY";
 const MAX_CODE_GENERATION_ATTEMPTS = 12;
 
 export type InviteCodeRecord = {
@@ -17,19 +17,24 @@ export type InviteCodeRecord = {
   expires_at: string | null;
   disabled_at: string | null;
   created_at: string;
+  updated_at?: string | null;
 };
 
 export type InviteCodeStatus = {
   isActive: boolean;
-  label: "Active" | "Inactive";
+  label: "Active" | "Disabled" | "Expired" | "Maxed out";
   reason: string;
 };
 
 export type CreateInviteCodeInput = {
-  organization: string;
+  label: string;
   accessTier: string;
   maxUses: number;
-  expiresAt: string;
+  expiresAt: string | null;
+};
+
+export type NormalizedInviteCodeRecord = InviteCodeRecord & {
+  redeemed_users: null;
 };
 
 export function isAdminEmail(email?: string | null) {
@@ -87,7 +92,7 @@ export async function createInviteCode(input: CreateInviteCodeInput) {
       .from("invite_codes")
       .insert({
         code,
-        organization: input.organization,
+        organization: input.label,
         tier: input.accessTier,
         max_uses: input.maxUses,
         expires_at: input.expiresAt,
@@ -148,7 +153,7 @@ export function getInviteCodeStatus(
   if (inviteCode.disabled_at) {
     return {
       isActive: false,
-      label: "Inactive",
+      label: "Disabled",
       reason: "Disabled"
     };
   }
@@ -156,7 +161,7 @@ export function getInviteCodeStatus(
   if (inviteCode.expires_at && new Date(inviteCode.expires_at) <= now) {
     return {
       isActive: false,
-      label: "Inactive",
+      label: "Expired",
       reason: "Expired"
     };
   }
@@ -167,7 +172,7 @@ export function getInviteCodeStatus(
   ) {
     return {
       isActive: false,
-      label: "Inactive",
+      label: "Maxed out",
       reason: "Max uses reached"
     };
   }
@@ -179,7 +184,29 @@ export function getInviteCodeStatus(
   };
 }
 
-async function generateUniqueInviteCode() {
+export function generateInviteCode() {
+  return `${CODE_PREFIX}-${randomBlock()}-${randomBlock()}-${randomBlock()}`;
+}
+
+export function normalizeInviteCodeRecord(
+  inviteCode: Partial<InviteCodeRecord>
+): NormalizedInviteCodeRecord {
+  return {
+    id: inviteCode.id ?? "",
+    code: inviteCode.code ?? "",
+    organization: inviteCode.organization ?? null,
+    tier: inviteCode.tier ?? null,
+    max_uses: inviteCode.max_uses ?? null,
+    used_count: inviteCode.used_count ?? 0,
+    expires_at: inviteCode.expires_at ?? null,
+    disabled_at: inviteCode.disabled_at ?? null,
+    created_at: inviteCode.created_at ?? "",
+    updated_at: inviteCode.updated_at ?? null,
+    redeemed_users: null
+  };
+}
+
+export async function generateUniqueInviteCode() {
   const admin = createSupabaseAdminClient();
 
   if (!admin) {
@@ -187,7 +214,7 @@ async function generateUniqueInviteCode() {
   }
 
   for (let attempt = 0; attempt < MAX_CODE_GENERATION_ATTEMPTS; attempt += 1) {
-    const code = `${CODE_PREFIX}-${randomBlock()}-${randomBlock()}`;
+    const code = generateInviteCode();
     const { data, error } = await admin
       .from("invite_codes")
       .select("id")

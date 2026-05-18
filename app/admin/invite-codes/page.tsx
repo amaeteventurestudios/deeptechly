@@ -1,5 +1,7 @@
+import Link from "next/link";
 import { Ban, CheckCircle2, KeyRound, Plus, ShieldAlert } from "lucide-react";
 import { forbidden, redirect } from "next/navigation";
+import { CopyInviteCodeButton } from "@/components/admin/CopyInviteCodeButton";
 import { AuthSubmitButton } from "@/components/auth/AuthSubmitButton";
 import { PageShell } from "@/components/layout/PageShell";
 import { getAuthSession } from "@/lib/auth/session";
@@ -59,11 +61,17 @@ export default async function InviteCodesPage({
               </h1>
               <p className="mt-4 max-w-2xl text-sm font-semibold leading-6 text-ink/82">
                 Issue institutional access with server-generated codes tied to
-                an organization, tier, use limit, and expiration.
+                a label, tier, use limit, and optional expiration.
               </p>
             </div>
-            <div className="border border-black bg-white px-4 py-3 text-xs font-black uppercase tracking-[0.14em] shadow-hard">
-              Signed in as {session.email}
+            <div className="flex flex-col gap-3 lg:items-end">
+              <nav className="flex flex-wrap gap-2">
+                <AdminNavLink href="/admin/content" label="Content" />
+                <AdminNavLink href="/admin/users" label="Users" />
+              </nav>
+              <div className="border border-black bg-white px-4 py-3 text-xs font-black uppercase tracking-[0.14em] shadow-hard">
+                Signed in as {session.email}
+              </div>
             </div>
           </div>
         </div>
@@ -147,11 +155,12 @@ function CreateInviteCodeForm() {
       <div className="space-y-4">
         <label className="block">
           <span className="text-[10px] font-black uppercase tracking-[0.18em] text-ink">
-            Organization
+            Label / Note
           </span>
           <input
             className="mt-2 w-full border border-black bg-offWhite px-4 py-3 text-sm font-semibold text-ink outline-none focus:border-deepOrange"
-            name="organization"
+            name="label"
+            placeholder="Institution, cohort, or internal note"
             required
             type="text"
           />
@@ -194,9 +203,7 @@ function CreateInviteCodeForm() {
             </span>
             <input
               className="mt-2 w-full border border-black bg-offWhite px-4 py-3 text-sm font-semibold text-ink outline-none focus:border-deepOrange"
-              defaultValue={getDefaultExpirationDate()}
               name="expiresAt"
-              required
               type="date"
             />
           </label>
@@ -264,14 +271,15 @@ function InviteCodeList({
         </div>
       ) : (
         <div className="scrollbar-thin overflow-x-auto">
-          <table className="min-w-[880px] w-full border-collapse text-left">
+          <table className="min-w-[1040px] w-full border-collapse text-left">
             <thead className="bg-ink text-white">
               <tr className="text-[10px] font-black uppercase tracking-[0.16em]">
                 <th className="px-4 py-3">Code</th>
-                <th className="px-4 py-3">Organization</th>
+                <th className="px-4 py-3">Label</th>
                 <th className="px-4 py-3">Tier</th>
-                <th className="px-4 py-3">Used</th>
+                <th className="px-4 py-3">Redemptions</th>
                 <th className="px-4 py-3">Expires</th>
+                <th className="px-4 py-3">Redeemed Users</th>
                 <th className="px-4 py-3">Status</th>
                 <th className="px-4 py-3">Action</th>
               </tr>
@@ -294,17 +302,20 @@ function InviteCodeRow({ inviteCode }: { inviteCode: InviteCodeRecord }) {
   return (
     <tr className="border-t border-black align-top">
       <td className="px-4 py-4">
-        <p className="font-mono text-sm font-black">{inviteCode.code}</p>
+        <div className="flex flex-wrap items-center gap-2">
+          <p className="font-mono text-sm font-black">{inviteCode.code}</p>
+          <CopyInviteCodeButton code={inviteCode.code} />
+        </div>
         <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.12em] text-muted">
           Created {formatDate(inviteCode.created_at)}
         </p>
       </td>
       <td className="px-4 py-4 text-sm font-semibold text-charcoal">
-        {inviteCode.organization || "Unassigned"}
+        {formatStoredValue(inviteCode.organization)}
       </td>
       <td className="px-4 py-4">
         <span className="inline-flex border border-black bg-offWhite px-2 py-1 text-[10px] font-black uppercase tracking-[0.12em]">
-          {inviteCode.tier || "Institutional"}
+          {formatTier(inviteCode.tier || "institutional")}
         </span>
       </td>
       <td className="px-4 py-4 text-sm font-black">
@@ -313,6 +324,9 @@ function InviteCodeRow({ inviteCode }: { inviteCode: InviteCodeRecord }) {
       </td>
       <td className="px-4 py-4 text-sm font-semibold text-charcoal">
         {inviteCode.expires_at ? formatDate(inviteCode.expires_at) : "No expiry"}
+      </td>
+      <td className="px-4 py-4 text-sm font-semibold text-muted">
+        Not stored
       </td>
       <td className="px-4 py-4">
         <span
@@ -345,18 +359,12 @@ function InviteCodeRow({ inviteCode }: { inviteCode: InviteCodeRecord }) {
             type="button"
           >
             <Ban size={13} />
-            Disabled
+            {status.label}
           </button>
         )}
       </td>
     </tr>
   );
-}
-
-function getDefaultExpirationDate() {
-  const date = new Date();
-  date.setUTCDate(date.getUTCDate() + 30);
-  return date.toISOString().slice(0, 10);
 }
 
 function formatDate(value: string) {
@@ -391,4 +399,26 @@ function getErrorMessage(error: string) {
   }
 
   return "Check the invite-code fields and try again.";
+}
+
+function formatStoredValue(value?: string | null) {
+  return value?.trim() ? value : "Not stored";
+}
+
+function formatTier(tier: string) {
+  return tier
+    .split(/[_-]/)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
+function AdminNavLink({ href, label }: { href: string; label: string }) {
+  return (
+    <Link
+      href={href}
+      className="inline-flex min-h-9 items-center border border-black bg-white px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.14em] hover:bg-paleOrange"
+    >
+      {label}
+    </Link>
+  );
 }

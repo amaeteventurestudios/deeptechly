@@ -12,6 +12,8 @@ export type AdminUserRow = {
   isInstitutionalVerified: boolean;
   institutionalRequestPending: boolean;
   createdAt: string;
+  updatedAt: string | null;
+  inviteCodeUsed: string | null;
 };
 
 type UserProfileRecord = {
@@ -24,6 +26,7 @@ type UserProfileRecord = {
   is_institutional_verified: boolean;
   institutional_request_pending: boolean;
   created_at: string;
+  updated_at: string | null;
 };
 
 export async function listAllUsers(): Promise<
@@ -38,7 +41,7 @@ export async function listAllUsers(): Promise<
   const { data, error } = await admin
     .from("users_profile")
     .select(
-      "id, auth_user_id, full_name, email, organization, access_tier, is_institutional_verified, institutional_request_pending, created_at"
+      "id, auth_user_id, full_name, email, organization, access_tier, is_institutional_verified, institutional_request_pending, created_at, updated_at"
     )
     .order("created_at", { ascending: false })
     .returns<UserProfileRecord[]>();
@@ -57,7 +60,9 @@ export async function listAllUsers(): Promise<
     accessTier: row.access_tier,
     isInstitutionalVerified: Boolean(row.is_institutional_verified),
     institutionalRequestPending: Boolean(row.institutional_request_pending),
-    createdAt: row.created_at
+    createdAt: row.created_at,
+    updatedAt: row.updated_at ?? null,
+    inviteCodeUsed: null
   }));
 
   return { ok: true, users };
@@ -85,6 +90,27 @@ export async function verifyInstitutionalAccess(authUserId: string) {
   }
 
   return { ok: true as const };
+}
+
+export function getAdminUserInstitutionalStatus(
+  user: Pick<
+    AdminUserRow,
+    "isInstitutionalVerified" | "institutionalRequestPending"
+  >
+) {
+  if (user.isInstitutionalVerified) {
+    return "Verified";
+  }
+
+  if (user.institutionalRequestPending) {
+    return "Pending review";
+  }
+
+  return "Not verified";
+}
+
+export function displayAdminStoredValue(value?: string | null) {
+  return value?.trim() ? value : "Not stored";
 }
 
 export async function revokeInstitutionalAccess(authUserId: string) {

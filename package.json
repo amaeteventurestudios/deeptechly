@@ -10,7 +10,9 @@
     "verify:research-quality": "npx tsx scripts/verify-entity-resolution.ts && npx tsx scripts/verify-public-sector-recognition.ts && npx tsx scripts/verify-research-quality.ts",
     "verify:research-orchestration": "npx tsx scripts/verify-research-orchestration.ts",
     "verify:admin-review": "npx tsx scripts/verify-admin-research-review.ts",
-    "verify:research-load": "npx tsx scripts/verify-research-load.ts"
+    "verify:research-load": "npx tsx scripts/verify-research-load.ts",
+    "verify:admin-access": "npx tsx scripts/verify-admin-access-management.ts",
+    "admin:bootstrap": "npx tsx scripts/bootstrap-admin.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.10.3",

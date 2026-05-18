@@ -15,17 +15,17 @@ const ACCESS_TIERS = new Set(["institutional", "enterprise", "research"]);
 export async function createInviteCodeAction(formData: FormData) {
   await requireAdminAccess();
 
-  const organization = getField(formData, "organization");
+  const label = getField(formData, "label");
   const accessTier = getAccessTier(getField(formData, "accessTier"));
   const maxUses = getMaxUses(getField(formData, "maxUses"));
   const expiresAt = getExpiresAt(getField(formData, "expiresAt"));
 
-  if (!organization || !accessTier || !maxUses || !expiresAt) {
+  if (!label || !accessTier || !maxUses) {
     redirectWithError("invalid");
   }
 
   const result = await createInviteCode({
-    organization,
+    label,
     accessTier,
     maxUses,
     expiresAt
@@ -95,6 +95,10 @@ function getMaxUses(value: string) {
 }
 
 function getExpiresAt(value: string) {
+  if (!value) {
+    return null;
+  }
+
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
     return null;
   }
