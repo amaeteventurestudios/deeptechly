@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { forbidden, redirect } from "next/navigation";
 import {
+  AlertTriangle,
   ArrowUpRight,
   BookOpen,
   CheckCircle2,
+  ClipboardCheck,
   FileText,
   ShieldAlert,
   Star,
@@ -116,7 +118,7 @@ export default async function AdminContentPage({ searchParams }: ContentPageProp
           ) : (
             <div className="border border-black bg-white shadow-hard">
               <div className="overflow-x-auto">
-                <table className="min-w-[960px] w-full border-collapse text-left">
+                <table className="min-w-[1180px] w-full border-collapse text-left">
                   <thead className="bg-ink text-white">
                     <tr className="text-[10px] font-black uppercase tracking-[0.14em]">
                       <th className="px-4 py-3">Entity</th>
@@ -124,6 +126,7 @@ export default async function AdminContentPage({ searchParams }: ContentPageProp
                       <th className="px-4 py-3">Stage</th>
                       <th className="px-4 py-3">Status</th>
                       <th className="px-4 py-3">Sources</th>
+                      <th className="px-4 py-3">Review</th>
                       <th className="px-4 py-3">Links</th>
                       <th className="px-4 py-3">Actions</th>
                     </tr>
@@ -173,6 +176,9 @@ function ContentRow({ row }: { row: AdminContentRow }) {
             {row.confidenceLabel} · {row.sourceCount} src
           </p>
         ) : null}
+        <p className="mt-2 text-[10px] font-semibold leading-4 text-muted">
+          {row.review.confidenceSummary.explanation}
+        </p>
       </td>
 
       <td className="px-4 py-4">
@@ -200,8 +206,12 @@ function ContentRow({ row }: { row: AdminContentRow }) {
         ) : null}
       </td>
 
-      <td className="px-4 py-4 text-sm font-black text-ink">
-        {row.sourceCount > 0 ? row.sourceCount : "—"}
+      <td className="px-4 py-4">
+        <SourceQualityBlock row={row} />
+      </td>
+
+      <td className="px-4 py-4 max-w-[310px]">
+        <ReviewSummaryBlock row={row} />
       </td>
 
       <td className="px-4 py-4">
@@ -279,6 +289,170 @@ function ContentRow({ row }: { row: AdminContentRow }) {
         )}
       </td>
     </tr>
+  );
+}
+
+function SourceQualityBlock({ row }: { row: AdminContentRow }) {
+  const source = row.review.sourceQualitySummary;
+  const publicSector = row.review.publicSectorSummary;
+
+  if (source.empty) {
+    return (
+      <div className="inline-flex items-center gap-1.5 border border-black bg-paleOrange px-2 py-1 text-[10px] font-black uppercase tracking-[0.12em]">
+        <AlertTriangle size={11} />
+        No sources
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-2">
+      <div className="grid grid-cols-3 gap-1 text-[9px] font-black uppercase tracking-[0.1em]">
+        <ReviewMetric label="Total" value={source.total} />
+        <ReviewMetric label="Official" value={source.official} />
+        <ReviewMetric label="Strong" value={source.strong} />
+        <ReviewMetric label="Moderate" value={source.moderate} />
+        <ReviewMetric label="Weak" value={source.weak} muted={source.weak > 0} />
+        <ReviewMetric label="Unknown" value={source.unknown} muted={source.unknown > 0} />
+        <ReviewMetric label="Patent" value={source.patent} />
+        <ReviewMetric label="Gov" value={source.government} />
+        <ReviewMetric label="SBIR" value={publicSector.sbirSttrSignalPresent ? "YES" : "NO"} />
+      </div>
+      {publicSector.detectedAgencies.length > 0 ? (
+        <p className="text-[9px] font-bold uppercase leading-4 tracking-[0.1em] text-muted">
+          Agencies: {publicSector.detectedAgencies.slice(0, 4).join(", ")}
+        </p>
+      ) : null}
+      {row.review.patentSummary.patentIds.length > 0 ? (
+        <p className="text-[9px] font-bold uppercase leading-4 tracking-[0.1em] text-muted">
+          Patents: {row.review.patentSummary.patentIds.slice(0, 2).join(", ")}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
+function ReviewMetric({
+  label,
+  value,
+  muted = false
+}: {
+  label: string;
+  value: number | string;
+  muted?: boolean;
+}) {
+  return (
+    <span
+      className={`border border-black px-1.5 py-1 ${
+        muted ? "bg-paleOrange text-ink" : "bg-offWhite text-charcoal"
+      }`}
+    >
+      {label}: {value}
+    </span>
+  );
+}
+
+function ReviewSummaryBlock({ row }: { row: AdminContentRow }) {
+  const review = row.review;
+  const claimAudit = review.claimAuditSummary;
+  const orchestration = review.orchestrationSummary;
+  const visibleWarnings = review.warnings.slice(0, 4);
+
+  return (
+    <div className="space-y-3">
+      <div className="flex flex-wrap items-center gap-2">
+        <ReadinessBadge status={review.publishReadiness.status} />
+        <span className="inline-flex items-center gap-1 border border-black bg-white px-2 py-1 text-[9px] font-black uppercase tracking-[0.12em] text-charcoal">
+          <ClipboardCheck size={10} />
+          {claimAudit.available
+            ? `${claimAudit.confirmed ?? 0} confirmed / ${claimAudit.unverified ?? 0} unverified`
+            : "No claim audit metadata available"}
+        </span>
+      </div>
+
+      <div className="grid grid-cols-2 gap-1 text-[9px] font-black uppercase tracking-[0.1em]">
+        <ReviewMetric label="Claims" value={claimAudit.sourceAttributed ?? "N/A"} />
+        <ReviewMetric label="Inferred" value={claimAudit.inferred ?? "N/A"} />
+        <ReviewMetric label="Open Q" value={claimAudit.openQuestions ?? "N/A"} />
+        <ReviewMetric
+          label="Attempts"
+          value={
+            orchestration.attemptCount !== null
+              ? `${orchestration.attemptCount}/${orchestration.maxAttempts ?? "?"}`
+              : "N/A"
+          }
+          muted={orchestration.stuckOrRetryWarning}
+        />
+      </div>
+
+      {visibleWarnings.length > 0 ? (
+        <div className="space-y-1">
+          {visibleWarnings.map((warning) => (
+            <p
+              key={warning.code}
+              className={`border border-black px-2 py-1 text-[9px] font-black uppercase leading-4 tracking-[0.1em] ${
+                warning.severity === "blocker"
+                  ? "bg-darkOrange text-white"
+                  : warning.severity === "review"
+                    ? "bg-paleOrange text-ink"
+                    : "bg-offWhite text-charcoal"
+              }`}
+            >
+              {warning.code}
+            </p>
+          ))}
+          {review.warnings.length > visibleWarnings.length ? (
+            <p className="text-[9px] font-black uppercase tracking-[0.1em] text-muted">
+              +{review.warnings.length - visibleWarnings.length} more review signal(s)
+            </p>
+          ) : null}
+        </div>
+      ) : (
+        <p className="text-[10px] font-bold leading-4 text-muted">
+          No major QA warnings detected.
+        </p>
+      )}
+
+      <details className="border border-black bg-white p-2">
+        <summary className="cursor-pointer text-[9px] font-black uppercase tracking-[0.12em] text-deepOrange">
+          Checklist
+        </summary>
+        <ul className="mt-2 space-y-1">
+          {review.publishReadiness.checklist.map((item) => (
+            <li
+              key={item.label}
+              className="flex items-start justify-between gap-2 text-[10px] font-bold leading-4 text-charcoal"
+            >
+              <span>{item.label}</span>
+              <span className={item.ok ? "text-deepOrange" : "text-darkOrange"}>
+                {item.ok ? "OK" : "Review"}
+              </span>
+            </li>
+          ))}
+        </ul>
+      </details>
+    </div>
+  );
+}
+
+function ReadinessBadge({
+  status
+}: {
+  status: AdminContentRow["review"]["publishReadiness"]["status"];
+}) {
+  const className =
+    status === "READY"
+      ? "bg-ink text-white"
+      : status === "NOT READY"
+        ? "bg-darkOrange text-white"
+        : "bg-paleOrange text-ink";
+
+  return (
+    <span
+      className={`inline-flex border border-black px-2 py-1 text-[9px] font-black uppercase tracking-[0.12em] ${className}`}
+    >
+      {status}
+    </span>
   );
 }
 

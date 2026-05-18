@@ -1,6 +1,10 @@
 import "server-only";
 
 import { readStore, writeStore } from "@/lib/research/store";
+import {
+  buildAdminResearchReview,
+  type AdminResearchReviewSummary
+} from "./research-review";
 
 export type AdminContentRow = {
   jobId: string;
@@ -17,6 +21,7 @@ export type AdminContentRow = {
   dossierUrl: string | null;
   createdAt: string;
   updatedAt: string;
+  review: AdminResearchReviewSummary;
 };
 
 export async function listAllContent(): Promise<AdminContentRow[]> {
@@ -26,6 +31,7 @@ export async function listAllContent(): Promise<AdminContentRow[]> {
     const slug = job.feed?.slug ?? null;
     const article = slug ? data.articles.find((a) => a.slug === slug) : null;
     const entity = slug ? data.entities.find((e) => e.slug === slug) : null;
+    const dossier = slug ? data.dossiers.find((d) => d.slug === slug) : null;
 
     return {
       jobId: job.id,
@@ -41,7 +47,8 @@ export async function listAllContent(): Promise<AdminContentRow[]> {
       profileUrl: job.profileUrl,
       dossierUrl: job.dossierUrl,
       createdAt: job.createdAt,
-      updatedAt: job.updatedAt
+      updatedAt: job.updatedAt,
+      review: buildAdminResearchReview({ job, entity, article, dossier })
     };
   });
 }
