@@ -2,6 +2,11 @@ import "server-only";
 
 import type { Source, SourceType } from "@/lib/types";
 import type { SearchResult, SourceSummary } from "./types";
+import {
+  classifyPublicSectorSource,
+  extractPublicSectorSignals,
+  mapPublicSectorSignalsToClaims
+} from "./public-sector-recognition";
 
 export type ResearchSourceType = SourceType;
 export type SourceQualityTier = "official" | "strong" | "moderate" | "weak";
@@ -11,6 +16,7 @@ export type SourceMetadata = {
   sourceTypeCategory?: ResearchSourceType;
   supportsClaims?: string[];
   qualityTier?: SourceQualityTier;
+  publicSectorSignals?: ReturnType<typeof extractPublicSectorSignals>;
 };
 export type EnrichedSearchResult = SearchResult & SourceMetadata;
 export type EnrichedSourceSummary = SourceSummary & SourceMetadata;
@@ -96,8 +102,22 @@ function includesAny(value: string, needles: string[]) {
 export function classifySource(url: string, title = ""): ResearchSourceType {
   const normalized = normalizeSourceUrl(url).toLowerCase();
   const text = `${normalized} ${title.toLowerCase()}`;
+  const publicSectorType = classifyPublicSectorSource({ url, title });
 
-  if (includesAny(text, ["patents.google", "uspto.gov", "patentcenter", "/patent/"])) {
+  if (publicSectorType === "patent" || publicSectorType === "government") {
+    return publicSectorType;
+  }
+
+  if (
+    includesAny(text, [
+      "patents.google",
+      "uspto.gov",
+      "patentcenter",
+      "patents.justia.com",
+      "lens.org",
+      "/patent/"
+    ])
+  ) {
     return "patent";
   }
   if (
@@ -190,6 +210,7 @@ export function qualityForSourceType(sourceType: ResearchSourceType): SourceQual
 export function supportsClaimsForSource(sourceType: ResearchSourceType, text = "") {
   const lower = text.toLowerCase();
   const claims = new Set<string>();
+  const publicSectorSignals = extractPublicSectorSignals({ title: text, sourceType });
 
   if (sourceType === "company_site") {
     claims.add("company identity");
@@ -197,7 +218,10 @@ export function supportsClaimsForSource(sourceType: ResearchSourceType, text = "
     claims.add("technical capability");
   }
   if (sourceType === "patent") claims.add("patent");
-  if (sourceType === "government") claims.add("government relevance");
+  if (sourceType === "government") claims.add("government_relevance");
+  for (const claim of mapPublicSectorSignalsToClaims(publicSectorSignals)) {
+    claims.add(claim);
+  }
   if (sourceType === "academic") claims.add("technical capability");
   if (sourceType === "press_release") claims.add("market positioning");
   if (sourceType === "investor") {
@@ -212,6 +236,18 @@ export function supportsClaimsForSource(sourceType: ResearchSourceType, text = "
   if (includesAny(lower, ["founder", "founded by", "co-founder"])) claims.add("team");
   if (includesAny(lower, ["customer", "client", "deployed with"])) claims.add("customers");
   if (includesAny(lower, ["partner", "partnership"])) claims.add("market positioning");
+  if (sourceType === "government" && includesAny(lower, ["contract awarded", "contract with", "prime contract"])) {
+    claims.add("government_contract");
+  }
+  if (sourceType === "government" && includesAny(lower, ["grant", "funded by", "award", "phase i", "phase ii"])) {
+    claims.add("government_funding");
+  }
+  if (sourceType === "patent" && includesAny(lower, ["assignee", "assigned to"])) {
+    claims.add("patent_assignee");
+  }
+  if (sourceType === "patent" && includesAny(lower, ["available for licensing", "license available"])) {
+    claims.add("patent_license_available");
+  }
 
   return [...claims];
 }
@@ -252,6 +288,7 @@ export function normalizeSearchResults(results: SearchResult[]) {
     if (!/^https?:\/\//i.test(result.url)) continue;
     const url = normalizeSourceUrl(result.url);
     const sourceType = classifySource(url, result.title);
+    const publicSectorSignals = extractPublicSectorSignals(result, result.snippet);
     const next: EnrichedSearchResult = {
       ...result,
       url,
@@ -263,7 +300,8 @@ export function normalizeSearchResults(results: SearchResult[]) {
         sourceType,
         `${result.title} ${result.snippet ?? ""}`
       ),
-      qualityTier: qualityForSourceType(sourceType)
+      qualityTier: qualityForSourceType(sourceType),
+      publicSectorSignals
     };
     const current = byUrl.get(url);
     if (!current || candidateScore(next) > candidateScore(current)) {
@@ -281,6 +319,13 @@ export function dedupeSourceSummaries(summaries: SourceSummary[]) {
     const enriched = summary as EnrichedSourceSummary;
     const url = normalizeSourceUrl(summary.url);
     const sourceType = enriched.sourceTypeCategory ?? classifySource(url, summary.title);
+    const publicSectorSignals =
+      enriched.publicSectorSignals ??
+      extractPublicSectorSignals(summary, [
+        summary.title,
+        ...summary.keyFacts,
+        ...summary.claims
+      ].join(" "));
     const qualityTier = enriched.qualityTier ?? qualityForSourceType(sourceType);
     const supportsClaims =
       enriched.supportsClaims?.length
@@ -298,7 +343,8 @@ export function dedupeSourceSummaries(summaries: SourceSummary[]) {
       sourceType: displaySourceType(sourceType),
       sourceTypeCategory: sourceType,
       supportsClaims,
-      qualityTier
+      qualityTier,
+      publicSectorSignals
     };
     const current = byUrl.get(url);
     if (!current || candidateScore(next) > candidateScore(current)) {
@@ -313,18 +359,22 @@ export function normalizeStoredSources(sources: Source[]) {
   return dedupeStoredSources(sources).map((source) => {
     const enriched = source as EnrichedSource;
     const url = normalizeSourceUrl(source.url);
-    const sourceType = source.type ?? classifySource(url, source.title);
+    const sourceType =
+      source.type && source.type !== "unknown" ? source.type : classifySource(url, source.title);
+    const publicSectorSignals =
+      enriched.publicSectorSignals ?? extractPublicSectorSignals(source, source.title);
     return {
       ...source,
       url,
       publisher: source.publisher ?? publisherFromUrl(url),
       retrievedAt: source.retrievedAt ?? new Date().toISOString(),
-      type: source.type ?? displaySourceType(sourceType),
+      type: displaySourceType(sourceType),
       supportsClaims:
         source.supportsClaims?.length
           ? source.supportsClaims
           : supportsClaimsForSource(sourceType, source.title),
-      qualityTier: enriched.qualityTier ?? qualityForSourceType(sourceType)
+      qualityTier: enriched.qualityTier ?? qualityForSourceType(sourceType),
+      publicSectorSignals
     };
   });
 }
@@ -336,11 +386,12 @@ function dedupeStoredSources(sources: Source[]) {
     if (!source.url) continue;
     const enriched = source as EnrichedSource;
     const url = normalizeSourceUrl(source.url);
-    const sourceType = source.type ?? classifySource(url, source.title);
+    const sourceType =
+      source.type && source.type !== "unknown" ? source.type : classifySource(url, source.title);
     const next: EnrichedSource = {
       ...source,
       url,
-      type: source.type ?? displaySourceType(sourceType),
+      type: displaySourceType(sourceType),
       qualityTier: enriched.qualityTier ?? qualityForSourceType(sourceType)
     };
     const current = byUrl.get(url);

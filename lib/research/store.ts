@@ -384,6 +384,7 @@ function dossierToPublicMarkdown(dossier: StoredDossier) {
 }
 
 function dossierToInstitutionalMarkdown(dossier: StoredDossier) {
+  const patentSources = dossier.dossier.sources.filter((source) => source.type === "patent");
   return [
     "## Technology Stack",
     dossier.dossier.productTechnologyFacts.coreSystem,
@@ -392,7 +393,10 @@ function dossierToInstitutionalMarkdown(dossier: StoredDossier) {
     "## Government Relevance",
     ...dossier.dossier.opportunity.government,
     "## Patent Position",
-    ...dossier.dossier.accuracyAndConfidence.inferred,
+    patentSources.length
+      ? `${patentSources.length} patent/IP source candidate(s) are attached. Patent presence supports technical relevance, not ownership, exclusivity, active license status, product readiness, or market traction by itself.`
+      : "Patent position is not confirmed from available public patent sources.",
+    "Patent ownership, exclusivity, active license status, and licensing relationships require explicit source support.",
     "## Revenue Scenarios",
     ...dossier.dossier.revenueAndUnitEconomics.map(
       (path) => `${path.path}: ${path.whatMustBeTrue}`

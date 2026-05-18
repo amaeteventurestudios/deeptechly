@@ -3,6 +3,7 @@ import type {
   EntityInputType,
   EntityResolutionMetadata
 } from "./entity-resolution";
+import type { PublicSectorSignals } from "./public-sector-recognition";
 
 export type ResearchMode =
   | "company"
@@ -136,6 +137,15 @@ export type ExtractedEntityFacts = {
   patents?: string[];
   papers?: string[];
   governmentLinks?: string[];
+  publicSector?: {
+    detectedAgencies: string[];
+    detectedPatentIds: string[];
+    publicSectorSignals: PublicSectorSignals[];
+    governmentSourceCount: number;
+    patentSourceCount: number;
+    publicSectorConfidence: "none" | "low" | "medium" | "high";
+    publicSectorNotes: string[];
+  };
   sourceUrls: string[];
   confidenceNotes: string[];
 };

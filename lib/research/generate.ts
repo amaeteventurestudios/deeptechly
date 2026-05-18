@@ -164,6 +164,29 @@ function confidenceScoreForSources(
   return bounded;
 }
 
+function agencyPhrase(facts: ExtractedEntityFacts) {
+  const agencies = facts.publicSector?.detectedAgencies ?? [];
+  return agencies.length ? agencies.slice(0, 4).join(", ") : "relevant public-sector agencies";
+}
+
+function publicSectorStatus(facts: ExtractedEntityFacts) {
+  const governmentCount =
+    facts.publicSector?.governmentSourceCount ?? facts.governmentLinks?.length ?? 0;
+  if (governmentCount > 0) {
+    return `Available government sources suggest contextual relevance to ${agencyPhrase(facts)}; DeepTechly could not confirm funding, procurement, customer status, or endorsement unless separately sourced.`;
+  }
+  return "Public-sector relevance is not confirmed from government sources; any agency fit should be treated as contextual and unverified.";
+}
+
+function patentStatus(facts: ExtractedEntityFacts) {
+  const patentCount = facts.publicSector?.patentSourceCount ?? facts.patents?.length ?? 0;
+  const patentIds = facts.publicSector?.detectedPatentIds ?? [];
+  if (patentCount > 0 || patentIds.length > 0) {
+    return `Patent records indicate related IP activity${patentIds.length ? ` (${patentIds.slice(0, 3).join(", ")})` : ""}; this supports technical relevance, not product readiness, ownership, exclusivity, or an active license by itself.`;
+  }
+  return "Patent position is not confirmed from available public patent sources.";
+}
+
 function fallbackArticleSections(facts: ExtractedEntityFacts): ArticleSection[] {
   return [
     {
@@ -191,7 +214,7 @@ function fallbackArticleSections(facts: ExtractedEntityFacts): ArticleSection[] 
       title: "What could go right",
       body: [
         `If the technical claim survives independent validation and a qualified buyer can integrate the capability without excessive burden, ${facts.name} could move from a research candidate to an active diligence target.`,
-        `Government or institutional program fit, patent activity, technical hiring, and named pilot deployments would all be positive signals. Available evidence suggests the sector context is present; what remains is customer-facing proof.`
+        `Government or institutional program fit, patent activity, technical hiring, and named pilot deployments would all be positive signals only when directly source-backed. ${publicSectorStatus(facts)}`
       ]
     },
     {
@@ -215,7 +238,7 @@ function comparisonRows(facts: ExtractedEntityFacts): [string, string, string][]
   return [
     ["Technology layer", facts.productSummary, "Needs independent validation"],
     ["Customer segment", facts.customerSegments.join(", "), "Buyer workflow adoption remains uncertain"],
-    ["Government relevance", facts.governmentLinks?.length ? "Government source candidates found" : "Not confirmed", "Award or program fit must be verified"],
+    ["Government relevance", facts.governmentLinks?.length ? "Government source candidates found" : "Not confirmed", "Funding, procurement, customer, and endorsement claims require explicit evidence"],
     ["Commercial readiness", facts.fundingStage ?? "Not confirmed in public sources", "Revenue and deployment signals remain unverified"]
   ];
 }
@@ -243,10 +266,10 @@ function fallbackDossier(
       technologyLayer: facts.productSummary,
       businessModel: facts.businessModel ?? "Not confirmed in public sources",
       customerType: facts.customerSegments.join(", "),
-      deploymentEnvironment: "High-reliability, industrial, government, or technical operating environments",
+      deploymentEnvironment: "High-reliability, industrial, public-sector, or technical operating environments",
       capitalIntensity: facts.sector === "Software" ? "Moderate" : "High",
       regulatoryExposure: secondary.includes("Defense") ? "Moderate to high" : "Moderate",
-      governmentRelevance: facts.governmentLinks?.length ? "Potentially high" : "Unverified"
+      governmentRelevance: facts.governmentLinks?.length ? "Contextual source-backed relevance; transactional status unconfirmed" : "Unverified"
     },
     companyOverview: [
       `${facts.name} appears to operate through ${facts.website ?? "a public web presence that was not fully confirmed"}.`,
@@ -259,6 +282,7 @@ function fallbackDossier(
     ],
     productAndTechnology: [
       `The product and technology read centers on ${facts.productSummary}`,
+      patentStatus(facts),
       "DeepTechly treats this as a technical-positioning signal until primary technical validation, customer deployments, or formal documentation confirms the claim.",
       "Integration dependencies likely include product validation, buyer workflow fit, supply-chain readiness, and support capability."
     ],
@@ -275,7 +299,7 @@ function fallbackDossier(
     },
     marketResearch: [
       `The likely market includes ${facts.customerSegments.join(", ").toLowerCase()}.`,
-      "Demand drivers may include reliability, technical differentiation, automation, supply-chain resilience, and government-backed modernization.",
+      "Demand drivers may include reliability, technical differentiation, automation, supply-chain resilience, and public-sector modernization priorities where source-backed.",
       "Adoption friction is material because deep-tech buyers often need proof, integration support, procurement fit, and long-term supplier confidence."
     ],
     customerSegments: facts.customerSegments.map((segment) => ({
@@ -295,7 +319,10 @@ function fallbackDossier(
       label: confidenceLabel(score),
       confirmed: verification.confirmed,
       inferred: verification.inferred,
-      unverified: verification.unverified
+      unverified: [
+        ...verification.unverified,
+        "Patent ownership, exclusivity, active license status, government funding, contracts, customers, partnerships, and procurement interest require explicit source support."
+      ]
     },
     competitiveLandscape: [
       {
@@ -334,7 +361,7 @@ function fallbackDossier(
         "Validation, manufacturing or deployment readiness, buyer adoption, and data availability.",
       likelyBuyer: facts.customerSegments.join(", "),
       strategicWedge:
-        "Technical specificity with possible strategic relevance if validated by customers or government programs."
+        "Technical specificity with possible strategic relevance if validated by customers or explicitly sourced public-sector programs."
     },
     opportunity: {
       commercial: [
@@ -342,8 +369,9 @@ function fallbackDossier(
         "Build a trusted supplier position in a market where qualification can create defensibility."
       ],
       government: [
-        "Monitor SBIR, DARPA, NASA, DoD, DOE, and allied program fit.",
-        "Use non-dilutive awards as validation only when the award is directly relevant to the technology."
+        publicSectorStatus(facts),
+        "Treat SBIR, STTR, DARPA, NASA, DoD, DOE, and allied program references as agency relevance unless an official source confirms award, contract, funding, procurement, or customer status.",
+        "DeepTechly could not confirm active procurement interest from available public sources unless listed in confirmed facts."
       ],
       technical: [
         "Prove repeatability, reliability, and integration value.",
@@ -427,7 +455,7 @@ function fallbackDossier(
     ],
     socialAndPRSignal: [
       "Media and PR visibility are limited in the current source set.",
-      "Founder visibility, conference presence, research visibility, and government visibility should be monitored.",
+      "Founder visibility, conference presence, research visibility, and government/public-sector source visibility should be monitored.",
       "A rise in primary technical or government sources would improve confidence."
     ],
     revenueAndUnitEconomics: [
@@ -447,10 +475,10 @@ function fallbackDossier(
       },
       {
         path: "Government contracts",
-        whatMustBeTrue: "The capability maps to a funded program need.",
+        whatMustBeTrue: "An official source confirms a contract, award, customer relationship, or funded program need.",
         marginPotential: "Medium",
         timeHorizon: "12-36 months",
-        risk: "Procurement timing"
+        risk: "Procurement, funding, and customer status are not assumed from contextual agency relevance"
       },
       {
         path: "Pilot deployments",
@@ -488,14 +516,14 @@ function fallbackDossier(
       "Certification risk: qualification cycles can delay adoption.",
       "Capital intensity: deep-tech validation can require material upfront spend.",
       "Deployment risk: integration burden may slow adoption.",
-      "Government procurement risk: award timing and program fit are uncertain.",
+      "Government relevance risk: source context may not translate into funding, procurement, customer activity, endorsement, or revenue.",
       "Customer adoption risk: buyers may prefer incumbents.",
       "Data availability risk: public information is incomplete."
     ],
     strategicOutlook: [
       `${facts.name} becomes important if its public technical claim becomes validated customer value.`,
       "What must be proven: repeatability, buyer urgency, defensibility, and a credible path to deployment.",
-      "Investors and partners should watch validation artifacts, partner language, patents, hiring, and government signal movement."
+      "Investors and partners should watch validation artifacts, partner language, patents, hiring, and explicit government source movement."
     ],
     sources,
     relatedResearch: []
@@ -567,9 +595,12 @@ async function aiArticleSections(
 Write a feature article based ONLY on the provided source summaries and structured facts.
 RULES:
 - Never invent founders, funding, investors, customers, patents, revenue, or technical metrics
+- Never claim government funding, contracts, customers, partnerships, endorsement, procurement interest, patent ownership, exclusivity, or active license unless explicitly source-backed
+- Patent sources may support technical relevance, not market traction or product readiness by themselves
+- Government sources may support public-sector relevance, not funding/procurement/customer status by themselves
 - If a fact cannot be confirmed from public sources, write: "DeepTechly could not confirm..." or "Not confirmed in public sources"
 - Use only these approved phrases: "Public sources indicate...", "The company states...", "Available evidence suggests...", "DeepTechly could not confirm...", "No public source was found for...", "This appears to...", "This may indicate..."
-- NEVER use: "This proves...", "Guaranteed...", "Revolutionary...", "Unmatched...", "Definitive...", "The company will..."
+- NEVER use: "This proves...", "Guaranteed...", "Revolutionary...", "Unmatched...", "Definitive...", "The company will...", "government-backed", "DoD-funded", "NASA-backed", "DARPA-backed", "government customer", "procurement-ready"
 - Use calm, institutional, hedged language throughout
 
 The article must follow this exact section structure:
@@ -620,9 +651,12 @@ async function aiDossierHighlights(
 Generate only the executive summary and strategic outlook for a research dossier.
 RULES:
 - Never invent founders, funding, investors, customers, patents, revenue, or technical metrics
+- Never claim government funding, contracts, customers, partnerships, endorsement, procurement interest, patent ownership, exclusivity, or active license unless explicitly source-backed
+- Patent records can support technical relevance but not ownership, exclusivity, licensing status, market traction, or product readiness unless the source explicitly says so
+- Government records can support public-sector relevance but do not imply funding, procurement, customer status, endorsement, or revenue
 - Explicitly separate: confirmed facts (source-backed), inferred signals (publicly suggested), and unverified claims (not confirmed)
 - Use: "Public sources indicate...", "Available evidence suggests...", "DeepTechly could not confirm...", "This appears to..."
-- NEVER use: "This proves...", "Guaranteed...", "Revolutionary...", "Definitive..."
+- NEVER use: "This proves...", "Guaranteed...", "Revolutionary...", "Definitive...", "government-backed", "DoD-funded", "NASA-backed", "DARPA-backed", "government customer", "procurement-ready"
 - Unknown fields must say: "Not confirmed in public sources"
 - Keep language institutional and hedged — no promotional claims
 

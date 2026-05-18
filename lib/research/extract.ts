@@ -19,6 +19,10 @@ import {
   type EnrichedSearchResult,
   type EnrichedSourceSummary
 } from "./source-quality";
+import {
+  extractPublicSectorSignals,
+  type PublicSectorConfidence
+} from "./public-sector-recognition";
 
 const deepTechSectorTerms = [
   ["Semiconductors", ["semiconductor", "chip", "rf", "substrate", "wafer", "compute"]],
@@ -160,6 +164,31 @@ export function extractEntityFacts(
   const papers = sourceSummaries
     .filter((summary) => summary.sourceType === "academic")
     .map((summary) => summary.url);
+  const publicSectorSignals = sourceSummaries.map((summary) =>
+    extractPublicSectorSignals(summary, [
+      summary.title,
+      ...summary.keyFacts,
+      ...summary.claims
+    ].join(" "))
+  );
+  const detectedAgencies = [
+    ...new Set(publicSectorSignals.flatMap((signals) => signals.agencies))
+  ];
+  const detectedPatentIds = [
+    ...new Set(publicSectorSignals.flatMap((signals) => signals.patentIds))
+  ];
+  const governmentSourceCount = sourceSummaries.filter(
+    (summary) => summary.sourceType === "government"
+  ).length;
+  const patentSourceCount = sourceSummaries.filter(
+    (summary) => summary.sourceType === "patent"
+  ).length;
+  const publicSectorConfidence: PublicSectorConfidence =
+    governmentSourceCount + patentSourceCount > 0
+      ? "high"
+      : detectedAgencies.length || detectedPatentIds.length
+        ? "medium"
+        : "none";
 
   return {
     name,
@@ -191,6 +220,25 @@ export function extractEntityFacts(
     patents,
     papers,
     governmentLinks,
+    publicSector: {
+      detectedAgencies,
+      detectedPatentIds,
+      publicSectorSignals: publicSectorSignals.filter(
+        (signals) => signals.confidence !== "none"
+      ),
+      governmentSourceCount,
+      patentSourceCount,
+      publicSectorConfidence,
+      publicSectorNotes: [
+        governmentSourceCount > 0
+          ? `${governmentSourceCount} government/public-sector source candidate(s) detected.`
+          : "No government source was classified from available public sources.",
+        patentSourceCount > 0
+          ? `${patentSourceCount} patent source candidate(s) detected.`
+          : "No patent source was classified from available public sources.",
+        "Government relevance does not imply funding, procurement, customer status, endorsement, or revenue without explicit source support."
+      ]
+    },
     sourceUrls: sourceSummaries.map((summary) => summary.url),
     confidenceNotes: [
       homepage
@@ -215,15 +263,16 @@ export function verifyClaims(
     `Customer segments are inferred as ${facts.customerSegments.join(", ")} from public positioning.`,
     `Deep-tech relevance is inferred from sector language and related source categories.`,
     summaries.some((summary) => summary.sourceType === "government")
-      ? "Government relevance is supported by at least one government-oriented source candidate."
-      : "Government relevance is inferred from category overlap, not confirmed awards."
+      ? "Public-sector relevance is supported by at least one government source, but funding, procurement, and customer status require explicit evidence."
+      : "Public-sector relevance is inferred from source context and has not been confirmed as funding, procurement, or customer activity."
   ];
   const unverified = [
     facts.fundingAmount ? "" : "Funding amount is not confirmed in public sources.",
     facts.headquarters ? "" : "Headquarters is not confirmed in public sources.",
     facts.employeeCount ? "" : "Employee count is not confirmed in public sources.",
     facts.investors?.length ? "" : "Investors are not confirmed in public sources.",
-    "Revenue, customer deployments, manufacturing readiness, and qualification status are not confirmed."
+    "Revenue, customer deployments, manufacturing readiness, and qualification status are not confirmed.",
+    "DeepTechly could not confirm a direct government contract, active procurement interest, or government customer relationship from available public sources."
   ].filter(Boolean);
 
   return { confirmed, inferred, unverified };

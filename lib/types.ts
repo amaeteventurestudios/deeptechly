@@ -29,6 +29,19 @@ export type Source = {
   type: SourceType;
   retrievedAt?: string;
   supportsClaims?: string[];
+  publicSectorSignals?: {
+    agencies: string[];
+    patentIds: string[];
+    programs: string[];
+    hasPatentSource: boolean;
+    hasGovernmentSource: boolean;
+    hasSBIRSTTR: boolean;
+    hasTechnologyTransfer: boolean;
+    documentTypes: string[];
+    sourceFamilies: string[];
+    confidence: "none" | "low" | "medium" | "high";
+    notes: string[];
+  };
 };
 
 export type TaxonomySnapshot = {

@@ -838,6 +838,7 @@ function isInstitutionalAccess(accessState: InstitutionalAccessState) {
 
 function institutionalSectionsForEntity(entity: ResearchEntity) {
   const readiness = entity.dossier.dataSnapshot;
+  const patentItems = patentPositionItems(entity);
   return [
     {
       title: "Technology Stack",
@@ -859,7 +860,7 @@ function institutionalSectionsForEntity(entity: ResearchEntity) {
     },
     {
       title: "Patent Position",
-      items: entity.dossier.accuracyAndConfidence.inferred
+      items: patentItems
     },
     {
       title: "TRL / MRL Analysis",
@@ -929,6 +930,31 @@ function institutionalSectionsForEntity(entity: ResearchEntity) {
       ? section.items.filter(Boolean)
       : ["DeepTechly could not confirm this from available public sources."]
   }));
+}
+
+function patentPositionItems(entity: ResearchEntity) {
+  const patentSources = entity.sources.filter((source) => source.type === "patent");
+  const patentClaims = entity.sources
+    .flatMap((source) => source.supportsClaims ?? [])
+    .filter((claim) => claim.startsWith("patent") || claim === "technology_transfer");
+
+  if (patentSources.length === 0 && patentClaims.length === 0) {
+    return [
+      "Patent position is not confirmed from available public patent sources.",
+      "DeepTechly could not confirm patent ownership, exclusivity, active license status, or product readiness from the current source set."
+    ];
+  }
+
+  return [
+    `${patentSources.length} patent/IP source candidate(s) are attached to this dossier.`,
+    patentClaims.includes("patent_assignee")
+      ? "At least one source may support an assignee or ownership-related patent claim; confirm the source text before treating ownership as established."
+      : "Patent ownership or assignee status is not confirmed unless an attached patent source explicitly states it.",
+    patentClaims.includes("patent_license_available")
+      ? "A source may indicate licensing availability; active license status still requires explicit confirmation."
+      : "Active license, exclusivity, and licensing status are not confirmed from patent presence alone.",
+    "Patent records can support technical relevance, but they do not establish commercial adoption, market traction, or product readiness by themselves."
+  ];
 }
 
 export function InvestorReadSection({ entity }: { entity: ResearchEntity }) {
