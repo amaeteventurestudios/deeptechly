@@ -76,6 +76,18 @@ export type ResearchJob = {
   articleUrl: string | null;
   profileUrl: string | null;
   dossierUrl: string | null;
+  orchestration?: {
+    lockKey: string;
+    inputFingerprint: string;
+    attemptCount: number;
+    maxAttempts: number;
+    lastRunStartedAt?: string | null;
+    lastRunFinishedAt?: string | null;
+    nextRetryAt?: string | null;
+    retryable?: boolean;
+    failureType?: "transient" | "permanent" | "stuck" | "timeout" | null;
+    stuckMarkedAt?: string | null;
+  };
   feed?: {
     slug: string;
     entityName: string;

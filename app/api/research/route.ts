@@ -11,6 +11,14 @@ import type { ResearchMode } from "@/lib/research/types";
 import { MAX_ACTIVE_USER_JOBS } from "@/lib/research/limits";
 import { getAuthSession } from "@/lib/auth/session";
 import { classifyEntityInput } from "@/lib/research/entity-resolution";
+import {
+  canRetryResearchJob,
+  jobMatchesInput,
+  safeMarkJobStuck,
+  safeResumeOrRetryJob,
+  shouldMarkJobStuck,
+  shouldReuseActiveJob
+} from "@/lib/research/orchestration";
 
 export const dynamic = "force-dynamic";
 
@@ -31,6 +39,36 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "query is required" }, { status: 400 });
     }
 
+    await markStuckJobsForUser(session.userId);
+    const existingJobs = await listResearchJobs(session.userId);
+    const duplicateActiveJob = existingJobs.find((job) =>
+      shouldReuseActiveJob(job, query, session.userId)
+    );
+    if (duplicateActiveJob) {
+      return NextResponse.json({
+        jobId: duplicateActiveJob.id,
+        status: duplicateActiveJob.stage,
+        job: duplicateActiveJob,
+        reused: true
+      });
+    }
+
+    const retryableJob = existingJobs.find(
+      (job) => jobMatchesInput(job, query) && canRetryResearchJob(job)
+    );
+    if (retryableJob) {
+      const retriedJob = await safeResumeOrRetryJob(retryableJob.id);
+      if (retriedJob) {
+        void runResearchJob(retriedJob.id, retriedJob.query);
+        return NextResponse.json({
+          jobId: retriedJob.id,
+          status: retriedJob.stage,
+          job: retriedJob,
+          retried: true
+        });
+      }
+    }
+
     const inputType = classifyEntityInput(query);
     const requestedMode = body.mode ?? inputTypeToMode(inputType);
     const reusableEntity = await findReusableEntityForInput(query);
@@ -48,7 +86,6 @@ export async function POST(request: Request) {
       });
     }
 
-    const existingJobs = await listResearchJobs(session.userId);
     const activeCount = existingJobs.filter((job) => isActiveResearchStage(job.stage)).length;
     if (activeCount >= MAX_ACTIVE_USER_JOBS) {
       return NextResponse.json(
@@ -88,6 +125,12 @@ function inputTypeToMode(inputType: ReturnType<typeof classifyEntityInput>): Res
   return "company";
 }
 
+async function markStuckJobsForUser(userId: string) {
+  const jobs = await listResearchJobs(userId);
+  const stuckJobs = jobs.filter((job) => shouldMarkJobStuck(job));
+  await Promise.all(stuckJobs.map((job) => safeMarkJobStuck(job.id)));
+}
+
 export async function GET() {
   try {
     const session = await getAuthSession();
@@ -95,6 +138,7 @@ export async function GET() {
       return NextResponse.json({ jobs: [], queueStats: { activeCount: 0 } });
     }
 
+    await markStuckJobsForUser(session.userId);
     const jobs = await listResearchJobs(session.userId);
     const activeCount = jobs.filter((job) => isActiveResearchStage(job.stage)).length;
     return NextResponse.json({ jobs, queueStats: { activeCount } });

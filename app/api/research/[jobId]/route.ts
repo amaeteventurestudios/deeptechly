@@ -5,6 +5,13 @@ import {
   removeResearchJob
 } from "@/lib/research/store";
 import { getAuthSession } from "@/lib/auth/session";
+import {
+  canRetryResearchJob,
+  safeMarkJobStuck,
+  safeResumeOrRetryJob,
+  shouldMarkJobStuck
+} from "@/lib/research/orchestration";
+import { runResearchJob } from "@/lib/research/pipeline";
 
 export const dynamic = "force-dynamic";
 
@@ -20,15 +27,18 @@ export async function GET(_request: Request, { params }: RouteProps) {
     }
 
     const { jobId } = await params;
-    const job = await getResearchJob(jobId);
+    let job = await getResearchJob(jobId);
 
     if (!job || job.userId !== session.userId) {
       return NextResponse.json({ error: "Research job not found" }, { status: 404 });
     }
+    if (shouldMarkJobStuck(job)) {
+      job = await safeMarkJobStuck(job.id);
+    }
 
     const elapsedSeconds = Math.max(
       0,
-      Math.round((Date.now() - new Date(job.createdAt).getTime()) / 1000)
+      Math.round((Date.now() - new Date(job?.createdAt ?? Date.now()).getTime()) / 1000)
     );
 
     return NextResponse.json({
@@ -53,16 +63,29 @@ export async function PATCH(request: Request, { params }: RouteProps) {
 
     const { jobId } = await params;
     const body = (await request.json().catch(() => ({}))) as {
-      action?: "cancel";
+      action?: "cancel" | "retry";
     };
 
-    if (body.action !== "cancel") {
+    if (body.action !== "cancel" && body.action !== "retry") {
       return NextResponse.json({ error: "Unsupported action" }, { status: 400 });
     }
 
     const existingJob = await getResearchJob(jobId);
     if (!existingJob || existingJob.userId !== session.userId) {
       return NextResponse.json({ error: "Research job not found" }, { status: 404 });
+    }
+
+    if (body.action === "retry") {
+      if (!canRetryResearchJob(existingJob)) {
+        return NextResponse.json({ error: "Research job cannot be retried" }, { status: 409 });
+      }
+
+      const job = await safeResumeOrRetryJob(jobId);
+      if (job) {
+        void runResearchJob(job.id, job.query);
+      }
+
+      return NextResponse.json({ job });
     }
 
     const job = await cancelResearchJob(jobId);

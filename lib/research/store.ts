@@ -25,6 +25,12 @@ import {
 } from "./entity-resolution";
 import { queueProgressByStage } from "./display";
 import { MIN_SOURCE_COUNT_TO_PUBLISH } from "./limits";
+import {
+  buildInputFingerprint,
+  buildJobLockKey,
+  isActiveResearchStatus,
+  MAX_RESEARCH_JOB_ATTEMPTS
+} from "./orchestration";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.replace(/\/$/, "") ?? null;
 const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY ?? null;
@@ -685,6 +691,18 @@ export async function createResearchJob(
     articleUrl: null,
     profileUrl: null,
     dossierUrl: null,
+    orchestration: {
+      lockKey: buildJobLockKey({ query, normalizedQuery }),
+      inputFingerprint: buildInputFingerprint(query),
+      attemptCount: 0,
+      maxAttempts: MAX_RESEARCH_JOB_ATTEMPTS,
+      lastRunStartedAt: null,
+      lastRunFinishedAt: null,
+      nextRetryAt: null,
+      retryable: false,
+      failureType: null,
+      stuckMarkedAt: null
+    },
     feed: null,
     createdAt: now,
     updatedAt: now,
@@ -744,6 +762,24 @@ export async function createLinkedResearchJob(
     articleUrl: `/article/${entity.slug}`,
     profileUrl: `/startup/${entity.slug}`,
     dossierUrl: `/dossier/${entity.slug}`,
+    orchestration: {
+      lockKey: buildJobLockKey({
+        query,
+        normalizedQuery: normalizeQuery(query),
+        resolvedDomain: entity.domain ?? entity.website,
+        resolvedName: entity.name,
+        slug: entity.slug
+      }),
+      inputFingerprint: buildInputFingerprint(query),
+      attemptCount: 0,
+      maxAttempts: MAX_RESEARCH_JOB_ATTEMPTS,
+      lastRunStartedAt: now,
+      lastRunFinishedAt: now,
+      nextRetryAt: null,
+      retryable: false,
+      failureType: null,
+      stuckMarkedAt: null
+    },
     feed: {
       slug: entity.slug,
       entityName: entity.name,
@@ -992,6 +1028,27 @@ export async function saveResearchOutput(jobId: string, output: ResearchOutput) 
       articleUrl: `/article/${entity.slug}`,
       profileUrl: `/startup/${entity.slug}`,
       dossierUrl: `/dossier/${entity.slug}`,
+      orchestration: {
+        ...data.jobs[jobIndex].orchestration,
+        lockKey:
+          data.jobs[jobIndex].orchestration?.lockKey ??
+          buildJobLockKey({
+            query: data.jobs[jobIndex].query,
+            normalizedQuery: data.jobs[jobIndex].normalizedQuery,
+            resolvedDomain: entity.domain ?? entity.website,
+            resolvedName: entity.name,
+            slug: entity.slug
+          }),
+        inputFingerprint:
+          data.jobs[jobIndex].orchestration?.inputFingerprint ??
+          buildInputFingerprint(data.jobs[jobIndex].query),
+        attemptCount: data.jobs[jobIndex].orchestration?.attemptCount ?? 1,
+        maxAttempts: data.jobs[jobIndex].orchestration?.maxAttempts ?? MAX_RESEARCH_JOB_ATTEMPTS,
+        lastRunFinishedAt: now,
+        nextRetryAt: null,
+        retryable: false,
+        failureType: null
+      },
       feed: {
         slug: entity.slug,
         entityName: entity.name,
@@ -1063,6 +1120,26 @@ export async function savePublicResearchReady(jobId: string, output: ResearchOut
       articleUrl: `/article/${entity.slug}`,
       profileUrl: `/startup/${entity.slug}`,
       dossierUrl: null,
+      orchestration: {
+        ...data.jobs[jobIndex].orchestration,
+        lockKey:
+          data.jobs[jobIndex].orchestration?.lockKey ??
+          buildJobLockKey({
+            query: data.jobs[jobIndex].query,
+            normalizedQuery: data.jobs[jobIndex].normalizedQuery,
+            resolvedDomain: entity.domain ?? entity.website,
+            resolvedName: entity.name,
+            slug: entity.slug
+          }),
+        inputFingerprint:
+          data.jobs[jobIndex].orchestration?.inputFingerprint ??
+          buildInputFingerprint(data.jobs[jobIndex].query),
+        attemptCount: data.jobs[jobIndex].orchestration?.attemptCount ?? 1,
+        maxAttempts: data.jobs[jobIndex].orchestration?.maxAttempts ?? MAX_RESEARCH_JOB_ATTEMPTS,
+        nextRetryAt: null,
+        retryable: false,
+        failureType: null
+      },
       publicResearchReadyAt: now,
       updatedAt: now,
       feed: {
@@ -1113,7 +1190,7 @@ export async function removeResearchJob(id: string) {
 }
 
 export function isActiveResearchStage(stage: ResearchStage) {
-  return !["done", "failed", "cancelled", "public_research_ready"].includes(stage);
+  return isActiveResearchStatus(stage);
 }
 
 export async function recordSearchEvent(jobId: string, query: string, provider: string, resultCount: number) {

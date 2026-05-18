@@ -30,9 +30,16 @@ import {
   resolveCanonicalEntity,
   savePublicResearchReady,
   saveResearchOutput,
-  stageMessage,
   updateResearchJob
 } from "./store";
+import {
+  buildInputFingerprint,
+  buildJobLockKey,
+  getMaxAttempts,
+  nextAttempt,
+  RETRYABLE_RESEARCH_FAILURE_COPY,
+  safeMarkJobFailed
+} from "./orchestration";
 import {
   domainToUrl,
   fetchReadablePage,
@@ -352,6 +359,32 @@ export async function runResearchJob(jobId: string, query: string) {
   const startedAt = Date.now();
 
   try {
+    const currentJob = await getResearchJob(jobId);
+    if (!currentJob) return;
+    await updateResearchJob(jobId, {
+      orchestration: {
+        ...currentJob.orchestration,
+        lockKey:
+          currentJob.orchestration?.lockKey ??
+          buildJobLockKey({
+            query: currentJob.query,
+            normalizedQuery: currentJob.normalizedQuery,
+            resolvedDomain: currentJob.resolvedDomain,
+            resolvedName: currentJob.resolvedName,
+            slug: currentJob.feed?.slug ?? null
+          }),
+        inputFingerprint:
+          currentJob.orchestration?.inputFingerprint ?? buildInputFingerprint(query),
+        attemptCount: nextAttempt(currentJob),
+        maxAttempts: getMaxAttempts(currentJob),
+        lastRunStartedAt: new Date(startedAt).toISOString(),
+        lastRunFinishedAt: null,
+        nextRetryAt: null,
+        retryable: false,
+        failureType: null
+      }
+    });
+
     if (!process.env.OPENAI_API_KEY) {
       console.log("OPENAI_API_KEY missing. Running research job in demo mode.");
     }
@@ -416,13 +449,10 @@ export async function runResearchJob(jobId: string, query: string) {
     });
 
     if (summaries.length < MIN_SOURCE_COUNT_TO_PUBLISH) {
-      await updateResearchJob(jobId, {
-        stage: "failed",
-        statusLabel: "FAILED",
-        message: stageMessage("failed").message,
-        detail: stageMessage("failed").detail,
-        sourceCount: summaries.length,
-        completedAt: new Date().toISOString()
+      await updateResearchJob(jobId, { sourceCount: summaries.length });
+      await safeMarkJobFailed(jobId, RETRYABLE_RESEARCH_FAILURE_COPY, {
+        retryable: false,
+        failureType: "permanent"
       });
       return;
     }
@@ -475,14 +505,9 @@ export async function runResearchJob(jobId: string, query: string) {
     }
 
     const timeout = error instanceof ResearchTimeoutError;
-    await updateResearchJob(jobId, {
-      stage: "failed",
-      error: error instanceof Error ? error.message : "Unknown research pipeline failure",
-      message: timeout ? "Research timed out" : "Research failed",
-      detail: timeout
-        ? "DeepTechly reached the maximum job time before enough reliable outputs were ready."
-        : "DeepTechly could not identify enough reliable public sources to generate a high-confidence profile.",
-      completedAt: new Date().toISOString()
+    await safeMarkJobFailed(jobId, error instanceof Error ? error.message : "Unknown research pipeline failure", {
+      retryable: timeout || !(error instanceof Error && /invalid|authorization|cancelled/i.test(error.message)),
+      failureType: timeout ? "timeout" : undefined
     });
   }
 }
