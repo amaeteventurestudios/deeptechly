@@ -48,9 +48,9 @@ export default async function InviteCodesPage({
   ]);
 
   return (
-    <PageShell>
+    <PageShell hideSectorNav>
       <section className="w-full border-b border-black bg-deepOrange deeptech-texture">
-        <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-[1280px] px-4 py-10 sm:px-6 lg:px-8">
           <p className="text-[11px] font-black uppercase tracking-[0.28em]">
             Admin Console
           </p>
@@ -75,7 +75,7 @@ export default async function InviteCodesPage({
       </section>
 
       <section className="w-full bg-paper">
-        <div className="mx-auto grid max-w-7xl gap-6 px-4 py-10 sm:px-6 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.65fr)] lg:px-8">
+        <div className="mx-auto grid max-w-[1280px] gap-6 px-4 py-10 sm:px-6 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.65fr)] lg:px-8">
           <div>
             <StatusMessage params={params} />
             <CreateInviteCodeForm />

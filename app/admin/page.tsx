@@ -82,9 +82,9 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
   const overview = await getAdminOverviewData({ windowDays: range });
 
   return (
-    <PageShell>
+    <PageShell hideSectorNav>
       <section className="w-full border-b border-black bg-deepOrange deeptech-texture">
-        <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-[1280px] px-4 py-10 sm:px-6 lg:px-8">
           <p className="text-[11px] font-black uppercase tracking-[0.28em]">
             DeepTechly Admin
           </p>
@@ -109,7 +109,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
       </section>
 
       <section className="w-full bg-paper">
-        <div className="mx-auto max-w-7xl space-y-6 px-4 py-8 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-[1280px] space-y-6 px-4 py-8 sm:px-6 lg:px-8">
           <section className="grid grid-cols-1 gap-px border border-black bg-black sm:grid-cols-2 lg:grid-cols-4">
             {overview.metrics.map((metric) => (
               <MetricCard key={metric.label} metric={metric} />

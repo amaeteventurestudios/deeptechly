@@ -3,11 +3,17 @@ import { SectorNav } from "./SectorNav";
 import { SiteFooter } from "./SiteFooter";
 import { SiteHeader } from "./SiteHeader";
 
-export function PageShell({ children }: { children: ReactNode }) {
+export function PageShell({
+  children,
+  hideSectorNav = false
+}: {
+  children: ReactNode;
+  hideSectorNav?: boolean;
+}) {
   return (
     <div className="min-h-screen bg-paper">
       <SiteHeader />
-      <SectorNav />
+      {hideSectorNav ? null : <SectorNav />}
       {children}
       <SiteFooter />
     </div>

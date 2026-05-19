@@ -11,8 +11,8 @@ const joinLinkClass =
 
 export async function SiteHeader() {
   const session = await getAuthSession();
-  const accountLabel = session?.name || session?.email;
   const isAdmin = isAdminEmail(session?.email);
+  const accountLabel = isAdmin ? "Dashboard" : session?.name || session?.email;
 
   return (
     <header className="w-full border-b border-white/10 bg-ink text-white">

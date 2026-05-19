@@ -50,9 +50,9 @@ export default async function AdminUsersPage({ searchParams }: UsersPageProps) {
   const [params, usersResult] = await Promise.all([searchParams, listAllUsers()]);
 
   return (
-    <PageShell>
+    <PageShell hideSectorNav>
       <section className="w-full border-b border-black bg-deepOrange deeptech-texture">
-        <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-[1280px] px-4 py-10 sm:px-6 lg:px-8">
           <p className="text-[11px] font-black uppercase tracking-[0.28em]">
             Admin Console
           </p>
@@ -72,7 +72,7 @@ export default async function AdminUsersPage({ searchParams }: UsersPageProps) {
       </section>
 
       <section className="w-full bg-paper">
-        <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-[1280px] px-4 py-8 sm:px-6 lg:px-8">
           <StatusMessage params={params} />
 
           {!usersResult.ok ? (
@@ -109,7 +109,7 @@ export default async function AdminUsersPage({ searchParams }: UsersPageProps) {
               </div>
 
               <div className="overflow-x-auto">
-                <table className="min-w-[980px] w-full border-collapse text-left">
+                <table className="min-w-[1180px] w-full border-collapse text-left">
                   <thead className="bg-ink text-white">
                     <tr className="text-[10px] font-black uppercase tracking-[0.14em]">
                       <th className="px-4 py-3">User</th>
