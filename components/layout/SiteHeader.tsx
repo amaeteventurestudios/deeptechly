@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Cpu, LogIn, LogOut, UserRound } from "lucide-react";
 import { getAuthSession } from "@/lib/auth/session";
+import { isAdminEmail } from "@/lib/admin/invite-codes";
 
 const navLinkClass = "hover:text-deepOrange";
 const researchLinkClass =
@@ -11,6 +12,7 @@ const joinLinkClass =
 export async function SiteHeader() {
   const session = await getAuthSession();
   const accountLabel = session?.name || session?.email;
+  const isAdmin = isAdminEmail(session?.email);
 
   return (
     <header className="w-full border-b border-white/10 bg-ink text-white">
@@ -41,6 +43,11 @@ export async function SiteHeader() {
                 <UserRound size={13} />
                 <span className="truncate">{accountLabel}</span>
               </Link>
+              {isAdmin ? (
+                <Link className={joinLinkClass} href="/admin">
+                  DeepTechly Admin
+                </Link>
+              ) : null}
               <form action="/api/auth/sign-out" method="post">
                 <button
                   className="flex items-center gap-2 hover:text-deepOrange"
@@ -73,6 +80,11 @@ export async function SiteHeader() {
                 <UserRound size={13} className="shrink-0" />
                 <span className="truncate">{accountLabel}</span>
               </Link>
+              {isAdmin ? (
+                <Link className={joinLinkClass} href="/admin">
+                  DeepTechly Admin
+                </Link>
+              ) : null}
               <form action="/api/auth/sign-out" method="post">
                 <button
                   className="flex items-center gap-2 border border-white px-3 py-1.5 text-white hover:border-deepOrange hover:text-deepOrange"

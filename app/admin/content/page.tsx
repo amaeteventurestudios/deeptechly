@@ -11,6 +11,7 @@ import {
   Star,
   StarOff
 } from "lucide-react";
+import { AdminNavigation } from "@/components/admin/AdminNavigation";
 import { AuthSubmitButton } from "@/components/auth/AuthSubmitButton";
 import { PageShell } from "@/components/layout/PageShell";
 import { getAuthSession } from "@/lib/auth/session";
@@ -72,10 +73,7 @@ export default async function AdminContentPage({ searchParams }: ContentPageProp
                 profiles, and dossiers. Mark featured content for the homepage.
               </p>
             </div>
-            <nav className="flex flex-wrap gap-2">
-              <AdminNavLink href="/admin/invite-codes" label="Invite Codes" />
-              <AdminNavLink href="/admin/users" label="Users" />
-            </nav>
+            <AdminNavigation active="content" />
           </div>
         </div>
       </section>
@@ -495,17 +493,6 @@ function ContentLink({
       className="inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-[0.12em] text-deepOrange hover:underline"
     >
       {icon}
-      {label}
-    </Link>
-  );
-}
-
-function AdminNavLink({ href, label }: { href: string; label: string }) {
-  return (
-    <Link
-      href={href}
-      className="inline-flex min-h-9 items-center border border-black bg-white px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.14em] hover:bg-paleOrange"
-    >
       {label}
     </Link>
   );

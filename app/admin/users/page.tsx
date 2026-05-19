@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { forbidden, redirect } from "next/navigation";
 import {
   CheckCircle2,
@@ -9,6 +8,7 @@ import {
   ShieldOff,
   Users
 } from "lucide-react";
+import { AdminNavigation } from "@/components/admin/AdminNavigation";
 import { AuthSubmitButton } from "@/components/auth/AuthSubmitButton";
 import { PageShell } from "@/components/layout/PageShell";
 import { getAuthSession } from "@/lib/auth/session";
@@ -66,10 +66,7 @@ export default async function AdminUsersPage({ searchParams }: UsersPageProps) {
                 access tiers.
               </p>
             </div>
-            <nav className="flex flex-wrap gap-2">
-              <AdminNavLink href="/admin/invite-codes" label="Invite Codes" />
-              <AdminNavLink href="/admin/content" label="Content" />
-            </nav>
+            <AdminNavigation active="users" />
           </div>
         </div>
       </section>
@@ -236,17 +233,6 @@ function InstitutionalStatus({ status }: { status: string }) {
       <CircleAlert size={13} />
       Not verified
     </span>
-  );
-}
-
-function AdminNavLink({ href, label }: { href: string; label: string }) {
-  return (
-    <Link
-      href={href}
-      className="inline-flex min-h-9 items-center border border-black bg-white px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.14em] hover:bg-paleOrange"
-    >
-      {label}
-    </Link>
   );
 }
 

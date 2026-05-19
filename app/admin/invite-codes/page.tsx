@@ -1,6 +1,6 @@
-import Link from "next/link";
 import { Ban, CheckCircle2, KeyRound, Plus, ShieldAlert } from "lucide-react";
 import { forbidden, redirect } from "next/navigation";
+import { AdminNavigation } from "@/components/admin/AdminNavigation";
 import { CopyInviteCodeButton } from "@/components/admin/CopyInviteCodeButton";
 import { AuthSubmitButton } from "@/components/auth/AuthSubmitButton";
 import { PageShell } from "@/components/layout/PageShell";
@@ -65,10 +65,7 @@ export default async function InviteCodesPage({
               </p>
             </div>
             <div className="flex flex-col gap-3 lg:items-end">
-              <nav className="flex flex-wrap gap-2">
-                <AdminNavLink href="/admin/content" label="Content" />
-                <AdminNavLink href="/admin/users" label="Users" />
-              </nav>
+              <AdminNavigation active="invite-codes" />
               <div className="border border-black bg-white px-4 py-3 text-xs font-black uppercase tracking-[0.14em] shadow-hard">
                 Signed in as {session.email}
               </div>
@@ -410,15 +407,4 @@ function formatTier(tier: string) {
     .split(/[_-]/)
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join(" ");
-}
-
-function AdminNavLink({ href, label }: { href: string; label: string }) {
-  return (
-    <Link
-      href={href}
-      className="inline-flex min-h-9 items-center border border-black bg-white px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.14em] hover:bg-paleOrange"
-    >
-      {label}
-    </Link>
-  );
 }

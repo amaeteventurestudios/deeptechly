@@ -10,7 +10,9 @@ import {
   Clock3,
   UserRound
 } from "lucide-react";
+import { AdminToolsPanel } from "@/components/admin/AdminToolsPanel";
 import { PageShell } from "@/components/layout/PageShell";
+import { isAdminEmail } from "@/lib/admin/invite-codes";
 import { getAuthSession } from "@/lib/auth/session";
 import { listSavedResearchItems } from "@/lib/saved-research";
 
@@ -31,6 +33,7 @@ export default async function DashboardPage() {
   const savedResearch = await listSavedResearchItems(session.userId, 6);
   const profile = session.profile;
   const displayName = session.name ?? session.email;
+  const isAdmin = isAdminEmail(session.email);
   const institutionalStatus = getInstitutionalStatus(session);
   const nextAction = getNextAction(session);
 
@@ -140,6 +143,7 @@ export default async function DashboardPage() {
           </div>
 
           <aside className="space-y-6">
+            {isAdmin ? <AdminToolsPanel /> : null}
             <section className="border border-black bg-ink p-5 text-white shadow-hard">
               <p className="text-[10px] font-black uppercase tracking-[0.2em] text-deepOrange">
                 Next Action
