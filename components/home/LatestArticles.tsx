@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRef } from "react";
+import { useMemo, useRef } from "react";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import { FallbackVisual } from "./FallbackVisual";
 import { HomeSaveButton } from "./HomeSaveButton";
@@ -20,6 +20,10 @@ export function LatestArticles({ articles }: { articles?: LatestArticle[] }) {
   const visibleArticles: LatestArticle[] = articles?.length
     ? articles
     : homepageSeed.latestArticles;
+  const secondaryArticles = useMemo(
+    () => buildSecondaryArticles(visibleArticles),
+    [visibleArticles]
+  );
 
   const scrollRail = (direction: "left" | "right") => {
     const rail = railRef.current;
@@ -141,8 +145,72 @@ export function LatestArticles({ articles }: { articles?: LatestArticle[] }) {
           </article>
         ))}
       </div>
+
+      <div className="mt-4 grid gap-2.5 border-t border-black/20 pt-4 md:grid-cols-3">
+        {secondaryArticles.map((article) => (
+          <SecondaryArticleCard article={article} key={`secondary-${article.id}`} />
+        ))}
+      </div>
     </section>
   );
+}
+
+function SecondaryArticleCard({ article }: { article: LatestArticle }) {
+  return (
+    <article className="flex min-h-[154px] flex-col border border-black bg-offWhite p-3 text-left transition hover:-translate-y-0.5 hover:border-deepOrange">
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <p className="text-[7px] font-black uppercase tracking-[0.18em] text-deepOrange">
+            {article.sector}
+          </p>
+          <h3 className="mt-1.5 text-[12px] font-black leading-tight text-ink line-clamp-3">
+            <Link href={article.href}>{article.headline}</Link>
+          </h3>
+        </div>
+        <HomeSaveButton
+          entityName={article.entityName}
+          href={article.href}
+          itemId={`secondary-${article.id}`}
+          itemType="ARTICLE"
+          label={article.headline}
+          className="h-7 w-7 shrink-0 shadow-none"
+          sector={article.sector}
+        />
+      </div>
+      <p className="mt-2 text-[8px] font-black uppercase tracking-[0.12em] text-muted">
+        {article.analyst} · {article.time} · {article.sourceCount ?? 0} src
+      </p>
+      <Link
+        href={article.href}
+        className="mt-auto inline-flex h-8 items-center justify-center gap-1 border border-black bg-white px-2 text-[8px] font-black uppercase tracking-[0.12em] hover:bg-paleOrange"
+      >
+        Read Article
+        <ArrowRight size={10} aria-hidden="true" />
+      </Link>
+    </article>
+  );
+}
+
+function buildSecondaryArticles(articles: LatestArticle[]) {
+  const primaryIds = new Set(articles.slice(0, 3).map((article) => article.id));
+  const seen = new Set<string>();
+  const pool: LatestArticle[] = [
+    ...articles,
+    ...homepageSeed.alsoReading,
+    ...homepageSeed.topStories
+  ];
+
+  return pool
+    .filter((article) => {
+      const key = `${article.href}:${article.headline}`;
+      if (primaryIds.has(article.id) || seen.has(key)) {
+        return false;
+      }
+
+      seen.add(key);
+      return true;
+    })
+    .slice(0, 3);
 }
 
 function ArticleVisual({ article }: { article: LatestArticle }) {

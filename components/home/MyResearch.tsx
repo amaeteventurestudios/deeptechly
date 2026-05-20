@@ -67,33 +67,7 @@ export async function MyResearch() {
     return (
       <section className={researchPanelClass}>
         <SectionHeader />
-        <div className="border border-black bg-white p-5 text-center">
-          <p className="text-[9px] font-black uppercase tracking-[0.18em] text-deepOrange">
-            Research Account
-          </p>
-          <h3 className="mt-2 text-xl font-black leading-tight text-ink">
-            Build a private research shelf.
-          </h3>
-          <p className="mx-auto mt-2 max-w-sm text-xs font-semibold leading-5 text-charcoal">
-            Sign in to save research, track queued investigations, and return to profiles and dossiers from one workspace.
-          </p>
-          <div className="mt-5 flex flex-col items-center justify-center gap-2 sm:flex-row">
-            <Link
-              href="/join"
-              className="inline-flex h-9 items-center justify-center gap-2 border border-black bg-deepOrange px-4 text-[9px] font-black uppercase tracking-[0.14em] hover:bg-darkOrange"
-            >
-              Create Account
-              <ArrowRight size={11} aria-hidden="true" />
-            </Link>
-            <Link
-              href="/sign-in"
-              className="inline-flex h-9 items-center justify-center gap-2 border border-black bg-white px-4 text-[9px] font-black uppercase tracking-[0.14em] hover:bg-paleOrange"
-            >
-              Sign In
-              <ArrowRight size={11} aria-hidden="true" />
-            </Link>
-          </div>
-        </div>
+        <StarterResearchGrid />
       </section>
     );
   }
