@@ -16,7 +16,7 @@ export async function SiteHeader() {
 
   return (
     <header className="w-full border-b border-white/10 bg-ink text-white">
-      <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-3.5 sm:px-6 lg:px-8">
+      <div className="mx-auto flex max-w-[1440px] flex-wrap items-center justify-between gap-3 px-4 py-3.5 sm:px-6 lg:px-8">
         <Link href="/" className="flex items-center gap-2">
           <span className="flex h-8 w-8 items-center justify-center border border-deepOrange bg-deepOrange text-ink">
             <Cpu size={18} strokeWidth={2.6} />

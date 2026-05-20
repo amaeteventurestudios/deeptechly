@@ -40,7 +40,7 @@ export async function HomeResearchFeed() {
   return (
     <>
       <section className="w-full bg-paper">
-        <div className="mx-auto grid max-w-7xl gap-8 px-4 py-8 text-center sm:px-6 lg:grid-cols-[minmax(0,1fr)_minmax(340px,460px)] lg:px-8 lg:text-left">
+        <div className="mx-auto grid max-w-[1440px] gap-8 px-4 py-8 text-center sm:px-6 lg:grid-cols-[minmax(0,1fr)_minmax(380px,500px)] lg:px-8 lg:text-left">
           <div className="mx-auto w-full max-w-3xl lg:max-w-none">
             <CompactSectionHeader
               title="Top Stories"
@@ -66,8 +66,8 @@ export async function HomeResearchFeed() {
       </section>
 
       <section className="w-full border-t border-black bg-offWhite">
-        <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-          <div className="grid gap-6 border border-black bg-paper p-4 shadow-hard lg:grid-cols-[minmax(0,1.55fr)_minmax(360px,0.95fr)] lg:items-start lg:p-5">
+        <div className="mx-auto max-w-[1440px] px-4 py-8 sm:px-6 lg:px-8">
+          <div className="grid gap-6 border border-black bg-paper p-4 shadow-hard lg:grid-cols-[minmax(0,1.75fr)_minmax(390px,0.95fr)] lg:items-start lg:p-5">
             <LatestArticles articles={latestArticles} />
             <MyResearch />
           </div>
@@ -75,7 +75,7 @@ export async function HomeResearchFeed() {
       </section>
 
       <section className="w-full border-t border-black bg-paper">
-        <div className="mx-auto w-full max-w-7xl px-4 py-7 sm:px-6 lg:px-8">
+        <div className="mx-auto w-full max-w-[1440px] px-4 py-7 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 gap-px border border-black bg-black md:grid-cols-2 xl:grid-cols-4">
             <TechnologySignals stories={generatedStories} />
             <GovernmentSignals stories={generatedStories} />
@@ -376,7 +376,7 @@ function BrowseBySector() {
 
   return (
     <section className="w-full border-t border-black bg-offWhite">
-      <div className="mx-auto w-full max-w-7xl px-4 py-6 text-center sm:px-6 lg:px-8">
+      <div className="mx-auto w-full max-w-[1440px] px-4 py-6 text-center sm:px-6 lg:px-8">
         <CompactSectionHeader
           title="Browse by Sector"
           actionHref="/sectors"

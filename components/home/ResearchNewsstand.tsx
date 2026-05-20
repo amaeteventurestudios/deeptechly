@@ -20,7 +20,7 @@ export function ResearchNewsstand({ items }: { items?: NewsstandItem[] }) {
 
   return (
     <section className="w-full border-t border-black bg-paper">
-      <div className="mx-auto w-full max-w-7xl px-4 py-7 sm:px-6 lg:px-8">
+      <div className="mx-auto w-full max-w-[1440px] px-4 py-7 sm:px-6 lg:px-8">
         <div className="mb-3 flex flex-col items-center gap-3 border-b border-black pb-2 text-center sm:flex-row sm:justify-between sm:text-left">
           <h2 className="text-[13px] font-black uppercase tracking-[0.18em] text-ink">
             Research Newsstand

@@ -20,7 +20,7 @@ export default function HomePage() {
   return (
     <PageShell>
       <section className="w-full border-b border-black bg-deepOrange deeptech-home-hero">
-        <div className="mx-auto flex max-w-4xl flex-col items-center px-4 py-14 text-center sm:px-6 sm:py-16 lg:items-start lg:px-8 lg:py-20 lg:text-left">
+        <div className="mx-auto flex max-w-[1320px] flex-col items-center px-4 py-14 text-center sm:px-6 sm:py-16 lg:items-start lg:px-8 lg:py-20 lg:text-left">
           <p className="text-[12px] font-black uppercase tracking-[0.28em] text-white">
             Deep-Tech Research
           </p>
@@ -45,7 +45,7 @@ export default function HomePage() {
       </section>
 
       <section className="w-full border-b border-black bg-ink text-white">
-        <div className="mx-auto flex max-w-7xl flex-col items-center justify-center gap-2 px-4 py-3 text-center text-[11px] font-black uppercase tracking-[0.18em] sm:px-6 md:flex-row md:justify-between md:text-left lg:px-8">
+        <div className="mx-auto flex max-w-[1440px] flex-col items-center justify-center gap-2 px-4 py-3 text-center text-[11px] font-black uppercase tracking-[0.18em] sm:px-6 md:flex-row md:justify-between md:text-left lg:px-8">
           <span>&#8599; Today&apos;s Edition · {formatEditionDate()}</span>
           <Link className="text-deepOrange hover:text-white" href="/news">
             Full Archive &rarr;
