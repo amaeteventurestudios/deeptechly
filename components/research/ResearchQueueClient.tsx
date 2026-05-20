@@ -39,11 +39,6 @@ type JobsResponse = {
   };
 };
 
-type JobResponse = {
-  job?: ResearchJob;
-  error?: string;
-};
-
 export function ResearchQueueClient({
   initialJobId,
   focused = false
@@ -92,27 +87,6 @@ export function ResearchQueueClient({
     setError(null);
 
     try {
-      if (focused && initialJobId) {
-        const response = await fetch(`/api/research/${initialJobId}`, {
-          cache: "no-store"
-        });
-        const body = (await response.json().catch(() => ({}))) as JobResponse;
-
-        if (!response.ok || !body.job) {
-          throw new Error(body.error ?? "Research job could not be found.");
-        }
-
-        setQueueStats({
-          activeCount: isActiveQueueStage(body.job.stage) ? 1 : 0,
-          queuedCount: body.job.stage === "queued" ? 1 : 0,
-          completedCount: body.job.stage === "done" ? 1 : 0,
-          failedCount: body.job.stage === "failed" || body.job.stage === "cancelled" ? 1 : 0,
-          maxActive: 3
-        });
-        setServerJobs([body.job]);
-        return;
-      }
-
       const response = await fetch("/api/research", { cache: "no-store" });
       const body = (await response.json().catch(() => ({}))) as JobsResponse;
 
@@ -131,7 +105,7 @@ export function ResearchQueueClient({
     } finally {
       setLoading(false);
     }
-  }, [focused, initialJobId, markInteraction, setServerJobs]);
+  }, [markInteraction, setServerJobs]);
 
   const handleJobCreated = useCallback(
     (job: ResearchJob) => {
@@ -208,14 +182,14 @@ export function ResearchQueueClient({
 
   const orderedJobs = useMemo(() => {
     const sorted = sortQueueJobs(jobs);
-    if (!initialJobId || focused) return sorted;
+    if (!initialJobId) return sorted;
 
     return [...sorted].sort((a, b) => {
       if (a.id === initialJobId && isActiveQueueStage(a.stage)) return -1;
       if (b.id === initialJobId && isActiveQueueStage(b.stage)) return 1;
       return 0;
     });
-  }, [focused, initialJobId, jobs]);
+  }, [initialJobId, jobs]);
 
   const activeCount = orderedJobs.filter((job) => isActiveQueueStage(job.stage)).length;
   const queuedCount = orderedJobs.filter((job) => job.stage === "queued").length;
@@ -245,7 +219,6 @@ export function ResearchQueueClient({
           focused={focused}
           onRefresh={loadJobs}
           queuedCount={queuedCount}
-          queueStats={queueStats}
           soundAlerts={soundAlerts}
           setSoundAlerts={setSoundAlerts}
         />
@@ -273,7 +246,7 @@ export function ResearchQueueClient({
             Start Another Search
           </p>
           <div className="mt-4">
-            <ResearchSubmitForm compact />
+            <ResearchSubmitForm compact onSubmitted={handleJobCreated} />
           </div>
         </div>
       ) : null}
@@ -298,7 +271,6 @@ function QueueHeader({
   focused,
   onRefresh,
   queuedCount,
-  queueStats,
   soundAlerts,
   setSoundAlerts
 }: {
@@ -309,15 +281,14 @@ function QueueHeader({
   focused: boolean;
   onRefresh: () => void;
   queuedCount: number;
-  queueStats?: JobsResponse["queueStats"];
   soundAlerts: boolean;
   setSoundAlerts: (value: boolean) => void;
 }) {
   const counts = {
-    active: queueStats?.activeCount ?? activeCount,
-    queued: queueStats?.queuedCount ?? queuedCount,
-    complete: queueStats?.completedCount ?? completedCount,
-    failed: queueStats?.failedCount ?? failedCount
+    active: activeCount,
+    queued: queuedCount,
+    complete: completedCount,
+    failed: failedCount
   };
 
   return (
