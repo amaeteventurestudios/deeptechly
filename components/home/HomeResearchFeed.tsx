@@ -68,7 +68,7 @@ export async function HomeResearchFeed() {
 
       <section className="w-full border-t border-black bg-offWhite">
         <HomeWideContainer className="py-9">
-          <div className="grid lg:grid-cols-[minmax(0,1.75fr)_minmax(440px,1fr)] lg:items-start">
+          <div className="grid lg:grid-cols-[minmax(0,1.75fr)_minmax(0,1fr)] lg:items-start">
             <LatestArticles articles={latestArticles} />
             <MyResearch />
           </div>
