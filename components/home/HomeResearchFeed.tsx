@@ -3,6 +3,7 @@ import { ArrowRight } from "lucide-react";
 import { GovernmentSignals } from "./GovernmentSignals";
 import { HomeSaveButton } from "./HomeSaveButton";
 import { HomeTag } from "./HomeTag";
+import { HomeWideContainer } from "./HomeWideContainer";
 import { LatestArticles } from "./LatestArticles";
 import { MyResearch } from "./MyResearch";
 import { PatentIntelligence } from "./PatentIntelligence";
@@ -40,7 +41,7 @@ export async function HomeResearchFeed() {
   return (
     <>
       <section className="w-full bg-paper">
-        <div className="mx-auto grid max-w-[1440px] gap-8 px-4 py-8 text-center sm:px-6 lg:grid-cols-[minmax(0,1fr)_minmax(380px,500px)] lg:px-8 lg:text-left">
+        <HomeWideContainer className="grid gap-8 py-8 text-center lg:grid-cols-[minmax(0,1fr)_minmax(420px,520px)] lg:text-left">
           <div className="mx-auto w-full max-w-3xl lg:max-w-none">
             <CompactSectionHeader
               title="Top Stories"
@@ -62,27 +63,27 @@ export async function HomeResearchFeed() {
           <aside className="mx-auto w-full max-w-md space-y-8 lg:max-w-none lg:border-l lg:border-black/20 lg:pl-6">
             <AlsoReading stories={alsoReadingStories} />
           </aside>
-        </div>
+        </HomeWideContainer>
       </section>
 
       <section className="w-full border-t border-black bg-offWhite">
-        <div className="mx-auto max-w-[1440px] px-4 py-8 sm:px-6 lg:px-8">
-          <div className="grid gap-6 border border-black bg-paper p-4 shadow-hard lg:grid-cols-[minmax(0,1.75fr)_minmax(390px,0.95fr)] lg:items-start lg:p-5">
+        <HomeWideContainer className="py-8">
+          <div className="grid gap-8 border border-black bg-paper p-4 shadow-hard lg:grid-cols-[minmax(0,1.8fr)_minmax(460px,0.95fr)] lg:items-start lg:p-5">
             <LatestArticles articles={latestArticles} />
             <MyResearch />
           </div>
-        </div>
+        </HomeWideContainer>
       </section>
 
       <section className="w-full border-t border-black bg-paper">
-        <div className="mx-auto w-full max-w-[1440px] px-4 py-7 sm:px-6 lg:px-8">
+        <HomeWideContainer className="py-7">
           <div className="grid grid-cols-1 gap-px border border-black bg-black md:grid-cols-2 xl:grid-cols-4">
             <TechnologySignals stories={generatedStories} />
             <GovernmentSignals stories={generatedStories} />
             <PatentIntelligence stories={generatedStories} />
             <WhiteSpaceOpportunities stories={generatedStories} />
           </div>
-        </div>
+        </HomeWideContainer>
       </section>
 
       <ResearchNewsstand items={newsstandItems} />
@@ -376,7 +377,7 @@ function BrowseBySector() {
 
   return (
     <section className="w-full border-t border-black bg-offWhite">
-      <div className="mx-auto w-full max-w-[1440px] px-4 py-6 text-center sm:px-6 lg:px-8">
+      <HomeWideContainer className="py-6 text-center">
         <CompactSectionHeader
           title="Browse by Sector"
           actionHref="/sectors"
@@ -395,7 +396,7 @@ function BrowseBySector() {
             </Link>
           ))}
         </div>
-      </div>
+      </HomeWideContainer>
     </section>
   );
 }

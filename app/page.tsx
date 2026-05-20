@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { PageShell } from "@/components/layout/PageShell";
 import { HomeResearchFeed } from "@/components/home/HomeResearchFeed";
+import { HomeWideContainer } from "@/components/home/HomeWideContainer";
 import { ResearchSubmitForm } from "@/components/research/ResearchSubmitForm";
 
 export const dynamic = "force-dynamic";
@@ -20,7 +21,7 @@ export default function HomePage() {
   return (
     <PageShell>
       <section className="w-full border-b border-black bg-deepOrange deeptech-home-hero">
-        <div className="mx-auto flex max-w-[1320px] flex-col items-center px-4 py-14 text-center sm:px-6 sm:py-16 lg:items-start lg:px-8 lg:py-20 lg:text-left">
+        <HomeWideContainer className="flex flex-col items-center py-14 text-center sm:py-16 lg:items-start lg:py-20 lg:text-left">
           <p className="text-[12px] font-black uppercase tracking-[0.28em] text-white">
             Deep-Tech Research
           </p>
@@ -41,16 +42,16 @@ export default function HomePage() {
           <p className="mx-auto mt-5 max-w-2xl text-center text-[11px] font-black uppercase tracking-[0.16em] text-white lg:mx-0 lg:text-left">
             Free to read · Free to research · Invite required for investor analysis
           </p>
-        </div>
+        </HomeWideContainer>
       </section>
 
       <section className="w-full border-b border-black bg-ink text-white">
-        <div className="mx-auto flex max-w-[1440px] flex-col items-center justify-center gap-2 px-4 py-3 text-center text-[11px] font-black uppercase tracking-[0.18em] sm:px-6 md:flex-row md:justify-between md:text-left lg:px-8">
+        <HomeWideContainer className="flex flex-col items-center justify-center gap-2 py-3 text-center text-[11px] font-black uppercase tracking-[0.18em] md:flex-row md:justify-between md:text-left">
           <span>&#8599; Today&apos;s Edition · {formatEditionDate()}</span>
           <Link className="text-deepOrange hover:text-white" href="/news">
             Full Archive &rarr;
           </Link>
-        </div>
+        </HomeWideContainer>
       </section>
 
       <HomeResearchFeed />

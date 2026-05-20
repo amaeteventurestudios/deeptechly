@@ -19,7 +19,7 @@ const sectors = [
 export function SectorNav() {
   return (
     <section className="w-full border-b border-white/10 bg-[#111111] text-white">
-      <div className="mx-auto max-w-[1440px] px-4 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-[1560px] px-4 sm:px-5 lg:px-8 2xl:px-10">
         <nav className="scrollbar-thin flex max-w-full justify-start gap-8 overflow-x-auto whitespace-nowrap py-2.5 text-[11px] font-black uppercase tracking-[0.18em]">
           {sectors.map((sector) => (
             <Link

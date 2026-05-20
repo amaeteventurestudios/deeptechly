@@ -43,7 +43,7 @@ const aiReadableLinks = [
 export function SiteFooter() {
   return (
     <footer className="w-full border-t border-black bg-ink text-white">
-        <div className="mx-auto grid max-w-[1440px] gap-8 px-4 py-8 text-center sm:px-6 md:grid-cols-2 md:text-left lg:grid-cols-[1.3fr_0.8fr_0.8fr_0.8fr_1.1fr] lg:px-8">
+        <div className="mx-auto grid max-w-[1560px] gap-8 px-4 py-8 text-center sm:px-5 md:grid-cols-2 md:text-left lg:grid-cols-[1.3fr_0.8fr_0.8fr_0.8fr_1.1fr] lg:px-8 2xl:px-10">
           <div className="mx-auto flex max-w-sm flex-col items-center md:mx-0 md:items-start">
             <Link href="/" className="mb-4 flex items-center justify-center gap-2 md:justify-start">
               <span className="flex h-6 w-6 items-center justify-center border border-deepOrange bg-deepOrange text-ink">
@@ -97,7 +97,7 @@ export function SiteFooter() {
           </div>
         </div>
         <div className="border-t border-white/10 py-3">
-          <div className="mx-auto flex max-w-[1440px] flex-col items-center justify-center gap-2 px-4 text-center text-[10px] font-bold uppercase tracking-[0.16em] text-white/52 sm:px-6 md:flex-row md:justify-between md:text-left lg:px-8">
+          <div className="mx-auto flex max-w-[1560px] flex-col items-center justify-center gap-2 px-4 text-center text-[10px] font-bold uppercase tracking-[0.16em] text-white/52 sm:px-5 md:flex-row md:justify-between md:text-left lg:px-8 2xl:px-10">
             <span>Site index: Articles · Research Profiles · Patent Intelligence · llms.txt · XML sitemap</span>
             <span>Independent research · Not investment advice</span>
           </div>
