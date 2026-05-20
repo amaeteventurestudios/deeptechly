@@ -1,5 +1,8 @@
+"use client";
+
 import Link from "next/link";
-import { ArrowRight } from "lucide-react";
+import { useRef } from "react";
+import { ArrowLeft, ArrowRight } from "lucide-react";
 import { FallbackVisual } from "./FallbackVisual";
 import { HomeSaveButton } from "./HomeSaveButton";
 import {
@@ -13,33 +16,65 @@ type LatestArticle = HomepageStory & {
 };
 
 export function LatestArticles({ articles }: { articles?: LatestArticle[] }) {
+  const railRef = useRef<HTMLDivElement>(null);
   const visibleArticles: LatestArticle[] = articles?.length
     ? articles
     : homepageSeed.latestArticles;
+  const scrollRail = (direction: "left" | "right") => {
+    const rail = railRef.current;
+    if (!rail) return;
+
+    rail.scrollBy({
+      left: direction === "left" ? -rail.clientWidth * 0.8 : rail.clientWidth * 0.8,
+      behavior: "smooth"
+    });
+  };
 
   return (
-    <section className="min-w-0">
+    <section className="min-w-0 lg:pr-6">
       <div className="mb-4 flex flex-col items-center gap-3 border-b border-black pb-3 text-center md:flex-row md:items-end md:justify-between md:text-left">
         <h2 className="text-[13px] font-black uppercase tracking-[0.18em] text-ink">
           Latest Articles
         </h2>
-        <Link
-          href="/articles"
-          className="inline-flex min-h-10 items-center justify-center gap-2 border border-black bg-white px-3 py-2 text-center text-[10px] font-black uppercase tracking-[0.14em] shadow-[2px_2px_0_#0f0f0f] hover:bg-deepOrange md:min-h-9"
-        >
-          View All
-          <ArrowRight size={13} aria-hidden="true" />
-        </Link>
+        <div className="flex flex-wrap items-center justify-center gap-2 md:justify-end">
+          <div className="flex items-center gap-1" aria-label="Latest articles scroll controls">
+            <button
+              type="button"
+              aria-label="Scroll latest articles left"
+              onClick={() => scrollRail("left")}
+              className="inline-flex h-10 w-10 items-center justify-center border border-black bg-white text-ink shadow-[2px_2px_0_#0f0f0f] hover:bg-deepOrange focus:outline-none focus:ring-2 focus:ring-deepOrange focus:ring-offset-2 md:h-9 md:w-9"
+            >
+              <ArrowLeft size={14} aria-hidden="true" />
+            </button>
+            <button
+              type="button"
+              aria-label="Scroll latest articles right"
+              onClick={() => scrollRail("right")}
+              className="inline-flex h-10 w-10 items-center justify-center border border-black bg-white text-ink shadow-[2px_2px_0_#0f0f0f] hover:bg-deepOrange focus:outline-none focus:ring-2 focus:ring-deepOrange focus:ring-offset-2 md:h-9 md:w-9"
+            >
+              <ArrowRight size={14} aria-hidden="true" />
+            </button>
+          </div>
+          <Link
+            href="/articles"
+            className="inline-flex min-h-10 items-center justify-center gap-2 border border-black bg-white px-3 py-2 text-center text-[10px] font-black uppercase tracking-[0.14em] shadow-[2px_2px_0_#0f0f0f] hover:bg-deepOrange md:min-h-9"
+          >
+            View All
+            <ArrowRight size={13} aria-hidden="true" />
+          </Link>
+        </div>
       </div>
 
-      <div
-        aria-label="Latest articles"
-        className="flex snap-x snap-mandatory gap-4 overflow-x-auto pb-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-      >
+      <div className="relative overflow-hidden">
+        <div
+          ref={railRef}
+          aria-label="Latest articles"
+          className="flex snap-x snap-mandatory gap-4 overflow-x-auto px-1 pb-3 pr-8 scroll-smooth [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        >
         {visibleArticles.map((article) => (
           <article
             key={article.id}
-            className="group flex min-h-[520px] w-[280px] shrink-0 snap-center flex-col border border-black bg-white shadow-[3px_3px_0_#0f0f0f] transition hover:-translate-y-0.5 hover:border-deepOrange min-[390px]:w-[320px] sm:w-[330px] lg:w-[300px] xl:w-[320px]"
+            className="group flex min-h-[520px] w-[280px] shrink-0 snap-start flex-col border border-black bg-white shadow-[3px_3px_0_#0f0f0f] transition hover:-translate-y-0.5 hover:border-deepOrange min-[390px]:w-[320px] sm:w-[330px] lg:w-[300px] xl:w-[320px]"
           >
             <div className="relative">
               <ArticleVisual article={article} />
@@ -102,6 +137,7 @@ export function LatestArticles({ articles }: { articles?: LatestArticle[] }) {
             </div>
           </article>
         ))}
+        </div>
       </div>
       <p className="mt-1 text-center text-[9px] font-black uppercase tracking-[0.14em] text-muted md:text-left">
         Scroll horizontally &rarr;

@@ -1,16 +1,71 @@
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
+import { HomeSaveButton } from "./HomeSaveButton";
 import { getAuthSession } from "@/lib/auth/session";
 import { listResearchJobs } from "@/lib/research/store";
 import { formatRelativeTime } from "@/lib/story-metadata";
 import { listSavedResearchItems, type SavedResearchItem } from "@/lib/saved-research";
+
+const researchPanelClass =
+  "min-w-0 border-t border-black pt-6 lg:border-l lg:border-t-0 lg:pl-6 lg:pt-0";
+
+const starterResearchCards = [
+  {
+    id: "starter-titanym",
+    entityName: "Titanym",
+    sector: "SEMICONDUCTORS",
+    status: "STARTER",
+    profileHref: "/startup/titanym",
+    dossierHref: "/dossier/titanym"
+  },
+  {
+    id: "starter-helioforge",
+    entityName: "HelioForge Systems",
+    sector: "ENERGY",
+    status: "STARTER",
+    profileHref: "/startup/helioforge-systems",
+    dossierHref: "/dossier/helioforge-systems"
+  },
+  {
+    id: "starter-orbital-optics",
+    entityName: "Orbital Optics Labs",
+    sector: "SPACE",
+    status: "STARTER",
+    profileHref: "/sector/space",
+    dossierHref: "/research"
+  },
+  {
+    id: "starter-darpa-nom4d",
+    entityName: "DARPA NOM4D",
+    sector: "DEFENSE",
+    status: "STARTER",
+    profileHref: "/sector/defense",
+    dossierHref: "/research"
+  },
+  {
+    id: "starter-nano-forge",
+    entityName: "Nano Forge Labs",
+    sector: "MATERIALS",
+    status: "STARTER",
+    profileHref: "/sector/materials",
+    dossierHref: "/research"
+  },
+  {
+    id: "starter-sige-sapphire",
+    entityName: "SiGe on Sapphire",
+    sector: "SEMICONDUCTORS",
+    status: "STARTER",
+    profileHref: "/sector/semiconductors",
+    dossierHref: "/research"
+  }
+];
 
 export async function MyResearch() {
   const session = await getAuthSession();
 
   if (!session) {
     return (
-      <section className="min-w-0">
+      <section className={researchPanelClass}>
         <SectionHeader />
         <div className="flex min-h-[360px] flex-col justify-center border border-black bg-white p-5 text-center shadow-[3px_3px_0_#0f0f0f]">
           <p className="text-[10px] font-black uppercase tracking-[0.18em] text-deepOrange">
@@ -62,18 +117,11 @@ export async function MyResearch() {
   const cards = [...jobCards, ...savedCards].slice(0, 6);
 
   return (
-    <section className="min-w-0">
+    <section className={researchPanelClass}>
       <SectionHeader />
 
       {cards.length === 0 ? (
-        <div className="flex min-h-[360px] flex-col items-center justify-center border border-black bg-white p-6 text-center shadow-[3px_3px_0_#0f0f0f]">
-          <h3 className="text-xl font-black leading-tight text-ink">
-            No saved or queued research yet.
-          </h3>
-          <p className="mt-2 max-w-sm text-sm font-semibold leading-6 text-charcoal">
-            Use the homepage research form or star controls to start building your private queue.
-          </p>
-        </div>
+        <StarterResearchGrid />
       ) : (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           {cards.map((item) => (
@@ -125,6 +173,71 @@ export async function MyResearch() {
         </div>
       )}
     </section>
+  );
+}
+
+function StarterResearchGrid() {
+  return (
+    <div className="border border-black bg-white p-3 text-center shadow-[3px_3px_0_#0f0f0f]">
+      <p className="text-[9px] font-black uppercase tracking-[0.18em] text-deepOrange">
+        Starter Research
+      </p>
+      <h3 className="mt-1 text-lg font-black leading-tight text-ink">
+        No saved research yet.
+      </h3>
+      <p className="mx-auto mt-2 max-w-sm text-xs font-semibold leading-5 text-charcoal">
+        Start with one of these research paths or save articles to build your private queue.
+      </p>
+      <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+        {starterResearchCards.map((item) => (
+          <article
+            key={item.id}
+            className="mx-auto flex min-h-[166px] w-full max-w-sm flex-col border border-black bg-offWhite p-3 text-left shadow-[2px_2px_0_#0f0f0f] transition hover:-translate-y-0.5 hover:border-deepOrange sm:max-w-none"
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-[8px] font-black uppercase tracking-[0.16em] text-deepOrange">
+                  {item.sector}
+                </p>
+                <h3 className="mt-1 text-sm font-black leading-tight text-ink">
+                  {item.entityName}
+                </h3>
+              </div>
+              <HomeSaveButton
+                entityName={item.entityName}
+                href={item.profileHref}
+                itemId={item.id}
+                itemType="STARTER_RESEARCH"
+                label={item.entityName}
+                className="h-8 w-8 shadow-none"
+                sector={item.sector}
+              />
+            </div>
+            <div className="mt-3">
+              <span className="inline-flex min-h-7 items-center justify-center border border-black bg-paleOrange px-2 py-1 text-center text-[8px] font-black uppercase tracking-[0.1em]">
+                {item.status}
+              </span>
+            </div>
+            <div className="mt-auto grid w-full grid-cols-1 gap-2 pt-3">
+              <Link
+                href={item.profileHref}
+                className="inline-flex min-h-9 items-center justify-center gap-1 border border-black bg-ink px-2 py-2 text-center text-[8px] font-black uppercase tracking-[0.1em] text-white hover:bg-deepOrange hover:text-ink"
+              >
+                Open Profile
+                <ArrowRight size={11} aria-hidden="true" />
+              </Link>
+              <Link
+                href={item.dossierHref}
+                className="inline-flex min-h-9 items-center justify-center gap-1 border border-black bg-white px-2 py-2 text-center text-[8px] font-black uppercase tracking-[0.1em] hover:bg-paleOrange"
+              >
+                Open Dossier
+                <ArrowRight size={11} aria-hidden="true" />
+              </Link>
+            </div>
+          </article>
+        ))}
+      </div>
+    </div>
   );
 }
 
