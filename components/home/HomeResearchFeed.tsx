@@ -41,7 +41,7 @@ export async function HomeResearchFeed() {
   return (
     <>
       <section className="w-full bg-paper">
-        <HomeWideContainer className="grid gap-8 py-8 text-center lg:grid-cols-[minmax(0,1fr)_minmax(420px,520px)] lg:text-left">
+        <HomeWideContainer className="grid gap-8 py-8 text-center lg:grid-cols-[minmax(0,1.85fr)_minmax(420px,1fr)] lg:text-left">
           <div className="mx-auto w-full max-w-3xl lg:max-w-none">
             <CompactSectionHeader
               title="Top Stories"
@@ -68,7 +68,7 @@ export async function HomeResearchFeed() {
 
       <section className="w-full border-t border-black bg-offWhite">
         <HomeWideContainer className="py-8">
-          <div className="grid gap-8 border border-black bg-paper p-4 shadow-hard lg:grid-cols-[minmax(0,1.8fr)_minmax(460px,0.95fr)] lg:items-start lg:p-5">
+          <div className="grid gap-8 border border-black bg-paper p-4 shadow-hard lg:grid-cols-[minmax(0,1.75fr)_minmax(500px,1fr)] lg:items-start lg:p-5">
             <LatestArticles articles={latestArticles} />
             <MyResearch />
           </div>

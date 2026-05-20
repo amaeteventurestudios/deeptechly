@@ -9,7 +9,7 @@ export function HomeWideContainer({
 }) {
   return (
     <div
-      className={`mx-auto w-full max-w-[1560px] px-4 sm:px-5 lg:px-8 2xl:px-10 ${className}`}
+      className={`mx-auto w-full max-w-[1840px] px-4 sm:px-5 lg:px-6 xl:px-8 2xl:px-10 ${className}`}
     >
       {children}
     </div>
