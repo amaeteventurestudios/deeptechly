@@ -666,6 +666,31 @@ export const homepageSeed = {
       confidence: "Moderate",
       href: "/patents",
       cta: "VIEW SIGNAL"
+    },
+    {
+      id: "newsstand-field-robotics",
+      type: "ARTICLE",
+      title: "Field robotics inspection moves from pilots to infrastructure deployment",
+      sector: "Robotics",
+      analyst: "Sable Okoro",
+      time: "13h ago",
+      sourceCount: 8,
+      confidence: "Moderate",
+      href: "/sector/robotics",
+      cta: "READ ARTICLE"
+    },
+    {
+      id: "newsstand-high-temp-packaging",
+      type: "DOSSIER",
+      title: "High-temperature packaging becomes a qualification bottleneck",
+      sector: "Semiconductors",
+      analyst: "Eris Calder",
+      time: "14h ago",
+      sourceCount: 9,
+      confidence: "Moderate",
+      href: "/sector/semiconductors",
+      cta: "OPEN DOSSIER",
+      gated: true
     }
   ] satisfies NewsstandItem[],
 

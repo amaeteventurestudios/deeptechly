@@ -17,7 +17,9 @@ const labelClasses: Record<HomepageContentType, string> = {
 };
 
 export function ResearchNewsstand({ items }: { items?: NewsstandItem[] }) {
-  const visibleItems = items?.length ? items : homepageSeed.newsstand;
+  const visibleItems = items?.length
+    ? fillNewsstandItems(items)
+    : homepageSeed.newsstand;
 
   return (
     <section className="w-full border-t border-black bg-paper">
@@ -35,7 +37,7 @@ export function ResearchNewsstand({ items }: { items?: NewsstandItem[] }) {
           </Link>
         </div>
 
-        <div className="grid grid-cols-1 gap-px border border-black bg-black sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6">
+        <div className="grid grid-cols-1 gap-px border border-black bg-black sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
           {visibleItems.map((item) => (
             <article
               key={item.id}
@@ -98,4 +100,16 @@ export function ResearchNewsstand({ items }: { items?: NewsstandItem[] }) {
       </HomeWideContainer>
     </section>
   );
+}
+
+function fillNewsstandItems(items: NewsstandItem[]) {
+  const seen = new Set<string>();
+  return [...items, ...homepageSeed.newsstand]
+    .filter((item) => {
+      const key = `${item.type}:${item.href}:${item.title}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .slice(0, 14);
 }

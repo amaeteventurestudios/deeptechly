@@ -36,7 +36,7 @@ export async function HomeResearchFeed() {
   const newsstandItems = mergeNewsstandItems(
     generatedStories.flatMap(newsstandItemsFromStory),
     homepageSeed.newsstand
-  ).slice(0, 12);
+  ).slice(0, 14);
 
   return (
     <>
