@@ -1,5 +1,99 @@
 import type { ResearchJob, ResearchStage } from "./types";
 
+export type ResearchWorkflowStep = {
+  id:
+    | "queued"
+    | "searching_web"
+    | "reading_homepage"
+    | "reading_technical_pages"
+    | "distilling_facts"
+    | "filling_gaps"
+    | "verifying_claims"
+    | "mapping_technology_stack"
+    | "mapping_government_relevance"
+    | "estimating_readiness"
+    | "drafting_outputs"
+    | "publishing_article"
+    | "publishing_profile"
+    | "finalizing_dossier"
+    | "done";
+  label: string;
+  stages: ResearchStage[];
+};
+
+export const researchWorkflowSteps: ResearchWorkflowStep[] = [
+  { id: "queued", label: "Queued", stages: ["queued"] },
+  {
+    id: "searching_web",
+    label: "Searching the web",
+    stages: [
+      "resolving_entity",
+      "finding_official_domain",
+      "confirming_company_identity",
+      "searching_web"
+    ]
+  },
+  { id: "reading_homepage", label: "Reading homepage", stages: ["reading_homepage"] },
+  {
+    id: "reading_technical_pages",
+    label: "Reading technical pages",
+    stages: ["reading_technical_pages"]
+  },
+  {
+    id: "distilling_facts",
+    label: "Distilling structured facts",
+    stages: ["distilling_facts"]
+  },
+  { id: "filling_gaps", label: "Filling gaps", stages: ["filling_gaps"] },
+  { id: "verifying_claims", label: "Verifying claims", stages: ["verifying_claims"] },
+  {
+    id: "mapping_technology_stack",
+    label: "Mapping technology stack",
+    stages: ["mapping_technology_stack"]
+  },
+  {
+    id: "mapping_government_relevance",
+    label: "Mapping government relevance",
+    stages: ["mapping_government_relevance"]
+  },
+  {
+    id: "estimating_readiness",
+    label: "Estimating readiness",
+    stages: ["estimating_readiness"]
+  },
+  {
+    id: "drafting_outputs",
+    label: "Drafting article/profile/dossier in parallel",
+    stages: ["drafting_outputs"]
+  },
+  {
+    id: "publishing_article",
+    label: "Publishing article",
+    stages: ["publishing_article"]
+  },
+  {
+    id: "publishing_profile",
+    label: "Publishing profile",
+    stages: ["publishing_profile"]
+  },
+  {
+    id: "finalizing_dossier",
+    label: "Finalizing dossier",
+    stages: ["finalizing_dossier", "public_research_ready"]
+  },
+  { id: "done", label: "Done", stages: ["done"] }
+];
+
+const workflowStepIndexByStage = researchWorkflowSteps.reduce(
+  (indexByStage, step, index) => {
+    step.stages.forEach((stage) => {
+      indexByStage[stage] = index;
+    });
+    return indexByStage;
+  },
+  {} as Partial<Record<ResearchStage, number>>
+);
+
 export const queueStageLabels: Record<ResearchStage, string> = {
   queued: "Queued",
   resolving_entity: "Searching the web",
@@ -50,6 +144,14 @@ export const queueProgressByStage: Record<ResearchStage, number> = {
 
 export function getQueueStageLabel(stage: ResearchStage) {
   return queueStageLabels[stage] ?? "Queued";
+}
+
+export function getResearchWorkflowStepIndex(stage: ResearchStage) {
+  if (stage === "failed" || stage === "cancelled") {
+    return -1;
+  }
+
+  return workflowStepIndexByStage[stage] ?? 0;
 }
 
 export function getQueueProgress(job: ResearchJob) {

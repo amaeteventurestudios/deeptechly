@@ -214,6 +214,7 @@ export async function safeMarkJobFailed(
     message: "Research failed",
     detail: RETRYABLE_RESEARCH_FAILURE_COPY,
     error: safeErrorMessage(message),
+    failedStage: job.stage !== "failed" ? job.stage : (job.failedStage ?? null),
     completedAt: now.toISOString(),
     orchestration: {
       ...job.orchestration,
@@ -244,6 +245,7 @@ export async function safeMarkJobStuck(jobId: string) {
     message: "Research failed",
     detail: RETRYABLE_RESEARCH_FAILURE_COPY,
     error: "Research job stalled before completion.",
+    failedStage: job.stage !== "failed" ? job.stage : (job.failedStage ?? null),
     completedAt: now,
     orchestration: {
       ...job.orchestration,
@@ -272,6 +274,7 @@ export async function safeResumeOrRetryJob(jobId: string) {
     message: "Queued",
     detail: "Retry queued after a recoverable research failure.",
     error: null,
+    failedStage: null,
     completedAt: null,
     cancellationRequested: false,
     orchestration: {

@@ -6,7 +6,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertTriangle,
   Bell,
+  Check,
   CheckCircle2,
+  Circle,
+  Clock3,
   ExternalLink,
   LoaderCircle,
   RefreshCw
@@ -17,7 +20,9 @@ import {
   getQueueProgress,
   getQueueStageLabel,
   getQueueStatusLabel,
-  isActiveQueueStage
+  getResearchWorkflowStepIndex,
+  isActiveQueueStage,
+  researchWorkflowSteps
 } from "@/lib/research/display";
 import type { ResearchJob, ResearchStage } from "@/lib/research/types";
 
@@ -29,18 +34,14 @@ type JobsResponse = {
     completedCount?: number;
     failedCount?: number;
     maxActive?: number;
+    globalActiveCount?: number;
+    globalQueuedCount?: number;
   };
 };
 
 type JobResponse = {
   job?: ResearchJob;
   error?: string;
-};
-
-type StageHistoryItem = {
-  stage: ResearchStage;
-  startedAt?: string;
-  completedAt?: string;
 };
 
 export function ResearchQueueClient({
@@ -222,7 +223,6 @@ export function ResearchQueueClient({
   const failedCount = orderedJobs.filter(
     (job) => job.stage === "failed" || job.stage === "cancelled"
   ).length;
-  const jobsAhead = Math.max(0, activeCount - 1);
   const allCaughtUp = orderedJobs.length > 0 && activeCount === 0 && queuedCount === 0;
 
   return (
@@ -250,7 +250,7 @@ export function ResearchQueueClient({
           setSoundAlerts={setSoundAlerts}
         />
 
-        <BusyQueueMessage jobsAhead={jobsAhead} queueStats={queueStats} />
+        <BusyQueueMessage queuedCount={queuedCount} queueStats={queueStats} />
 
         {error ? <QueueError message={error} /> : null}
 
@@ -262,7 +262,6 @@ export function ResearchQueueClient({
           <ResearchQueueList
             jobs={orderedJobs}
             now={now}
-            focused={focused}
             onCancel={cancelJob}
           />
         )}
@@ -387,27 +386,25 @@ function HeadsUpBar() {
 }
 
 function BusyQueueMessage({
-  jobsAhead,
+  queuedCount,
   queueStats
 }: {
-  jobsAhead: number;
+  queuedCount: number;
   queueStats?: JobsResponse["queueStats"];
 }) {
-  const queuedCount = queueStats?.queuedCount ?? 0;
-  const activeCount = queueStats?.activeCount ?? 0;
+  const scopedQueuedCount = queueStats?.queuedCount ?? queuedCount;
+  const activeCount = queueStats?.globalActiveCount ?? queueStats?.activeCount ?? 0;
   const maxActive = queueStats?.maxActive ?? 3;
 
-  if (jobsAhead <= 0 && queuedCount <= 0 && activeCount < maxActive) {
+  if (scopedQueuedCount <= 0 && activeCount < maxActive) {
     return null;
   }
 
   return (
     <div className="mb-4 border border-black bg-offWhite p-3 text-center text-xs font-black uppercase leading-5 tracking-[0.14em] shadow-[3px_3px_0_#0f0f0f] sm:text-left">
-      {jobsAhead > 0
-        ? `BUSY QUEUE: there are ${jobsAhead} research jobs ahead of yours.`
-        : queuedCount > 0
-          ? `QUEUE CAPACITY: ${activeCount}/${maxActive} active slots used · ${queuedCount} queued.`
-          : "BUSY QUEUE: research is taking longer than usual."}
+      {scopedQueuedCount > 0
+        ? `QUEUE CAPACITY: ${activeCount}/${maxActive} active slots used · ${scopedQueuedCount} queued.`
+        : "BUSY QUEUE: research is taking longer than usual."}
     </div>
   );
 }
@@ -458,12 +455,10 @@ function EmptyQueue() {
 function ResearchQueueList({
   jobs,
   now,
-  focused,
   onCancel
 }: {
   jobs: ResearchJob[];
   now: number;
-  focused: boolean;
   onCancel: (jobId: string) => void;
 }) {
   const activeJobs = jobs.filter((job) => isActiveQueueStage(job.stage));
@@ -474,14 +469,12 @@ function ResearchQueueList({
   return (
     <div className="space-y-5">
       <QueueSection
-        focused={focused}
         jobs={activeJobs}
         now={now}
         onCancel={onCancel}
         title="In Progress"
       />
       <QueueSection
-        focused={focused}
         jobs={queuedJobs}
         now={now}
         onCancel={onCancel}
@@ -489,14 +482,12 @@ function ResearchQueueList({
         title="Queued"
       />
       <QueueSection
-        focused={focused}
         jobs={completedJobs}
         now={now}
         onCancel={onCancel}
         title="Completed"
       />
       <QueueSection
-        focused={focused}
         jobs={failedJobs}
         now={now}
         onCancel={onCancel}
@@ -507,14 +498,12 @@ function ResearchQueueList({
 }
 
 function QueueSection({
-  focused,
   jobs,
   now,
   onCancel,
   queued = false,
   title
 }: {
-  focused: boolean;
   jobs: ResearchJob[];
   now: number;
   onCancel: (jobId: string) => void;
@@ -533,7 +522,6 @@ function QueueSection({
       {jobs.map((job, index) => (
         <QueueCard
           key={job.id}
-          focused={focused}
           job={job}
           now={now}
           onCancel={onCancel}
@@ -548,14 +536,12 @@ function QueueSection({
 function QueueCard({
   job,
   now,
-  focused,
   onCancel,
   priority,
   queuePosition
 }: {
   job: ResearchJob;
   now: number;
-  focused: boolean;
   onCancel: (jobId: string) => void;
   priority: boolean;
   queuePosition?: number;
@@ -566,12 +552,11 @@ function QueueCard({
   const active = isActiveQueueStage(job.stage);
   const stageLabel = getQueueStageLabel(job.stage);
   const progress = getQueueProgress(job);
-  const elapsed = formatElapsed(job.createdAt, now);
+  const timeLabel = formatJobTime(job, now);
   const sourceCount = job.feed?.sourceCount ?? job.sourceCount;
   const confidenceLabel = job.feed?.confidenceLabel;
   const entityType = job.feed?.entityTypeTag ?? job.mode;
-  const history = getStageHistory(job);
-  const Icon = failed ? AlertTriangle : done ? CheckCircle2 : LoaderCircle;
+  const Icon = failed ? AlertTriangle : done ? CheckCircle2 : queued ? Clock3 : LoaderCircle;
 
   return (
     <article
@@ -606,7 +591,7 @@ function QueueCard({
               </h3>
               <div className="mt-3 flex flex-wrap justify-center gap-2 sm:justify-start">
                 <QueueTag>{entityTypeLabel(entityType)}</QueueTag>
-                <QueueTag>{elapsed}</QueueTag>
+                <QueueTag>{timeLabel}</QueueTag>
                 {sourceCount > 0 ? <QueueTag>{sourceCount} sources</QueueTag> : null}
                 {confidenceLabel ? <QueueTag>{confidenceLabel}</QueueTag> : null}
               </div>
@@ -616,10 +601,21 @@ function QueueCard({
           </div>
 
           <div className="mt-5">
-            <div className="flex items-center justify-between gap-3">
-              <p className="text-sm font-black leading-5">
-                {queued ? "Waiting for an active research slot." : stageLabel}
-              </p>
+            <div className="flex items-end justify-between gap-3 text-left">
+              <div className="min-w-0">
+                <p className="text-[10px] font-black uppercase tracking-[0.16em] text-muted">
+                  {queued
+                    ? "Queue Status"
+                    : done
+                      ? "Completion Status"
+                      : failed
+                        ? "Failure Status"
+                        : "Current Stage"}
+                </p>
+                <p className="mt-1 text-sm font-black leading-5">
+                  {queued ? "Waiting for an active research slot." : stageLabel}
+                </p>
+              </div>
               {!failed && !queued ? (
                 <p className="shrink-0 text-[10px] font-black uppercase tracking-[0.14em] text-muted">
                   {progress}%
@@ -651,13 +647,11 @@ function QueueCard({
             )}
           </div>
 
-          {failed ? (
-            <p className="mt-4 border border-black bg-offWhite p-3 text-sm font-bold leading-6 text-charcoal">
-              {cleanError(job.error ?? job.detail)}
-            </p>
-          ) : null}
+          {active || queued ? <ResearchWorkflowChecklist stage={job.stage} /> : null}
 
-          {focused && history.length > 0 ? <StageHistory history={history} /> : null}
+          {done ? <CompletedJobSummary sourceCount={sourceCount} /> : null}
+
+          {failed ? <FailedJobSummary job={job} /> : null}
         </div>
       </div>
     </article>
@@ -739,25 +733,118 @@ function QueueTag({ children }: { children: ReactNode }) {
   );
 }
 
-function StageHistory({ history }: { history: StageHistoryItem[] }) {
+function ResearchWorkflowChecklist({ stage }: { stage: ResearchStage }) {
+  const currentIndex = getResearchWorkflowStepIndex(stage);
+
   return (
     <div className="mt-5 border border-black bg-offWhite p-3 text-left">
       <p className="text-[10px] font-black uppercase tracking-[0.18em] text-deepOrange">
-        Stage History
+        Research Workflow
       </p>
-      <ol className="mt-3 space-y-2">
-        {history.map((item, index) => (
-          <li
-            key={`${item.stage}-${item.startedAt ?? index}`}
-            className="flex flex-col gap-1 text-xs font-bold leading-5 text-charcoal sm:flex-row sm:items-center sm:justify-between"
-          >
-            <span>{getQueueStageLabel(item.stage)}</span>
-            {item.startedAt ? <span>{formatShortTime(item.startedAt)}</span> : null}
-          </li>
-        ))}
+      <ol className="mt-3 grid gap-2 md:grid-cols-2">
+        {researchWorkflowSteps.map((step, index) => {
+          const state =
+            stage === "done"
+              ? "complete"
+              : index < currentIndex
+                ? "complete"
+                : index === currentIndex
+                  ? "current"
+                  : "pending";
+
+          return (
+            <li
+              key={step.id}
+              className={`flex min-w-0 items-start gap-2 border border-black bg-white px-2.5 py-2 text-xs font-black leading-5 ${
+                state === "current"
+                  ? "border-deepOrange bg-paleOrange text-ink"
+                  : state === "complete"
+                    ? "text-ink"
+                    : "text-muted"
+              }`}
+            >
+              <WorkflowIndicator state={state} />
+              <span className="min-w-0 break-words">{step.label}</span>
+            </li>
+          );
+        })}
       </ol>
     </div>
   );
+}
+
+function WorkflowIndicator({
+  state
+}: {
+  state: "complete" | "current" | "pending";
+}) {
+  if (state === "complete") {
+    return (
+      <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center border border-black bg-white text-ink">
+        <Check size={11} strokeWidth={3} aria-hidden="true" />
+      </span>
+    );
+  }
+
+  if (state === "current") {
+    return (
+      <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center border border-black bg-deepOrange text-ink">
+        <Circle size={7} fill="currentColor" strokeWidth={0} aria-hidden="true" />
+      </span>
+    );
+  }
+
+  return (
+    <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center border border-black bg-white text-muted">
+      <Circle size={7} aria-hidden="true" />
+    </span>
+  );
+}
+
+function CompletedJobSummary({ sourceCount }: { sourceCount: number }) {
+  return (
+    <div className="mt-4 border border-black bg-offWhite p-3 text-left">
+      <p className="text-[10px] font-black uppercase tracking-[0.18em] text-deepOrange">
+        Research Complete
+      </p>
+      <p className="mt-1 text-sm font-bold leading-6 text-charcoal">
+        Article, profile, and dossier outputs are ready
+        {sourceCount > 0 ? ` with ${sourceCount} public sources attached.` : "."}
+      </p>
+    </div>
+  );
+}
+
+function FailedJobSummary({ job }: { job: ResearchJob }) {
+  const failedStage = getKnownFailedStage(job);
+  const cancelled = job.stage === "cancelled";
+
+  return (
+    <div className="mt-4 border border-black bg-offWhite p-3 text-left">
+      <p className="text-[10px] font-black uppercase tracking-[0.18em] text-darkOrange">
+        {cancelled ? "Cancelled" : "Failed"}
+      </p>
+      {failedStage ? (
+        <p className="mt-1 text-xs font-black uppercase leading-5 tracking-[0.12em] text-charcoal">
+          {cancelled ? "Stopped during" : "Failed during"} {getQueueStageLabel(failedStage)}
+        </p>
+      ) : null}
+      <p className="mt-2 text-sm font-bold leading-6 text-charcoal">
+        {cancelled
+          ? "This research job was cancelled before completion."
+          : "We could not complete this research job. Try a more specific company name, domain, patent number, or source URL."}
+      </p>
+    </div>
+  );
+}
+
+function getKnownFailedStage(job: ResearchJob) {
+  const failedStage = job.failedStage;
+  if (!failedStage || failedStage === "failed" || failedStage === "cancelled") {
+    return null;
+  }
+
+  return failedStage;
 }
 
 function sortQueueJobs(jobs: ResearchJob[]) {
@@ -796,6 +883,22 @@ function entityTypeLabel(value: string) {
   return value.replace(/_/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
+function formatJobTime(job: ResearchJob, now: number) {
+  if (isActiveQueueStage(job.stage) || job.stage === "queued") {
+    return formatElapsed(job.createdAt, now);
+  }
+
+  if (job.stage === "done" && job.completedAt) {
+    return `Completed ${formatShortDateTime(job.completedAt)}`;
+  }
+
+  if ((job.stage === "failed" || job.stage === "cancelled") && job.completedAt) {
+    return `${job.stage === "cancelled" ? "Cancelled" : "Failed"} ${formatShortDateTime(job.completedAt)}`;
+  }
+
+  return `Submitted ${formatShortDateTime(job.createdAt)}`;
+}
+
 function formatElapsed(createdAt: string, now: number) {
   const started = new Date(createdAt).getTime();
   if (!Number.isFinite(started)) return "Elapsed time unavailable";
@@ -808,19 +911,15 @@ function formatElapsed(createdAt: string, now: number) {
   return `${hours}h ${minutes % 60}m elapsed`;
 }
 
-function formatShortTime(value: string) {
+function formatShortDateTime(value: string) {
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "";
+  if (Number.isNaN(date.getTime())) return "time unavailable";
   return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
     hour: "numeric",
     minute: "2-digit"
   }).format(date);
-}
-
-function getStageHistory(job: ResearchJob) {
-  const maybeHistory = (job as ResearchJob & { stageHistory?: StageHistoryItem[] }).stageHistory;
-  if (!Array.isArray(maybeHistory)) return [];
-  return maybeHistory.filter((item) => item.stage);
 }
 
 function cleanError(message: string) {

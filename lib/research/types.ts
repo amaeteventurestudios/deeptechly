@@ -69,6 +69,7 @@ export type ResearchJob = {
   stageStartedAt?: string;
   publicResearchReadyAt?: string | null;
   cancellationRequested?: boolean;
+  failedStage?: ResearchStage | null;
   error: string | null;
   articleId: string | null;
   entityId: string | null;

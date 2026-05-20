@@ -684,6 +684,7 @@ export async function createResearchJob(
     stageStartedAt: now,
     publicResearchReadyAt: null,
     cancellationRequested: false,
+    failedStage: null,
     error: null,
     articleId: null,
     entityId: null,
@@ -755,6 +756,7 @@ export async function createLinkedResearchJob(
     stageStartedAt: now,
     publicResearchReadyAt: publishedAt,
     cancellationRequested: false,
+    failedStage: null,
     error: null,
     articleId: article?.id ?? entity.article.entitySlug ?? entity.slug,
     entityId: entity.id ?? entity.slug,
@@ -1028,6 +1030,7 @@ export async function saveResearchOutput(jobId: string, output: ResearchOutput) 
       message: "Done",
       detail: publishStatus === "published" ? "Research complete and published" : "Research complete as draft",
       sourceCount: entity.sourceCount,
+      failedStage: null,
       entityId: entity.id ?? entity.slug,
       articleId: article.id,
       dossierId: dossier.id,
@@ -1121,6 +1124,7 @@ export async function savePublicResearchReady(jobId: string, output: ResearchOut
       message: "Public research ready",
       detail: "Article and profile are published. Institutional dossier is still finalizing.",
       sourceCount: entity.sourceCount,
+      failedStage: null,
       entityId: entity.id ?? entity.slug,
       articleId: article.id,
       articleUrl: `/article/${entity.slug}`,
@@ -1179,12 +1183,15 @@ export async function savePublicResearchReady(jobId: string, output: ResearchOut
 
 export async function cancelResearchJob(id: string) {
   const copy = stageMessage("cancelled");
+  const job = await getResearchJob(id);
+
   return updateResearchJob(id, {
     stage: "cancelled",
     statusLabel: "CANCELLED",
     message: copy.message,
     detail: copy.detail,
     cancellationRequested: true,
+    failedStage: job?.stage && job.stage !== "cancelled" ? job.stage : null,
     completedAt: new Date().toISOString()
   });
 }
