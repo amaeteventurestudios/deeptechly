@@ -509,5 +509,11 @@ export async function runResearchJob(jobId: string, query: string) {
       retryable: timeout || !(error instanceof Error && /invalid|authorization|cancelled/i.test(error.message)),
       failureType: timeout ? "timeout" : undefined
     });
+  } finally {
+    const latestJob = await getResearchJob(jobId);
+    if (latestJob?.userId) {
+      const { drainResearchQueue } = await import("./queue");
+      await drainResearchQueue(latestJob.userId);
+    }
   }
 }

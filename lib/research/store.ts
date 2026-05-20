@@ -890,18 +890,24 @@ export async function listResearchJobs(userId?: string | null) {
     : data.jobs;
   const rank = (job: ResearchJob) => {
     if (isActiveResearchStage(job.stage)) return 0;
+    if (job.stage === "queued") return 1;
     if (job.stage === "public_research_ready") return 1;
-    if (job.stage === "done") return 1;
-    return 2;
+    if (job.stage === "done") return 2;
+    return 3;
   };
   const timestamp = (job: ResearchJob) =>
-    job.stage === "done"
+    job.stage === "queued"
+      ? job.createdAt
+      : job.stage === "done"
       ? job.completedAt ?? job.updatedAt
       : job.updatedAt ?? job.createdAt;
 
   return [...scopedJobs].sort((a, b) => {
     const rankDelta = rank(a) - rank(b);
     if (rankDelta !== 0) return rankDelta;
+    if (a.stage === "queued" && b.stage === "queued") {
+      return timestamp(a).localeCompare(timestamp(b));
+    }
     return timestamp(b).localeCompare(timestamp(a));
   });
 }

@@ -61,6 +61,7 @@ export function getQueueProgress(job: ResearchJob) {
 }
 
 export function getQueueStatusLabel(job: ResearchJob) {
+  if (job.stage === "queued") return "QUEUED";
   if (job.stage === "failed" || job.stage === "cancelled") return "FAILED";
   if (job.stage === "done") return "DONE";
   return "IN PROGRESS";
@@ -71,7 +72,7 @@ export function isTerminalQueueStage(stage: ResearchStage) {
 }
 
 export function isActiveQueueStage(stage: ResearchStage) {
-  return !isTerminalQueueStage(stage);
+  return stage !== "queued" && !isTerminalQueueStage(stage);
 }
 
 function clampProgress(progress: number) {

@@ -11,7 +11,6 @@ export const RETRYABLE_RESEARCH_FAILURE_COPY =
 
 const terminalStatuses = new Set<ResearchStage>(["done", "failed", "cancelled"]);
 const activeStatuses = new Set<ResearchStage>([
-  "queued",
   "resolving_entity",
   "finding_official_domain",
   "confirming_company_identity",
@@ -27,6 +26,7 @@ const activeStatuses = new Set<ResearchStage>([
   "drafting_outputs",
   "publishing_article",
   "publishing_profile",
+  "public_research_ready",
   "finalizing_dossier"
 ]);
 
@@ -138,7 +138,7 @@ export function shouldReuseActiveJob(
   userId?: string | null
 ) {
   if (existingJob.userId !== (userId ?? null)) return false;
-  if (!isActiveResearchStatus(existingJob.stage)) return false;
+  if (isTerminalResearchStatus(existingJob.stage)) return false;
   return jobMatchesInput(existingJob, input);
 }
 
@@ -266,7 +266,6 @@ export async function safeResumeOrRetryJob(jobId: string) {
   const job = await getResearchJob(jobId);
   if (!job || !canRetryResearchJob(job)) return null;
 
-  const now = new Date().toISOString();
   return updateResearchJob(jobId, {
     stage: "queued",
     progress: 5,
@@ -282,7 +281,7 @@ export async function safeResumeOrRetryJob(jobId: string) {
         job.orchestration?.inputFingerprint ?? buildInputFingerprint(job.query),
       attemptCount: getAttemptCount(job),
       maxAttempts: getMaxAttempts(job),
-      lastRunStartedAt: now,
+      lastRunStartedAt: null,
       lastRunFinishedAt: null,
       nextRetryAt: null,
       retryable: false,

@@ -3,14 +3,13 @@ import {
   createResearchJob,
   createLinkedResearchJob,
   findReusableEntityForInput,
-  isActiveResearchStage,
+  getResearchJob,
   listResearchJobs
 } from "@/lib/research/store";
-import { runResearchJob } from "@/lib/research/pipeline";
 import type { ResearchMode } from "@/lib/research/types";
-import { MAX_ACTIVE_USER_JOBS } from "@/lib/research/limits";
 import { getAuthSession } from "@/lib/auth/session";
 import { classifyEntityInput } from "@/lib/research/entity-resolution";
+import { drainResearchQueue } from "@/lib/research/queue";
 import {
   canRetryResearchJob,
   jobMatchesInput,
@@ -45,10 +44,12 @@ export async function POST(request: Request) {
       shouldReuseActiveJob(job, query, session.userId)
     );
     if (duplicateActiveJob) {
+      await drainResearchQueue(session.userId);
+      const job = (await getResearchJob(duplicateActiveJob.id)) ?? duplicateActiveJob;
       return NextResponse.json({
-        jobId: duplicateActiveJob.id,
-        status: duplicateActiveJob.stage,
-        job: duplicateActiveJob,
+        jobId: job.id,
+        status: job.stage,
+        job,
         reused: true
       });
     }
@@ -59,11 +60,12 @@ export async function POST(request: Request) {
     if (retryableJob) {
       const retriedJob = await safeResumeOrRetryJob(retryableJob.id);
       if (retriedJob) {
-        void runResearchJob(retriedJob.id, retriedJob.query);
+        await drainResearchQueue(session.userId);
+        const job = (await getResearchJob(retriedJob.id)) ?? retriedJob;
         return NextResponse.json({
-          jobId: retriedJob.id,
-          status: retriedJob.stage,
-          job: retriedJob,
+          jobId: job.id,
+          status: job.stage,
+          job,
           retried: true
         });
       }
@@ -79,6 +81,7 @@ export async function POST(request: Request) {
         session.userId,
         reusableEntity.entity
       );
+      await drainResearchQueue(session.userId);
       return NextResponse.json({
         jobId: job.id,
         status: job.stage,
@@ -86,25 +89,14 @@ export async function POST(request: Request) {
       });
     }
 
-    const activeCount = existingJobs.filter((job) => isActiveResearchStage(job.stage)).length;
-    if (activeCount >= MAX_ACTIVE_USER_JOBS) {
-      return NextResponse.json(
-        {
-          error:
-            "DeepTechly already has two active research jobs in this queue. Cancel or wait for one to finish before starting another."
-        },
-        { status: 429 }
-      );
-    }
-
     const job = await createResearchJob(query, requestedMode, session.userId);
-
-    void runResearchJob(job.id, query);
+    await drainResearchQueue(session.userId);
+    const refreshedJob = (await getResearchJob(job.id)) ?? job;
 
     return NextResponse.json({
-      jobId: job.id,
-      status: job.stage,
-      job
+      jobId: refreshedJob.id,
+      status: refreshedJob.stage,
+      job: refreshedJob
     });
   } catch (error) {
     console.error("Research service unavailable", error);
@@ -135,13 +127,18 @@ export async function GET() {
   try {
     const session = await getAuthSession();
     if (!session) {
-      return NextResponse.json({ jobs: [], queueStats: { activeCount: 0 } });
+      return NextResponse.json({
+        jobs: [],
+        queueStats: { activeCount: 0, queuedCount: 0, completedCount: 0, failedCount: 0, maxActive: 3 }
+      });
     }
 
     await markStuckJobsForUser(session.userId);
-    const jobs = await listResearchJobs(session.userId);
-    const activeCount = jobs.filter((job) => isActiveResearchStage(job.stage)).length;
-    return NextResponse.json({ jobs, queueStats: { activeCount } });
+    const drained = await drainResearchQueue(session.userId);
+    return NextResponse.json({
+      jobs: drained.jobs,
+      queueStats: drained.queueStats
+    });
   } catch (error) {
     console.error("Research service unavailable", error);
     return NextResponse.json({ jobs: [] });

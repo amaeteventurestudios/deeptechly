@@ -80,9 +80,9 @@ function verifyStatusClassification() {
   assert.equal(isTerminalResearchStatus("failed"), true);
   assert.equal(isTerminalResearchStatus("cancelled"), true);
   assert.equal(isTerminalResearchStatus("searching_web"), false);
-  assert.equal(isActiveResearchStatus("queued"), true);
+  assert.equal(isActiveResearchStatus("queued"), false);
   assert.equal(isActiveResearchStatus("searching_web"), true);
-  assert.equal(isActiveResearchStatus("public_research_ready"), false);
+  assert.equal(isActiveResearchStatus("public_research_ready"), true);
   assert.equal(isActiveResearchStatus("done"), false);
 }
 

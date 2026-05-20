@@ -11,7 +11,7 @@ import {
   safeResumeOrRetryJob,
   shouldMarkJobStuck
 } from "@/lib/research/orchestration";
-import { runResearchJob } from "@/lib/research/pipeline";
+import { drainResearchQueue } from "@/lib/research/queue";
 
 export const dynamic = "force-dynamic";
 
@@ -35,6 +35,8 @@ export async function GET(_request: Request, { params }: RouteProps) {
     if (shouldMarkJobStuck(job)) {
       job = await safeMarkJobStuck(job.id);
     }
+    await drainResearchQueue(session.userId);
+    job = (await getResearchJob(jobId)) ?? job;
 
     const elapsedSeconds = Math.max(
       0,
@@ -82,13 +84,14 @@ export async function PATCH(request: Request, { params }: RouteProps) {
 
       const job = await safeResumeOrRetryJob(jobId);
       if (job) {
-        void runResearchJob(job.id, job.query);
+        await drainResearchQueue(session.userId);
       }
 
-      return NextResponse.json({ job });
+      return NextResponse.json({ job: (await getResearchJob(jobId)) ?? job });
     }
 
     const job = await cancelResearchJob(jobId);
+    await drainResearchQueue(session.userId);
 
     return NextResponse.json({ job });
   } catch (error) {

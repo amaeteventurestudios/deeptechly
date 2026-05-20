@@ -25,6 +25,10 @@ type JobsResponse = {
   jobs: ResearchJob[];
   queueStats?: {
     activeCount: number;
+    queuedCount?: number;
+    completedCount?: number;
+    failedCount?: number;
+    maxActive?: number;
   };
 };
 
@@ -97,7 +101,13 @@ export function ResearchQueueClient({
           throw new Error(body.error ?? "Research job could not be found.");
         }
 
-        setQueueStats({ activeCount: isActiveQueueStage(body.job.stage) ? 1 : 0 });
+        setQueueStats({
+          activeCount: isActiveQueueStage(body.job.stage) ? 1 : 0,
+          queuedCount: body.job.stage === "queued" ? 1 : 0,
+          completedCount: body.job.stage === "done" ? 1 : 0,
+          failedCount: body.job.stage === "failed" || body.job.stage === "cancelled" ? 1 : 0,
+          maxActive: 3
+        });
         setServerJobs([body.job]);
         return;
       }
@@ -153,7 +163,7 @@ export function ResearchQueueClient({
     [markInteraction, setServerJobs]
   );
 
-  const hasActiveJobs = jobs.some((job) => isActiveQueueStage(job.stage));
+  const hasOpenJobs = jobs.some((job) => isActiveQueueStage(job.stage) || job.stage === "queued");
 
   useEffect(() => {
     const initialLoad = window.setTimeout(() => {
@@ -164,14 +174,14 @@ export function ResearchQueueClient({
   }, [loadJobs]);
 
   useEffect(() => {
-    if (!isLoading && !hasActiveJobs) return;
+    if (!isLoading && !hasOpenJobs) return;
 
     const interval = window.setInterval(() => {
       void loadJobs();
     }, 3000);
 
     return () => window.clearInterval(interval);
-  }, [hasActiveJobs, isLoading, loadJobs]);
+  }, [hasOpenJobs, isLoading, loadJobs]);
 
   useEffect(() => {
     const interval = window.setInterval(() => setNow(Date.now()), 1000);
@@ -207,8 +217,13 @@ export function ResearchQueueClient({
   }, [focused, initialJobId, jobs]);
 
   const activeCount = orderedJobs.filter((job) => isActiveQueueStage(job.stage)).length;
+  const queuedCount = orderedJobs.filter((job) => job.stage === "queued").length;
+  const completedCount = orderedJobs.filter((job) => job.stage === "done").length;
+  const failedCount = orderedJobs.filter(
+    (job) => job.stage === "failed" || job.stage === "cancelled"
+  ).length;
   const jobsAhead = Math.max(0, activeCount - 1);
-  const allCaughtUp = orderedJobs.length > 0 && activeCount === 0;
+  const allCaughtUp = orderedJobs.length > 0 && activeCount === 0 && queuedCount === 0;
 
   return (
     <div className="space-y-7" onPointerDown={markInteraction}>
@@ -225,8 +240,12 @@ export function ResearchQueueClient({
         <QueueHeader
           activeCount={activeCount}
           allCaughtUp={allCaughtUp}
+          completedCount={completedCount}
+          failedCount={failedCount}
           focused={focused}
           onRefresh={loadJobs}
+          queuedCount={queuedCount}
+          queueStats={queueStats}
           soundAlerts={soundAlerts}
           setSoundAlerts={setSoundAlerts}
         />
@@ -275,18 +294,33 @@ export function ResearchQueueClient({
 function QueueHeader({
   activeCount,
   allCaughtUp,
+  completedCount,
+  failedCount,
   focused,
   onRefresh,
+  queuedCount,
+  queueStats,
   soundAlerts,
   setSoundAlerts
 }: {
   activeCount: number;
   allCaughtUp: boolean;
+  completedCount: number;
+  failedCount: number;
   focused: boolean;
   onRefresh: () => void;
+  queuedCount: number;
+  queueStats?: JobsResponse["queueStats"];
   soundAlerts: boolean;
   setSoundAlerts: (value: boolean) => void;
 }) {
+  const counts = {
+    active: queueStats?.activeCount ?? activeCount,
+    queued: queueStats?.queuedCount ?? queuedCount,
+    complete: queueStats?.completedCount ?? completedCount,
+    failed: queueStats?.failedCount ?? failedCount
+  };
+
   return (
     <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
       <div className="min-w-0 flex-1 text-center sm:text-left">
@@ -294,10 +328,18 @@ function QueueHeader({
           <h2 className="text-[11px] font-black uppercase tracking-[0.24em] text-deepOrange">
             {focused ? "Research Status" : "My Research Queue"}
           </h2>
-          <p className="text-[10px] font-black uppercase tracking-[0.18em] text-ink">
-            {allCaughtUp ? "ALL CAUGHT UP" : `${activeCount} in progress`}
-          </p>
+          <div className="flex flex-wrap justify-center gap-2 sm:justify-end">
+            <QueueCount label="IN PROGRESS" value={counts.active} />
+            <QueueCount label="QUEUED" value={counts.queued} />
+            <QueueCount label="COMPLETE" value={counts.complete} />
+            <QueueCount label="FAILED" value={counts.failed} />
+          </div>
         </div>
+        {allCaughtUp ? (
+          <p className="mt-2 text-[10px] font-black uppercase tracking-[0.18em] text-ink">
+            ALL CAUGHT UP
+          </p>
+        ) : null}
         <div className="mt-3 border-t border-black" />
       </div>
       <div className="flex flex-col gap-2 min-[390px]:flex-row sm:justify-end">
@@ -322,6 +364,14 @@ function QueueHeader({
   );
 }
 
+function QueueCount({ label, value }: { label: string; value: number }) {
+  return (
+    <span className="inline-flex min-h-7 items-center border border-black bg-white px-2 py-1 text-[9px] font-black uppercase tracking-[0.12em] text-ink">
+      {value} {label}
+    </span>
+  );
+}
+
 function HeadsUpBar() {
   return (
     <div className="border border-black bg-ink p-4 text-white">
@@ -341,9 +391,13 @@ function BusyQueueMessage({
   queueStats
 }: {
   jobsAhead: number;
-  queueStats?: { activeCount: number };
+  queueStats?: JobsResponse["queueStats"];
 }) {
-  if (jobsAhead <= 0 && (!queueStats || queueStats.activeCount <= 1)) {
+  const queuedCount = queueStats?.queuedCount ?? 0;
+  const activeCount = queueStats?.activeCount ?? 0;
+  const maxActive = queueStats?.maxActive ?? 3;
+
+  if (jobsAhead <= 0 && queuedCount <= 0 && activeCount < maxActive) {
     return null;
   }
 
@@ -351,7 +405,9 @@ function BusyQueueMessage({
     <div className="mb-4 border border-black bg-offWhite p-3 text-center text-xs font-black uppercase leading-5 tracking-[0.14em] shadow-[3px_3px_0_#0f0f0f] sm:text-left">
       {jobsAhead > 0
         ? `BUSY QUEUE: there are ${jobsAhead} research jobs ahead of yours.`
-        : "BUSY QUEUE: research is taking longer than usual."}
+        : queuedCount > 0
+          ? `QUEUE CAPACITY: ${activeCount}/${maxActive} active slots used · ${queuedCount} queued.`
+          : "BUSY QUEUE: research is taking longer than usual."}
     </div>
   );
 }
@@ -410,19 +466,82 @@ function ResearchQueueList({
   focused: boolean;
   onCancel: (jobId: string) => void;
 }) {
+  const activeJobs = jobs.filter((job) => isActiveQueueStage(job.stage));
+  const queuedJobs = jobs.filter((job) => job.stage === "queued");
+  const completedJobs = jobs.filter((job) => job.stage === "done");
+  const failedJobs = jobs.filter((job) => job.stage === "failed" || job.stage === "cancelled");
+
   return (
-    <div className="border border-black bg-white shadow-hard">
+    <div className="space-y-5">
+      <QueueSection
+        focused={focused}
+        jobs={activeJobs}
+        now={now}
+        onCancel={onCancel}
+        title="In Progress"
+      />
+      <QueueSection
+        focused={focused}
+        jobs={queuedJobs}
+        now={now}
+        onCancel={onCancel}
+        queued
+        title="Queued"
+      />
+      <QueueSection
+        focused={focused}
+        jobs={completedJobs}
+        now={now}
+        onCancel={onCancel}
+        title="Completed"
+      />
+      <QueueSection
+        focused={focused}
+        jobs={failedJobs}
+        now={now}
+        onCancel={onCancel}
+        title="Failed"
+      />
+    </div>
+  );
+}
+
+function QueueSection({
+  focused,
+  jobs,
+  now,
+  onCancel,
+  queued = false,
+  title
+}: {
+  focused: boolean;
+  jobs: ResearchJob[];
+  now: number;
+  onCancel: (jobId: string) => void;
+  queued?: boolean;
+  title: string;
+}) {
+  if (jobs.length === 0) return null;
+
+  return (
+    <section className="border border-black bg-white shadow-hard">
+      <div className="border-b border-black bg-offWhite px-4 py-3">
+        <h3 className="text-[10px] font-black uppercase tracking-[0.18em] text-ink">
+          {title} · {jobs.length}
+        </h3>
+      </div>
       {jobs.map((job, index) => (
         <QueueCard
           key={job.id}
+          focused={focused}
           job={job}
           now={now}
-          focused={focused}
           onCancel={onCancel}
           priority={index === 0 && isActiveQueueStage(job.stage)}
+          queuePosition={queued ? index + 1 : undefined}
         />
       ))}
-    </div>
+    </section>
   );
 }
 
@@ -431,16 +550,19 @@ function QueueCard({
   now,
   focused,
   onCancel,
-  priority
+  priority,
+  queuePosition
 }: {
   job: ResearchJob;
   now: number;
   focused: boolean;
   onCancel: (jobId: string) => void;
   priority: boolean;
+  queuePosition?: number;
 }) {
   const failed = job.stage === "failed" || job.stage === "cancelled";
   const done = job.stage === "done";
+  const queued = job.stage === "queued";
   const active = isActiveQueueStage(job.stage);
   const stageLabel = getQueueStageLabel(job.stage);
   const progress = getQueueProgress(job);
@@ -460,7 +582,7 @@ function QueueCard({
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
         <span
           className={`mx-auto flex h-10 w-10 shrink-0 items-center justify-center border border-black bg-offWhite sm:mx-0 ${
-            failed ? "text-darkOrange" : "text-deepOrange"
+            failed ? "text-darkOrange" : queued ? "text-ink" : "text-deepOrange"
           }`}
         >
           <Icon
@@ -475,7 +597,9 @@ function QueueCard({
           <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
             <div className="min-w-0">
               <p className="text-[10px] font-black uppercase tracking-[0.18em] text-deepOrange">
-                {getQueueStatusLabel(job)}
+                {queued && queuePosition
+                  ? `QUEUED · POSITION ${queuePosition}`
+                  : getQueueStatusLabel(job)}
               </p>
               <h3 className="mt-1 break-words text-xl font-black leading-tight">
                 {jobTitle(job)}
@@ -493,28 +617,38 @@ function QueueCard({
 
           <div className="mt-5">
             <div className="flex items-center justify-between gap-3">
-              <p className="text-sm font-black leading-5">{stageLabel}</p>
-              {!failed ? (
+              <p className="text-sm font-black leading-5">
+                {queued ? "Waiting for an active research slot." : stageLabel}
+              </p>
+              {!failed && !queued ? (
                 <p className="shrink-0 text-[10px] font-black uppercase tracking-[0.14em] text-muted">
                   {progress}%
                 </p>
               ) : null}
             </div>
-            <div
-              className="mt-2 h-3 border border-black bg-offWhite"
-              role="progressbar"
-              aria-valuemin={0}
-              aria-valuemax={100}
-              aria-valuenow={failed ? undefined : progress}
-              aria-label={`Research progress: ${stageLabel}`}
-            >
+            {queued ? (
+              <div className="mt-2 border border-black bg-offWhite p-3 text-xs font-black uppercase leading-5 tracking-[0.12em] text-charcoal">
+                {queuePosition && queuePosition > 1
+                  ? `${queuePosition - 1} jobs ahead. Waiting for active research capacity.`
+                  : "Next in line. Waiting for active research capacity."}
+              </div>
+            ) : (
               <div
-                className={`h-full transition-[width] duration-700 motion-reduce:transition-none ${
-                  failed ? "bg-darkOrange" : "bg-deepOrange"
-                }`}
-                style={{ width: `${failed ? Math.max(progress, 8) : progress}%` }}
-              />
-            </div>
+                className="mt-2 h-3 border border-black bg-offWhite"
+                role="progressbar"
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-valuenow={failed ? undefined : progress}
+                aria-label={`Research progress: ${stageLabel}`}
+              >
+                <div
+                  className={`h-full transition-[width] duration-700 motion-reduce:transition-none ${
+                    failed ? "bg-darkOrange" : "bg-deepOrange"
+                  }`}
+                  style={{ width: `${failed ? Math.max(progress, 8) : progress}%` }}
+                />
+              </div>
+            )}
           </div>
 
           {failed ? (
@@ -541,7 +675,7 @@ function JobLinks({
   const partialReady = job.stage === "public_research_ready";
 
   if (!done && !partialReady) {
-    return isActiveQueueStage(job.stage) ? (
+    return isActiveQueueStage(job.stage) || job.stage === "queued" ? (
       <div className="flex flex-col gap-2 min-[430px]:flex-row lg:justify-end">
         <button
           type="button"
@@ -630,17 +764,22 @@ function sortQueueJobs(jobs: ResearchJob[]) {
   return [...jobs].sort((a, b) => {
     const rankDelta = jobRank(a) - jobRank(b);
     if (rankDelta !== 0) return rankDelta;
+    if (a.stage === "queued" && b.stage === "queued") {
+      return jobSortTimestamp(a).localeCompare(jobSortTimestamp(b));
+    }
     return jobSortTimestamp(b).localeCompare(jobSortTimestamp(a));
   });
 }
 
 function jobRank(job: ResearchJob) {
   if (isActiveQueueStage(job.stage)) return 0;
-  if (job.stage === "done") return 1;
-  return 2;
+  if (job.stage === "queued") return 1;
+  if (job.stage === "done") return 2;
+  return 3;
 }
 
 function jobSortTimestamp(job: ResearchJob) {
+  if (job.stage === "queued") return job.createdAt;
   return (
     job.completedAt ??
     job.publicResearchReadyAt ??
