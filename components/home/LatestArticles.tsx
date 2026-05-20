@@ -17,9 +17,12 @@ type LatestArticle = HomepageStory & {
 
 export function LatestArticles({ articles }: { articles?: LatestArticle[] }) {
   const railRef = useRef<HTMLDivElement>(null);
-  const visibleArticles: LatestArticle[] = articles?.length
+  const allArticles: LatestArticle[] = articles?.length
     ? articles
     : homepageSeed.latestArticles;
+
+  const primaryArticles = allArticles.slice(0, 3);
+  const secondaryArticles = allArticles.slice(3, 6);
 
   const scrollRail = (direction: "left" | "right") => {
     const rail = railRef.current;
@@ -66,13 +69,13 @@ export function LatestArticles({ articles }: { articles?: LatestArticle[] }) {
         </div>
       </div>
 
-      {/* Scrollable rail */}
+      {/* Primary scrollable rail — full-format cards */}
       <div
         ref={railRef}
         aria-label="Latest articles"
         className="flex snap-x snap-mandatory gap-3 overflow-x-auto pb-1 scroll-smooth [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       >
-        {visibleArticles.map((article) => (
+        {primaryArticles.map((article) => (
           <article
             key={article.id}
             className="group flex w-[252px] shrink-0 snap-start flex-col border border-black bg-white transition hover:-translate-y-0.5 hover:border-deepOrange min-[390px]:w-[268px] sm:w-[275px] lg:w-[258px] xl:w-[272px]"
@@ -141,6 +144,46 @@ export function LatestArticles({ articles }: { articles?: LatestArticle[] }) {
           </article>
         ))}
       </div>
+
+      {/* Secondary compact row — fills height to match My Research */}
+      {secondaryArticles.length > 0 && (
+        <div className="mt-4 border-t border-black/20 pt-4">
+          <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-3">
+            {secondaryArticles.map((article) => (
+              <article
+                key={article.id}
+                className="flex flex-col border border-black bg-white p-2.5 text-left transition hover:-translate-y-0.5 hover:border-deepOrange"
+              >
+                <p className="text-[7px] font-black uppercase tracking-[0.18em] text-deepOrange">
+                  {article.sector}
+                </p>
+                <h3 className="mt-1.5 text-[12px] font-black leading-[1.22] text-ink line-clamp-3">
+                  <Link href={article.href}>{article.headline}</Link>
+                </h3>
+                <p className="mt-auto pt-2.5 text-[8px] font-black uppercase tracking-[0.12em] text-muted">
+                  {article.analyst} · {article.time}
+                </p>
+                <div className="mt-2 grid grid-cols-2 gap-1.5">
+                  <Link
+                    href={article.href}
+                    className="inline-flex h-7 items-center justify-center gap-1 border border-black bg-ink px-2 text-[7px] font-black uppercase tracking-[0.1em] text-white hover:bg-deepOrange hover:text-ink"
+                  >
+                    Read
+                    <ArrowRight size={9} aria-hidden="true" />
+                  </Link>
+                  <Link
+                    href={dossierHrefFor(article)}
+                    className="inline-flex h-7 items-center justify-center gap-1 border border-black bg-white px-2 text-[7px] font-black uppercase tracking-[0.1em] hover:bg-paleOrange"
+                  >
+                    Dossier
+                    <ArrowRight size={9} aria-hidden="true" />
+                  </Link>
+                </div>
+              </article>
+            ))}
+          </div>
+        </div>
+      )}
     </section>
   );
 }
