@@ -18,31 +18,31 @@ export function LatestArticles({ articles }: { articles?: LatestArticle[] }) {
     : homepageSeed.latestArticles;
 
   return (
-    <section className="w-full">
-      <div className="mb-3 flex flex-col items-center gap-3 border-b border-black pb-2 text-center sm:flex-row sm:justify-between sm:text-left">
+    <section className="min-w-0">
+      <div className="mb-4 flex flex-col items-center gap-3 border-b border-black pb-3 text-center md:flex-row md:items-end md:justify-between md:text-left">
         <h2 className="text-[13px] font-black uppercase tracking-[0.18em] text-ink">
-          Recent Research
+          Latest Articles
         </h2>
         <Link
           href="/articles"
-          className="inline-flex min-h-10 items-center justify-center gap-2 border border-black bg-white px-3 py-2 text-center text-[10px] font-black uppercase tracking-[0.14em] hover:bg-deepOrange"
+          className="inline-flex min-h-10 items-center justify-center gap-2 border border-black bg-white px-3 py-2 text-center text-[10px] font-black uppercase tracking-[0.14em] shadow-[2px_2px_0_#0f0f0f] hover:bg-deepOrange md:min-h-9"
         >
           View All
           <ArrowRight size={13} aria-hidden="true" />
         </Link>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+      <div
+        aria-label="Latest articles"
+        className="flex snap-x snap-mandatory gap-4 overflow-x-auto pb-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      >
         {visibleArticles.map((article) => (
           <article
             key={article.id}
-            className="group mx-auto flex w-full max-w-sm flex-col border border-black bg-white transition hover:-translate-y-0.5 hover:border-deepOrange sm:max-w-none"
+            className="group flex min-h-[520px] w-[280px] shrink-0 snap-center flex-col border border-black bg-white shadow-[3px_3px_0_#0f0f0f] transition hover:-translate-y-0.5 hover:border-deepOrange min-[390px]:w-[320px] sm:w-[330px] lg:w-[300px] xl:w-[320px]"
           >
             <div className="relative">
-              <FallbackVisual
-                kind={article.visual ?? visualForSector(article.sector)}
-                label={`${article.sector} editorial visual`}
-              />
+              <ArticleVisual article={article} />
               <HomeSaveButton
                 entityName={article.entityName}
                 href={article.href}
@@ -53,17 +53,17 @@ export function LatestArticles({ articles }: { articles?: LatestArticle[] }) {
                 sector={article.sector}
               />
             </div>
-            <div className="flex flex-1 flex-col items-center p-4 text-center lg:items-start lg:text-left">
+            <div className="flex flex-1 flex-col p-4 text-left">
               <p className="text-[9px] font-black uppercase tracking-[0.16em] text-deepOrange">
                 {article.sector}
               </p>
               <h3 className="mt-2 text-lg font-black leading-tight text-ink">
-                <Link href={profileHrefFor(article)}>{article.entityName}</Link>
+                <Link href={article.href}>{article.headline}</Link>
               </h3>
               <p className="mt-2 text-sm font-semibold leading-5 text-charcoal">
                 {article.dek}
               </p>
-              <div className="mt-4 flex flex-wrap justify-center gap-2 lg:justify-start">
+              <div className="mt-4 flex flex-wrap gap-2">
                 {article.tags.slice(0, 3).map((tag) => (
                   <span
                     key={`${article.id}-${tag}`}
@@ -74,14 +74,14 @@ export function LatestArticles({ articles }: { articles?: LatestArticle[] }) {
                 ))}
               </div>
               <p className="mt-auto pt-5 text-[9px] font-black uppercase tracking-[0.14em] text-muted">
-                {article.time} · {article.sourceCount ?? 0} sources · {article.confidence ?? "Moderate"} confidence
+                {article.analyst} · {article.time} · {article.sourceCount ?? 0} sources
               </p>
               <div className="mt-3 grid w-full grid-cols-1 gap-2 min-[390px]:grid-cols-2">
                 <Link
-                  href={profileHrefFor(article)}
+                  href={article.href}
                   className="inline-flex min-h-9 items-center justify-center gap-1 border border-black bg-ink px-2 py-2 text-center text-[9px] font-black uppercase tracking-[0.12em] text-white hover:bg-deepOrange hover:text-ink"
                 >
-                  Open Profile
+                  Read Article
                   <ArrowRight size={12} aria-hidden="true" />
                 </Link>
                 <Link
@@ -92,11 +92,41 @@ export function LatestArticles({ articles }: { articles?: LatestArticle[] }) {
                   <ArrowRight size={12} aria-hidden="true" />
                 </Link>
               </div>
+              <Link
+                href={profileHrefFor(article)}
+                className="mt-2 inline-flex min-h-8 items-center justify-center gap-1 border border-black bg-offWhite px-2 py-1.5 text-center text-[9px] font-black uppercase tracking-[0.12em] hover:bg-paleOrange"
+              >
+                Open Profile
+                <ArrowRight size={12} aria-hidden="true" />
+              </Link>
             </div>
           </article>
         ))}
       </div>
+      <p className="mt-1 text-center text-[9px] font-black uppercase tracking-[0.14em] text-muted md:text-left">
+        Scroll horizontally &rarr;
+      </p>
     </section>
+  );
+}
+
+function ArticleVisual({ article }: { article: LatestArticle }) {
+  if (article.heroImage) {
+    return (
+      <div
+        aria-label={`${article.entityName} article visual`}
+        className="h-44 border-b border-black bg-cover bg-center bg-no-repeat"
+        role="img"
+        style={{ backgroundImage: `url(${article.heroImage})` }}
+      />
+    );
+  }
+
+  return (
+    <FallbackVisual
+      kind={article.visual ?? visualForSector(article.sector)}
+      label={`${article.sector} editorial visual`}
+    />
   );
 }
 

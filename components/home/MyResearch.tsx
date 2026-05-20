@@ -10,9 +10,9 @@ export async function MyResearch() {
 
   if (!session) {
     return (
-      <section className="w-full">
+      <section className="min-w-0">
         <SectionHeader />
-        <div className="border border-black bg-white p-5 text-center shadow-[5px_5px_0_#0f0f0f] lg:text-left">
+        <div className="flex min-h-[360px] flex-col justify-center border border-black bg-white p-5 text-center shadow-[3px_3px_0_#0f0f0f]">
           <p className="text-[10px] font-black uppercase tracking-[0.18em] text-deepOrange">
             Research Account
           </p>
@@ -22,7 +22,7 @@ export async function MyResearch() {
           <p className="mt-3 text-sm font-semibold leading-6 text-charcoal">
             Sign in to save public research, track queued investigations, and return to profiles, articles, and dossiers from one institutional workspace.
           </p>
-          <div className="mt-5 flex flex-col gap-2 sm:flex-row lg:justify-start">
+          <div className="mt-5 flex flex-col justify-center gap-2 sm:flex-row">
             <Link
               href="/join"
               className="inline-flex min-h-10 items-center justify-center gap-2 border border-black bg-deepOrange px-3 py-2 text-center text-[10px] font-black uppercase tracking-[0.14em] hover:bg-darkOrange"
@@ -44,11 +44,11 @@ export async function MyResearch() {
   }
 
   const [savedResearch, jobs] = await Promise.all([
-    listSavedResearchItems(session.userId, 4),
+    listSavedResearchItems(session.userId, 6),
     listResearchJobs(session.userId)
   ]);
-  const savedCards = savedResearch.items.slice(0, 4).map(savedItemToCard);
-  const jobCards = jobs.slice(0, 4).map((job) => ({
+  const savedCards = savedResearch.items.slice(0, 6).map(savedItemToCard);
+  const jobCards = jobs.slice(0, 6).map((job) => ({
     id: `job-${job.createdAt}-${job.query}`,
     entityName: job.feed?.entityName ?? job.resolvedName ?? job.query,
     sector: job.feed?.sector ?? job.mode.toUpperCase(),
@@ -59,18 +59,18 @@ export async function MyResearch() {
     articleHref: job.articleUrl,
     dossierHref: job.dossierUrl
   }));
-  const cards = [...jobCards, ...savedCards].slice(0, 4);
+  const cards = [...jobCards, ...savedCards].slice(0, 6);
 
   return (
-    <section className="w-full">
+    <section className="min-w-0">
       <SectionHeader />
 
       {cards.length === 0 ? (
-        <div className="border border-black bg-white p-5 text-center lg:text-left">
+        <div className="flex min-h-[360px] flex-col items-center justify-center border border-black bg-white p-6 text-center shadow-[3px_3px_0_#0f0f0f]">
           <h3 className="text-xl font-black leading-tight text-ink">
             No saved or queued research yet.
           </h3>
-          <p className="mt-2 text-sm font-semibold leading-6 text-charcoal">
+          <p className="mt-2 max-w-sm text-sm font-semibold leading-6 text-charcoal">
             Use the homepage research form or star controls to start building your private queue.
           </p>
         </div>
@@ -79,7 +79,7 @@ export async function MyResearch() {
           {cards.map((item) => (
             <article
               key={item.id}
-              className="mx-auto flex w-full max-w-sm flex-col items-center border border-black bg-white p-3 text-center transition hover:-translate-y-0.5 hover:border-deepOrange sm:max-w-none lg:items-start lg:text-left"
+              className="mx-auto flex min-h-[174px] w-full max-w-sm flex-col border border-black bg-white p-3 text-left shadow-[2px_2px_0_#0f0f0f] transition hover:-translate-y-0.5 hover:border-deepOrange sm:max-w-none"
             >
               <div className="flex w-full items-start justify-between gap-3">
                 <div className="min-w-0 text-left">
@@ -91,7 +91,7 @@ export async function MyResearch() {
                   </p>
                 </div>
               </div>
-              <div className="mt-3 flex w-full flex-wrap justify-center gap-2 lg:justify-start">
+              <div className="mt-3 flex w-full flex-wrap gap-2">
                 <span className="inline-flex min-h-7 items-center justify-center border border-black bg-paleOrange px-2 py-1 text-center text-[9px] font-black uppercase tracking-[0.1em]">
                   {item.status}
                 </span>
@@ -130,13 +130,13 @@ export async function MyResearch() {
 
 function SectionHeader() {
   return (
-    <div className="mb-3 flex flex-col items-center gap-3 border-b border-black pb-2 text-center sm:flex-row sm:justify-between sm:text-left">
+    <div className="mb-4 flex flex-col items-center gap-3 border-b border-black pb-3 text-center md:flex-row md:items-end md:justify-between md:text-left">
       <h2 className="text-[13px] font-black uppercase tracking-[0.18em] text-ink">
         My Research
       </h2>
       <Link
         href="/research"
-        className="inline-flex min-h-10 items-center justify-center gap-2 border border-black bg-white px-3 py-2 text-center text-[10px] font-black uppercase tracking-[0.14em] hover:bg-deepOrange"
+        className="inline-flex min-h-10 items-center justify-center gap-2 border border-black bg-white px-3 py-2 text-center text-[10px] font-black uppercase tracking-[0.14em] shadow-[2px_2px_0_#0f0f0f] hover:bg-deepOrange md:min-h-9"
       >
         View All
         <ArrowRight size={13} aria-hidden="true" />

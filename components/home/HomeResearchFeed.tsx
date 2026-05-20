@@ -66,9 +66,11 @@ export async function HomeResearchFeed() {
       </section>
 
       <section className="w-full border-t border-black bg-offWhite">
-        <div className="mx-auto grid max-w-7xl gap-8 px-4 py-8 sm:px-6 lg:grid-cols-[minmax(0,1.1fr)_minmax(420px,0.9fr)] lg:px-8">
-          <LatestArticles articles={latestArticles} />
-          <MyResearch />
+        <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+          <div className="grid gap-6 border border-black bg-paper p-4 shadow-hard lg:grid-cols-[minmax(0,1.55fr)_minmax(360px,0.95fr)] lg:items-start lg:p-5">
+            <LatestArticles articles={latestArticles} />
+            <MyResearch />
+          </div>
         </div>
       </section>
 
