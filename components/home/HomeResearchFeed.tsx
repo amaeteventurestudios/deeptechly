@@ -67,8 +67,8 @@ export async function HomeResearchFeed() {
       </section>
 
       <section className="w-full border-t border-black bg-offWhite">
-        <HomeWideContainer className="py-8">
-          <div className="grid gap-8 border border-black bg-paper p-4 shadow-hard lg:grid-cols-[minmax(0,1.75fr)_minmax(500px,1fr)] lg:items-start lg:p-5">
+        <HomeWideContainer className="py-9">
+          <div className="grid lg:grid-cols-[minmax(0,1.75fr)_minmax(440px,1fr)] lg:items-start">
             <LatestArticles articles={latestArticles} />
             <MyResearch />
           </div>

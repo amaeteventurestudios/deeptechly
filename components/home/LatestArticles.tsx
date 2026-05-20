@@ -20,10 +20,10 @@ export function LatestArticles({ articles }: { articles?: LatestArticle[] }) {
   const visibleArticles: LatestArticle[] = articles?.length
     ? articles
     : homepageSeed.latestArticles;
+
   const scrollRail = (direction: "left" | "right") => {
     const rail = railRef.current;
     if (!rail) return;
-
     rail.scrollBy({
       left: direction === "left" ? -rail.clientWidth * 0.8 : rail.clientWidth * 0.8,
       behavior: "smooth"
@@ -31,52 +31,54 @@ export function LatestArticles({ articles }: { articles?: LatestArticle[] }) {
   };
 
   return (
-    <section className="min-w-0 lg:pr-6">
-      <div className="mb-4 flex flex-col items-center gap-3 border-b border-black pb-3 text-center md:flex-row md:items-end md:justify-between md:text-left">
-        <h2 className="text-[13px] font-black uppercase tracking-[0.18em] text-ink">
+    <section className="min-w-0 lg:pr-8">
+      {/* Section header */}
+      <div className="mb-4 flex items-center justify-between border-b border-black pb-3">
+        <h2 className="text-[12px] font-black uppercase tracking-[0.2em] text-ink">
           Latest Articles
         </h2>
-        <div className="flex flex-wrap items-center justify-center gap-2 md:justify-end">
+        <div className="flex items-center gap-2">
           <div className="flex items-center gap-1" aria-label="Latest articles scroll controls">
             <button
               type="button"
               aria-label="Scroll latest articles left"
               onClick={() => scrollRail("left")}
-              className="inline-flex h-10 w-10 items-center justify-center border border-black bg-white text-ink shadow-[2px_2px_0_#0f0f0f] hover:bg-deepOrange focus:outline-none focus:ring-2 focus:ring-deepOrange focus:ring-offset-2 md:h-9 md:w-9"
+              className="inline-flex h-8 w-8 items-center justify-center border border-black bg-white text-ink hover:bg-deepOrange focus:outline-none focus:ring-2 focus:ring-deepOrange focus:ring-offset-1"
             >
-              <ArrowLeft size={14} aria-hidden="true" />
+              <ArrowLeft size={12} aria-hidden="true" />
             </button>
             <button
               type="button"
               aria-label="Scroll latest articles right"
               onClick={() => scrollRail("right")}
-              className="inline-flex h-10 w-10 items-center justify-center border border-black bg-white text-ink shadow-[2px_2px_0_#0f0f0f] hover:bg-deepOrange focus:outline-none focus:ring-2 focus:ring-deepOrange focus:ring-offset-2 md:h-9 md:w-9"
+              className="inline-flex h-8 w-8 items-center justify-center border border-black bg-white text-ink hover:bg-deepOrange focus:outline-none focus:ring-2 focus:ring-deepOrange focus:ring-offset-1"
             >
-              <ArrowRight size={14} aria-hidden="true" />
+              <ArrowRight size={12} aria-hidden="true" />
             </button>
           </div>
           <Link
             href="/articles"
-            className="inline-flex min-h-10 items-center justify-center gap-2 border border-black bg-white px-3 py-2 text-center text-[10px] font-black uppercase tracking-[0.14em] shadow-[2px_2px_0_#0f0f0f] hover:bg-deepOrange md:min-h-9"
+            className="inline-flex h-8 items-center justify-center gap-1.5 border border-black bg-white px-3 text-[9px] font-black uppercase tracking-[0.16em] hover:bg-deepOrange"
           >
             View All
-            <ArrowRight size={13} aria-hidden="true" />
+            <ArrowRight size={10} aria-hidden="true" />
           </Link>
         </div>
       </div>
 
-      <div className="relative overflow-hidden">
-        <div
-          ref={railRef}
-          aria-label="Latest articles"
-          className="flex snap-x snap-mandatory gap-4 overflow-x-auto px-1 pb-3 pr-8 scroll-smooth [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-        >
+      {/* Scrollable rail */}
+      <div
+        ref={railRef}
+        aria-label="Latest articles"
+        className="flex snap-x snap-mandatory gap-3 overflow-x-auto pb-1 scroll-smooth [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      >
         {visibleArticles.map((article) => (
           <article
             key={article.id}
-            className="group flex min-h-[520px] w-[280px] shrink-0 snap-start flex-col border border-black bg-white shadow-[3px_3px_0_#0f0f0f] transition hover:-translate-y-0.5 hover:border-deepOrange min-[390px]:w-[320px] sm:w-[330px] lg:w-[300px] xl:w-[320px]"
+            className="group flex w-[252px] shrink-0 snap-start flex-col border border-black bg-white transition hover:-translate-y-0.5 hover:border-deepOrange min-[390px]:w-[268px] sm:w-[275px] lg:w-[258px] xl:w-[272px]"
           >
-            <div className="relative">
+            {/* Visual */}
+            <div className="relative shrink-0">
               <ArticleVisual article={article} />
               <HomeSaveButton
                 entityName={article.entityName}
@@ -84,64 +86,61 @@ export function LatestArticles({ articles }: { articles?: LatestArticle[] }) {
                 itemId={article.id}
                 itemType="ARTICLE"
                 label={article.headline}
-                className="absolute right-2 top-2 h-8 w-8 shadow-none"
+                className="absolute right-1.5 top-1.5 h-7 w-7 shadow-none"
                 sector={article.sector}
               />
             </div>
-            <div className="flex flex-1 flex-col p-4 text-left">
-              <p className="text-[9px] font-black uppercase tracking-[0.16em] text-deepOrange">
+
+            {/* Content */}
+            <div className="flex flex-1 flex-col p-3 text-left">
+              <p className="text-[8px] font-black uppercase tracking-[0.18em] text-deepOrange">
                 {article.sector}
               </p>
-              <h3 className="mt-2 text-lg font-black leading-tight text-ink">
+              <h3 className="mt-1.5 text-[13px] font-black leading-[1.18] text-ink line-clamp-3">
                 <Link href={article.href}>{article.headline}</Link>
               </h3>
-              <p className="mt-2 text-sm font-semibold leading-5 text-charcoal">
+              <p className="mt-1.5 text-[11px] font-semibold leading-[1.5] text-charcoal line-clamp-2">
                 {article.dek}
               </p>
-              <div className="mt-4 flex flex-wrap gap-2">
-                {article.tags.slice(0, 3).map((tag) => (
+
+              {/* Tags */}
+              <div className="mt-2 flex flex-wrap gap-1">
+                {article.tags.slice(0, 2).map((tag) => (
                   <span
                     key={`${article.id}-${tag}`}
-                    className="border border-black bg-offWhite px-2 py-1 text-[9px] font-black uppercase tracking-[0.12em]"
+                    className="border border-black/25 bg-offWhite px-1.5 py-0.5 text-[7px] font-black uppercase tracking-[0.12em] text-charcoal"
                   >
                     {tag}
                   </span>
                 ))}
               </div>
-              <p className="mt-auto pt-5 text-[9px] font-black uppercase tracking-[0.14em] text-muted">
-                {article.analyst} · {article.time} · {article.sourceCount ?? 0} sources
+
+              {/* Meta */}
+              <p className="mt-auto pt-3 text-[8px] font-black uppercase tracking-[0.12em] text-muted">
+                {article.analyst} · {article.time} · {article.sourceCount ?? 0} src
               </p>
-              <div className="mt-3 grid w-full grid-cols-1 gap-2 min-[390px]:grid-cols-2">
+
+              {/* CTAs */}
+              <div className="mt-2 grid grid-cols-2 gap-1.5">
                 <Link
                   href={article.href}
-                  className="inline-flex min-h-9 items-center justify-center gap-1 border border-black bg-ink px-2 py-2 text-center text-[9px] font-black uppercase tracking-[0.12em] text-white hover:bg-deepOrange hover:text-ink"
+                  className="inline-flex h-8 items-center justify-center gap-1 border border-black bg-ink px-2 text-[8px] font-black uppercase tracking-[0.12em] text-white hover:bg-deepOrange hover:text-ink"
                 >
-                  Read Article
-                  <ArrowRight size={12} aria-hidden="true" />
+                  Read
+                  <ArrowRight size={10} aria-hidden="true" />
                 </Link>
                 <Link
                   href={dossierHrefFor(article)}
-                  className="inline-flex min-h-9 items-center justify-center gap-1 border border-black bg-white px-2 py-2 text-center text-[9px] font-black uppercase tracking-[0.12em] hover:bg-paleOrange"
+                  className="inline-flex h-8 items-center justify-center gap-1 border border-black bg-white px-2 text-[8px] font-black uppercase tracking-[0.12em] hover:bg-paleOrange"
                 >
-                  Open Dossier
-                  <ArrowRight size={12} aria-hidden="true" />
+                  Dossier
+                  <ArrowRight size={10} aria-hidden="true" />
                 </Link>
               </div>
-              <Link
-                href={profileHrefFor(article)}
-                className="mt-2 inline-flex min-h-8 items-center justify-center gap-1 border border-black bg-offWhite px-2 py-1.5 text-center text-[9px] font-black uppercase tracking-[0.12em] hover:bg-paleOrange"
-              >
-                Open Profile
-                <ArrowRight size={12} aria-hidden="true" />
-              </Link>
             </div>
           </article>
         ))}
-        </div>
       </div>
-      <p className="mt-1 text-center text-[9px] font-black uppercase tracking-[0.14em] text-muted md:text-left">
-        Scroll horizontally &rarr;
-      </p>
     </section>
   );
 }
@@ -151,7 +150,7 @@ function ArticleVisual({ article }: { article: LatestArticle }) {
     return (
       <div
         aria-label={`${article.entityName} article visual`}
-        className="h-44 border-b border-black bg-cover bg-center bg-no-repeat"
+        className="h-28 border-b border-black bg-cover bg-center bg-no-repeat"
         role="img"
         style={{ backgroundImage: `url(${article.heroImage})` }}
       />
@@ -159,10 +158,12 @@ function ArticleVisual({ article }: { article: LatestArticle }) {
   }
 
   return (
-    <FallbackVisual
-      kind={article.visual ?? visualForSector(article.sector)}
-      label={`${article.sector} editorial visual`}
-    />
+    <div className="h-28 overflow-hidden border-b border-black">
+      <FallbackVisual
+        kind={article.visual ?? visualForSector(article.sector)}
+        label={`${article.sector} editorial visual`}
+      />
+    </div>
   );
 }
 
@@ -176,14 +177,6 @@ function visualForSector(sector: string): HomepageVisualKind {
   }
   if (normalized.includes("sensor") || normalized.includes("bio")) return "sensing";
   return "chip";
-}
-
-function profileHrefFor(article: LatestArticle) {
-  if (article.profileHref) return article.profileHref;
-  if (article.href.startsWith("/article/")) {
-    return article.href.replace("/article/", "/startup/");
-  }
-  return article.href.startsWith("/sector/") ? article.href : "/explore";
 }
 
 function dossierHrefFor(article: LatestArticle) {
