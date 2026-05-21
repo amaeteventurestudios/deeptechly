@@ -691,6 +691,13 @@ export async function createResearchJob(
     requested_entity_type: targetEntity.requestedEntityType,
     normalized_requested_entity_name: targetEntity.normalizedRequestedEntityName,
     stageStartedAt: now,
+    active_started_at: null,
+    stage_started_at: now,
+    last_heartbeat_at: null,
+    retry_count: 0,
+    previous_failure_code: null,
+    previous_failure_stage: null,
+    previous_failure_message_internal: null,
     publicResearchReadyAt: null,
     cancellationRequested: false,
     failedStage: null,
@@ -777,6 +784,13 @@ export async function createLinkedResearchJob(
     normalized_requested_entity_name: targetEntity.normalizedRequestedEntityName,
     resolutionMetadata: metadataForResolution(candidate, match),
     stageStartedAt: now,
+    active_started_at: null,
+    stage_started_at: now,
+    last_heartbeat_at: null,
+    retry_count: 0,
+    previous_failure_code: null,
+    previous_failure_stage: null,
+    previous_failure_message_internal: null,
     publicResearchReadyAt: publishedAt,
     cancellationRequested: false,
     failedStage: null,
@@ -896,6 +910,12 @@ export async function updateResearchJob(
   const nextStage = patch.stage ?? data.jobs[index].stage;
   const copy = patch.stage ? stageMessage(nextStage, data.jobs[index].normalizedQuery) : null;
   const currentProgress = data.jobs[index].progress;
+  const stageChanged = Boolean(patch.stage && patch.stage !== data.jobs[index].stage);
+  const now = new Date().toISOString();
+  const nextIsActive = isActiveResearchStage(nextStage);
+  const hasActiveStartedPatch = Object.prototype.hasOwnProperty.call(patch, "active_started_at");
+  const hasStageStartedPatch = Object.prototype.hasOwnProperty.call(patch, "stage_started_at");
+  const hasHeartbeatPatch = Object.prototype.hasOwnProperty.call(patch, "last_heartbeat_at");
   const nextProgress =
     nextStage === "failed" || nextStage === "cancelled"
       ? patch.progress ?? currentProgress
@@ -908,10 +928,24 @@ export async function updateResearchJob(
     message: patch.message ?? copy?.message ?? data.jobs[index].message,
     detail: patch.detail ?? copy?.detail ?? data.jobs[index].detail,
     stageStartedAt:
-      patch.stage && patch.stage !== data.jobs[index].stage
-        ? new Date().toISOString()
+      stageChanged
+        ? now
         : (patch.stageStartedAt ?? data.jobs[index].stageStartedAt),
-    updatedAt: new Date().toISOString()
+    stage_started_at:
+      hasStageStartedPatch
+        ? patch.stage_started_at
+        : (stageChanged ? now : (data.jobs[index].stage_started_at ?? data.jobs[index].stageStartedAt)),
+    active_started_at:
+      hasActiveStartedPatch
+        ? patch.active_started_at
+        : (nextIsActive
+          ? data.jobs[index].active_started_at ?? now
+          : data.jobs[index].active_started_at ?? null),
+    last_heartbeat_at:
+      hasHeartbeatPatch
+        ? patch.last_heartbeat_at
+        : (nextIsActive ? data.jobs[index].last_heartbeat_at ?? now : data.jobs[index].last_heartbeat_at ?? null),
+    updatedAt: now
   };
 
   data.jobs[index] = updated;

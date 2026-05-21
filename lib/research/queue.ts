@@ -106,7 +106,11 @@ async function runSerializedQueueDrain() {
     }));
   }
 
-  const drainPromise = startNextQueuedResearchJobs();
+  const drainPromise = (async () => {
+    const { runResearchWatchdog } = await import("./watchdog");
+    await runResearchWatchdog();
+    return startNextQueuedResearchJobs();
+  })();
   globalThis.__deeptechlyResearchQueueDrain = drainPromise;
 
   try {
@@ -140,6 +144,9 @@ async function reserveResearchJobSlot(jobId: string) {
     failure_code: null,
     failure_stage: null,
     failure_message_internal: null,
+    active_started_at: new Date().toISOString(),
+    stage_started_at: new Date().toISOString(),
+    last_heartbeat_at: new Date().toISOString(),
     error: null
   });
 }

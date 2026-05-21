@@ -20,6 +20,7 @@ import { listAllContent, type AdminContentRow } from "@/lib/admin/content";
 import {
   featureContentAction,
   publishContentAction,
+  recoverResearchJobAction,
   unpublishContentAction
 } from "./actions";
 
@@ -35,6 +36,8 @@ type ContentPageProps = {
     published?: string;
     unpublished?: string;
     featured?: string;
+    recovered?: string;
+    action?: string;
     value?: string;
     error?: string;
     filter?: string;
@@ -281,12 +284,36 @@ function ContentRow({ row }: { row: AdminContentRow }) {
             ) : null}
           </div>
         ) : (
-          <span className="text-[10px] font-bold text-muted/60 italic">
-            {isDone ? "No slug" : "Pending"}
-          </span>
+          <AdminRecoveryControls row={row} />
         )}
       </td>
     </tr>
+  );
+}
+
+function AdminRecoveryControls({ row }: { row: AdminContentRow }) {
+  const controls: { action: string; label: string }[] = [
+    { action: "force_retry", label: "Force retry" },
+    { action: "mark_failed", label: "Mark failed" },
+    { action: "clear_stuck", label: "Clear stuck" },
+    { action: "restart_queued", label: "Restart queued" }
+  ];
+
+  return (
+    <div className="flex flex-col gap-2">
+      {controls.map((control) => (
+        <form action={recoverResearchJobAction} key={control.action}>
+          <input type="hidden" name="jobId" value={row.jobId} />
+          <input type="hidden" name="recoveryAction" value={control.action} />
+          <AuthSubmitButton
+            className="inline-flex w-full items-center justify-center border border-black bg-white px-2 py-1.5 text-[9px] font-black uppercase tracking-[0.1em] hover:bg-paleOrange"
+            pendingLabel="Saving..."
+          >
+            {control.label}
+          </AuthSubmitButton>
+        </form>
+      ))}
+    </div>
   );
 }
 
@@ -429,6 +456,38 @@ function ReviewSummaryBlock({ row }: { row: AdminContentRow }) {
           ))}
         </ul>
       </details>
+
+      <details className="border border-black bg-offWhite p-2">
+        <summary className="cursor-pointer text-[9px] font-black uppercase tracking-[0.12em] text-deepOrange">
+          Diagnostics
+        </summary>
+        <dl className="mt-2 space-y-1 text-[10px] font-bold leading-4 text-charcoal">
+          <DiagnosticLine label="Failure code" value={orchestration.failureCode} />
+          <DiagnosticLine label="Failure stage" value={orchestration.failureStage} />
+          <DiagnosticLine label="Internal" value={orchestration.failureMessageInternal} />
+          <DiagnosticLine label="Last heartbeat" value={orchestration.lastHeartbeatAt} />
+          <DiagnosticLine label="Active started" value={orchestration.activeStartedAt} />
+          <DiagnosticLine label="Stage started" value={orchestration.stageStartedAt} />
+          <DiagnosticLine label="Retry count" value={orchestration.retryCount} />
+          <DiagnosticLine label="Previous failure code" value={orchestration.previousFailureCode} />
+          <DiagnosticLine label="Previous failure stage" value={orchestration.previousFailureStage} />
+        </dl>
+      </details>
+    </div>
+  );
+}
+
+function DiagnosticLine({
+  label,
+  value
+}: {
+  label: string;
+  value: string | number | null;
+}) {
+  return (
+    <div>
+      <dt className="font-black uppercase tracking-[0.1em] text-muted">{label}</dt>
+      <dd className="break-words font-mono">{value ?? "N/A"}</dd>
     </div>
   );
 }
@@ -505,6 +564,8 @@ function StatusMessage({
     published?: string;
     unpublished?: string;
     featured?: string;
+    recovered?: string;
+    action?: string;
     value?: string;
     error?: string;
   };
@@ -548,6 +609,18 @@ function StatusMessage({
     );
   }
 
+  if (params.recovered && params.action) {
+    return (
+      <div className="mb-6 flex items-start gap-3 border border-black bg-white p-4 shadow-hard">
+        <CheckCircle2 className="mt-0.5 shrink-0 text-deepOrange" size={18} />
+        <p className="text-sm font-bold leading-6">
+          Recovery action <span className="font-mono">{params.action}</span>{" "}
+          applied to job <span className="font-mono">{params.recovered}</span>.
+        </p>
+      </div>
+    );
+  }
+
   if (params.error) {
     return (
       <div className="mb-6 flex items-start gap-3 border border-black bg-paleOrange p-4 shadow-hard">
@@ -586,5 +659,6 @@ function formatDate(value: string) {
 function getErrorMessage(error: string) {
   if (error === "not_found") return "Content not found. The slug may not match any stored entity.";
   if (error === "invalid") return "Invalid request. Check the form submission.";
+  if (error === "retry_limit") return "This job cannot be retried safely because it has reached the retry limit or already has completed output.";
   return "An error occurred. Check the admin console and try again.";
 }

@@ -80,7 +80,14 @@ function elapsed(startedAt: number) {
 
 async function ensureRunnable(jobId: string, startedAt: number) {
   const job = await getResearchJob(jobId);
-  if (!job || job.stage === "cancelled" || job.cancellationRequested) {
+  if (
+    !job ||
+    job.stage === "cancelled" ||
+    job.stage === "failed" ||
+    job.stage === "done" ||
+    job.stage === "queued" ||
+    job.cancellationRequested
+  ) {
     throw new ResearchCancelledError();
   }
 
@@ -123,9 +130,11 @@ async function move(
   patch: Partial<Awaited<ReturnType<typeof getResearchJob>>> = {}
 ) {
   await ensureRunnable(jobId, startedAt);
+  const heartbeat = new Date().toISOString();
   await updateResearchJob(jobId, {
     stage,
     progress: progressByStage[stage],
+    last_heartbeat_at: heartbeat,
     ...patch
   });
   await wait(stageDelayMs);
@@ -412,11 +421,16 @@ async function collectSources({
 
 export async function runResearchJob(jobId: string, query: string) {
   const startedAt = Date.now();
+  let heartbeatTimer: ReturnType<typeof setInterval> | null = null;
 
   try {
     const currentJob = await getResearchJob(jobId);
     if (!currentJob) return;
+    const activeStartedAt = currentJob.active_started_at ?? new Date(startedAt).toISOString();
     await updateResearchJob(jobId, {
+      active_started_at: activeStartedAt,
+      stage_started_at: currentJob.stage_started_at ?? currentJob.stageStartedAt ?? activeStartedAt,
+      last_heartbeat_at: activeStartedAt,
       orchestration: {
         ...currentJob.orchestration,
         lockKey:
@@ -447,6 +461,11 @@ export async function runResearchJob(jobId: string, query: string) {
       failure_suspected_source_publisher: null,
       error: null
     });
+    heartbeatTimer = setInterval(() => {
+      void updateResearchJob(jobId, {
+        last_heartbeat_at: new Date().toISOString()
+      }).catch(() => undefined);
+    }, 60_000);
 
     if (!process.env.OPENAI_API_KEY) {
       console.log("OPENAI_API_KEY missing. Running research job in demo mode.");
@@ -523,7 +542,8 @@ export async function runResearchJob(jobId: string, query: string) {
       resolvedName: canonicalEntity.match?.entity.name ?? facts.name,
       resolutionStatus: canonicalEntity.match ? "resolved" : "limited",
       entityInputType: resolution.inputType,
-      resolutionMetadata: canonicalEntity.metadata
+      resolutionMetadata: canonicalEntity.metadata,
+      last_heartbeat_at: new Date().toISOString()
     });
 
     if (summaries.length < MIN_SOURCE_COUNT_TO_PUBLISH) {
@@ -642,6 +662,9 @@ export async function runResearchJob(jobId: string, query: string) {
       internalMessage: diagnostics.internalMessage
     });
   } finally {
+    if (heartbeatTimer) {
+      clearInterval(heartbeatTimer);
+    }
     const latestJob = await getResearchJob(jobId);
     if (latestJob?.userId) {
       const { drainResearchQueue } = await import("./queue");

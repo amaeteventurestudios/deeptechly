@@ -7,11 +7,10 @@ import {
 import { getAuthSession } from "@/lib/auth/session";
 import {
   canRetryResearchJob,
-  safeMarkJobStuck,
-  safeResumeOrRetryJob,
-  shouldMarkJobStuck
+  safeResumeOrRetryJob
 } from "@/lib/research/orchestration";
 import { drainResearchQueue } from "@/lib/research/queue";
+import { runResearchWatchdog } from "@/lib/research/watchdog";
 
 export const dynamic = "force-dynamic";
 
@@ -32,9 +31,7 @@ export async function GET(_request: Request, { params }: RouteProps) {
     if (!job || job.userId !== session.userId) {
       return NextResponse.json({ error: "Research job not found" }, { status: 404 });
     }
-    if (shouldMarkJobStuck(job)) {
-      job = await safeMarkJobStuck(job.id);
-    }
+    await runResearchWatchdog();
     await drainResearchQueue(session.userId);
     job = (await getResearchJob(jobId)) ?? job;
 

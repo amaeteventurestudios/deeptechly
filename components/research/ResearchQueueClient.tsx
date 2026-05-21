@@ -138,6 +138,29 @@ export function ResearchQueueClient({
     [markInteraction, setServerJobs]
   );
 
+  const retryJob = useCallback(
+    async (jobId: string) => {
+      markInteraction();
+      const response = await fetch(`/api/research/${jobId}`, {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ action: "retry" })
+      });
+
+      if (response.ok) {
+        const body = (await response.json().catch(() => ({}))) as { job?: ResearchJob };
+        if (body.job) {
+          setServerJobs([
+            body.job,
+            ...latestJobsRef.current.filter((item) => item.id !== body.job?.id)
+          ]);
+        }
+        void loadJobs();
+      }
+    },
+    [loadJobs, markInteraction, setServerJobs]
+  );
+
   const hasOpenJobs = jobs.some((job) => isActiveQueueStage(job.stage) || job.stage === "queued");
 
   useEffect(() => {
@@ -236,6 +259,7 @@ export function ResearchQueueClient({
             jobs={orderedJobs}
             now={now}
             onCancel={cancelJob}
+            onRetry={retryJob}
           />
         )}
       </section>
@@ -426,11 +450,13 @@ function EmptyQueue() {
 function ResearchQueueList({
   jobs,
   now,
-  onCancel
+  onCancel,
+  onRetry
 }: {
   jobs: ResearchJob[];
   now: number;
   onCancel: (jobId: string) => void;
+  onRetry: (jobId: string) => void;
 }) {
   const activeJobs = jobs.filter((job) => isActiveQueueStage(job.stage));
   const queuedJobs = jobs.filter((job) => job.stage === "queued");
@@ -443,12 +469,14 @@ function ResearchQueueList({
         jobs={activeJobs}
         now={now}
         onCancel={onCancel}
+        onRetry={onRetry}
         title="In Progress"
       />
       <QueueSection
         jobs={queuedJobs}
         now={now}
         onCancel={onCancel}
+        onRetry={onRetry}
         queued
         title="Queued"
       />
@@ -456,12 +484,14 @@ function ResearchQueueList({
         jobs={completedJobs}
         now={now}
         onCancel={onCancel}
+        onRetry={onRetry}
         title="Completed"
       />
       <QueueSection
         jobs={failedJobs}
         now={now}
         onCancel={onCancel}
+        onRetry={onRetry}
         title="Failed"
       />
     </div>
@@ -472,12 +502,14 @@ function QueueSection({
   jobs,
   now,
   onCancel,
+  onRetry,
   queued = false,
   title
 }: {
   jobs: ResearchJob[];
   now: number;
   onCancel: (jobId: string) => void;
+  onRetry: (jobId: string) => void;
   queued?: boolean;
   title: string;
 }) {
@@ -491,11 +523,12 @@ function QueueSection({
         </h3>
       </div>
       {jobs.map((job, index) => (
-        <QueueCard
+          <QueueCard
           key={job.id}
           job={job}
           now={now}
           onCancel={onCancel}
+          onRetry={onRetry}
           priority={index === 0 && isActiveQueueStage(job.stage)}
           queuePosition={queued ? index + 1 : undefined}
         />
@@ -508,12 +541,14 @@ function QueueCard({
   job,
   now,
   onCancel,
+  onRetry,
   priority,
   queuePosition
 }: {
   job: ResearchJob;
   now: number;
   onCancel: (jobId: string) => void;
+  onRetry: (jobId: string) => void;
   priority: boolean;
   queuePosition?: number;
 }) {
@@ -523,7 +558,7 @@ function QueueCard({
   const active = isActiveQueueStage(job.stage);
   const stageLabel = getQueueStageLabel(job.stage);
   const progress = getQueueProgress(job);
-  const timeLabel = formatJobTime(job, now);
+  const timeLabels = formatJobTimes(job, now);
   const sourceCount = job.feed?.sourceCount ?? job.sourceCount;
   const confidenceLabel = job.feed?.confidenceLabel;
   const entityType = job.feed?.entityTypeTag ?? job.mode;
@@ -562,13 +597,15 @@ function QueueCard({
               </h3>
               <div className="mt-3 flex flex-wrap justify-center gap-2 sm:justify-start">
                 <QueueTag>{entityTypeLabel(entityType)}</QueueTag>
-                <QueueTag>{timeLabel}</QueueTag>
+                {timeLabels.map((label) => (
+                  <QueueTag key={label}>{label}</QueueTag>
+                ))}
                 {sourceCount > 0 ? <QueueTag>{sourceCount} sources</QueueTag> : null}
                 {confidenceLabel ? <QueueTag>{confidenceLabel}</QueueTag> : null}
               </div>
             </div>
 
-            <JobLinks job={job} onCancel={onCancel} />
+            <JobLinks job={job} onCancel={onCancel} onRetry={onRetry} />
           </div>
 
           <div className="mt-5">
@@ -631,13 +668,30 @@ function QueueCard({
 
 function JobLinks({
   job,
-  onCancel
+  onCancel,
+  onRetry
 }: {
   job: ResearchJob;
   onCancel: (jobId: string) => void;
+  onRetry: (jobId: string) => void;
 }) {
   const done = job.stage === "done";
   const partialReady = job.stage === "public_research_ready";
+
+  if (job.stage === "failed") {
+    return canDisplayRetry(job) ? (
+      <div className="flex flex-col gap-2 min-[430px]:flex-row lg:justify-end">
+        <button
+          type="button"
+          onClick={() => onRetry(job.id)}
+          className="inline-flex min-h-11 items-center justify-center gap-2 border border-black bg-deepOrange px-3 py-2 text-[10px] font-black uppercase tracking-[0.14em] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-deepOrange"
+        >
+          <RefreshCw size={12} />
+          RETRY
+        </button>
+      </div>
+    ) : null;
+  }
 
   if (!done && !partialReady) {
     return isActiveQueueStage(job.stage) || job.stage === "queued" ? (
@@ -803,7 +857,9 @@ function FailedJobSummary({ job }: { job: ResearchJob }) {
       <p className="mt-2 text-sm font-bold leading-6 text-charcoal">
         {cancelled
           ? "This research job was cancelled before completion."
-          : "We could not complete this research job. Try a more specific company name, domain, patent number, or source URL."}
+          : canDisplayRetry(job)
+            ? "We could not complete this research job. You can retry it or submit a more specific company name, domain, patent number, or source URL."
+            : "This job has failed multiple times. Try a more specific company name, domain, patent number, or source URL."}
       </p>
     </div>
   );
@@ -854,32 +910,56 @@ function entityTypeLabel(value: string) {
   return value.replace(/_/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
-function formatJobTime(job: ResearchJob, now: number) {
+function formatJobTimes(job: ResearchJob, now: number) {
   if (isActiveQueueStage(job.stage) || job.stage === "queued") {
-    return formatElapsed(job.createdAt, now);
+    if (isActiveQueueStage(job.stage)) {
+      return [
+        `Submitted ${formatAgo(job.createdAt, now)}`,
+        job.active_started_at ? `Active ${formatDurationSince(job.active_started_at, now)}` : null,
+        (job.stage_started_at ?? job.stageStartedAt)
+          ? `Current stage ${formatDurationSince(job.stage_started_at ?? job.stageStartedAt!, now)}`
+          : null
+      ].filter((label): label is string => Boolean(label));
+    }
+    return [`Submitted ${formatAgo(job.createdAt, now)}`];
   }
 
   if (job.stage === "done" && job.completedAt) {
-    return `Completed ${formatShortDateTime(job.completedAt)}`;
+    return [`Completed ${formatShortDateTime(job.completedAt)}`];
   }
 
   if ((job.stage === "failed" || job.stage === "cancelled") && job.completedAt) {
-    return `${job.stage === "cancelled" ? "Cancelled" : "Failed"} ${formatShortDateTime(job.completedAt)}`;
+    return [`${job.stage === "cancelled" ? "Cancelled" : "Failed"} ${formatShortDateTime(job.completedAt)}`];
   }
 
-  return `Submitted ${formatShortDateTime(job.createdAt)}`;
+  return [`Submitted ${formatShortDateTime(job.createdAt)}`];
 }
 
-function formatElapsed(createdAt: string, now: number) {
-  const started = new Date(createdAt).getTime();
+function formatAgo(value: string, now: number) {
+  return `${formatDurationSince(value, now)} ago`;
+}
+
+function formatDurationSince(value: string, now: number) {
+  const started = new Date(value).getTime();
   if (!Number.isFinite(started)) return "Elapsed time unavailable";
   const seconds = Math.max(0, Math.floor((now - started) / 1000));
-  if (seconds < 60) return `${seconds}s elapsed`;
+  if (seconds < 60) return `${seconds}s`;
   const minutes = Math.floor(seconds / 60);
   const remainingSeconds = seconds % 60;
-  if (minutes < 60) return `${minutes}m ${remainingSeconds}s elapsed`;
+  if (minutes < 60) return `${minutes}m ${remainingSeconds}s`;
   const hours = Math.floor(minutes / 60);
-  return `${hours}h ${minutes % 60}m elapsed`;
+  return `${hours}h ${minutes % 60}m`;
+}
+
+function canDisplayRetry(job: ResearchJob) {
+  return Boolean(
+    job.stage === "failed" &&
+      job.orchestration?.retryable &&
+      !job.articleUrl &&
+      !job.profileUrl &&
+      !job.dossierUrl &&
+      (job.retry_count ?? 0) < 3
+  );
 }
 
 function formatShortDateTime(value: string) {

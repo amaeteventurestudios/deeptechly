@@ -144,6 +144,13 @@ function job(overrides: Partial<ResearchJob> = {}): ResearchJob {
     resolvedName: overrides.resolvedName ?? null,
     resolutionStatus: overrides.resolutionStatus ?? null,
     stageStartedAt: overrides.stageStartedAt ?? createdAt,
+    active_started_at: overrides.active_started_at ?? null,
+    stage_started_at: overrides.stage_started_at ?? overrides.stageStartedAt ?? createdAt,
+    last_heartbeat_at: overrides.last_heartbeat_at ?? null,
+    retry_count: overrides.retry_count ?? 0,
+    previous_failure_code: overrides.previous_failure_code ?? null,
+    previous_failure_stage: overrides.previous_failure_stage ?? null,
+    previous_failure_message_internal: overrides.previous_failure_message_internal ?? null,
     publicResearchReadyAt: overrides.publicResearchReadyAt ?? null,
     cancellationRequested: overrides.cancellationRequested ?? false,
     error: overrides.error ?? null,
@@ -491,7 +498,10 @@ function verifyRetryAndStuckLoad() {
     job({
       id: `fresh_${index}`,
       stage: "searching_web",
-      updatedAt: "2026-05-18T15:55:00.000Z"
+      updatedAt: "2026-05-18T15:55:00.000Z",
+      stageStartedAt: "2026-05-18T15:58:00.000Z",
+      stage_started_at: "2026-05-18T15:58:00.000Z",
+      last_heartbeat_at: "2026-05-18T15:58:00.000Z"
     })
   );
   assert.equal(staleJobs.every((candidate) => shouldMarkJobStuck(candidate, now)), true);

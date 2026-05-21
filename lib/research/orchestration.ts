@@ -6,6 +6,8 @@ import {
 } from "./entity-resolution";
 
 export const MAX_RESEARCH_JOB_ATTEMPTS = 3;
+export const MAX_MANUAL_RESEARCH_RETRIES = 3;
+export const MAX_AUTOMATIC_RESEARCH_RETRIES = 1;
 export const RETRYABLE_RESEARCH_FAILURE_COPY =
   "Research failed. We could not complete this research job. Try a more specific company name, domain, patent number, or source URL.";
 
@@ -52,6 +54,24 @@ const transientFailurePatterns = [
   /supabase/i
 ];
 
+const stageTimeoutsMs: Partial<Record<ResearchStage, number>> = {
+  searching_web: 4 * 60 * 1000,
+  reading_homepage: 3 * 60 * 1000,
+  reading_technical_pages: 4 * 60 * 1000,
+  distilling_facts: 3 * 60 * 1000,
+  filling_gaps: 5 * 60 * 1000,
+  verifying_claims: 6 * 60 * 1000,
+  mapping_technology_stack: 4 * 60 * 1000,
+  mapping_government_relevance: 4 * 60 * 1000,
+  estimating_readiness: 3 * 60 * 1000,
+  drafting_outputs: 8 * 60 * 1000,
+  publishing_article: 3 * 60 * 1000,
+  publishing_profile: 3 * 60 * 1000,
+  finalizing_dossier: 3 * 60 * 1000
+};
+
+const workerStalledMs = 5 * 60 * 1000;
+
 export function normalizeResearchStatus(status: string | null | undefined): ResearchStage {
   const normalized = String(status ?? "queued").trim().toLowerCase();
   if (normalized === "complete" || normalized === "completed") return "done";
@@ -75,6 +95,7 @@ export function canRetryResearchJob(job: ResearchJob, now = new Date()) {
 
   const attemptCount = getAttemptCount(job);
   if (attemptCount >= getMaxAttempts(job)) return false;
+  if (getRetryCount(job) >= MAX_MANUAL_RESEARCH_RETRIES) return false;
 
   const failureType = job.orchestration?.failureType;
   const retryable =
@@ -89,20 +110,73 @@ export function canRetryResearchJob(job: ResearchJob, now = new Date()) {
 }
 
 export function shouldMarkJobStuck(job: ResearchJob, now = new Date()) {
-  if (!isActiveResearchStatus(job.stage)) return false;
-  if (hasCompletedOutput(job)) return false;
-  if (job.orchestration?.stuckMarkedAt) return false;
+  return Boolean(getResearchJobStallReason(job, now));
+}
 
-  const thresholdMs = stuckThresholdMs(job.stage);
-  const lastActivity = mostRecentTimestamp([
-    job.updatedAt,
-    job.stageStartedAt,
-    job.orchestration?.lastRunStartedAt,
-    job.createdAt
-  ]);
+export type ResearchJobStallReason = {
+  code: "STAGE_TIMEOUT" | "WORKER_STALLED";
+  failureType: "timeout" | "stuck";
+  stage: ResearchStage;
+  elapsedMs: number;
+  timeoutMs: number;
+  lastHeartbeatAt: string | null;
+  activeStartedAt: string | null;
+  stageStartedAt: string | null;
+  internalMessage: string;
+};
 
-  if (!lastActivity) return false;
-  return now.getTime() - lastActivity.getTime() >= thresholdMs;
+export function getResearchJobStallReason(
+  job: ResearchJob,
+  now = new Date()
+): ResearchJobStallReason | null {
+  if (!isActiveResearchStatus(job.stage)) return null;
+  if (hasCompletedOutput(job)) return null;
+  if (job.orchestration?.stuckMarkedAt) return null;
+
+  const activeStartedAt =
+    job.active_started_at ?? job.orchestration?.lastRunStartedAt ?? null;
+  const stageStartedAt = job.stage_started_at ?? job.stageStartedAt ?? null;
+  const lastHeartbeatAt =
+    job.last_heartbeat_at ?? activeStartedAt ?? stageStartedAt ?? null;
+  const lastHeartbeat = parseTimestamp(lastHeartbeatAt);
+  const stageStarted = parseTimestamp(stageStartedAt);
+
+  if (lastHeartbeat) {
+    const elapsedMs = now.getTime() - lastHeartbeat.getTime();
+    if (elapsedMs >= workerStalledMs) {
+      return {
+        code: "WORKER_STALLED",
+        failureType: "stuck",
+        stage: job.stage,
+        elapsedMs,
+        timeoutMs: workerStalledMs,
+        lastHeartbeatAt,
+        activeStartedAt,
+        stageStartedAt,
+        internalMessage: `Worker stalled in stage ${job.stage}. Last heartbeat: ${lastHeartbeatAt ?? "unknown"}. Active started: ${activeStartedAt ?? "unknown"}. Stage started: ${stageStartedAt ?? "unknown"}.`
+      };
+    }
+  }
+
+  const stageTimeoutMs = stageTimeoutsMs[job.stage];
+  if (stageTimeoutMs && stageStarted) {
+    const elapsedMs = now.getTime() - stageStarted.getTime();
+    if (elapsedMs >= stageTimeoutMs) {
+      return {
+        code: "STAGE_TIMEOUT",
+        failureType: "timeout",
+        stage: job.stage,
+        elapsedMs,
+        timeoutMs: stageTimeoutMs,
+        lastHeartbeatAt,
+        activeStartedAt,
+        stageStartedAt,
+        internalMessage: `Stage timeout in ${job.stage}. Elapsed stage time: ${formatDuration(elapsedMs)}. Timeout: ${formatDuration(stageTimeoutMs)}. Last heartbeat: ${lastHeartbeatAt ?? "unknown"}.`
+      };
+    }
+  }
+
+  return null;
 }
 
 export function computeRetryDelay(attemptCount: number) {
@@ -223,6 +297,9 @@ export async function safeMarkJobFailed(
     failure_code: options.failureCode ?? failureCodeForMessage(message, options.failureType),
     failure_stage: options.failureStage ?? failedStage,
     failure_message_internal: safeInternalFailureMessage(options.internalMessage ?? message),
+    active_started_at: job.active_started_at ?? null,
+    stage_started_at: job.stage_started_at ?? job.stageStartedAt ?? null,
+    last_heartbeat_at: job.last_heartbeat_at ?? null,
     completedAt: now.toISOString(),
     orchestration: {
       ...job.orchestration,
@@ -244,7 +321,8 @@ export async function safeMarkJobFailed(
 export async function safeMarkJobStuck(jobId: string) {
   const { getResearchJob, updateResearchJob } = await import("./store");
   const job = await getResearchJob(jobId);
-  if (!job || !shouldMarkJobStuck(job)) return job;
+  const stallReason = job ? getResearchJobStallReason(job) : null;
+  if (!job || !stallReason) return job;
 
   const now = new Date().toISOString();
   const failedStage = job.stage !== "failed" ? job.stage : (job.failedStage ?? null);
@@ -255,10 +333,10 @@ export async function safeMarkJobStuck(jobId: string) {
     detail: RETRYABLE_RESEARCH_FAILURE_COPY,
     error: RETRYABLE_RESEARCH_FAILURE_COPY,
     failedStage,
-    failure_code: "job_stalled",
+    failure_code: stallReason.code,
     failure_stage: failedStage,
     failure_message_internal: safeInternalFailureMessage(
-      `Research job stalled before completion at stage ${failedStage ?? "unknown"}.`
+      stallReason.internalMessage
     ),
     completedAt: now,
     orchestration: {
@@ -271,27 +349,47 @@ export async function safeMarkJobStuck(jobId: string) {
       lastRunFinishedAt: now,
       nextRetryAt: now,
       retryable: true,
-      failureType: "stuck",
+      failureType: stallReason.failureType,
       stuckMarkedAt: now
     }
   });
 }
 
-export async function safeResumeOrRetryJob(jobId: string) {
+export async function safeResumeOrRetryJob(
+  jobId: string,
+  options: { force?: boolean; detail?: string } = {}
+) {
   const { getResearchJob, updateResearchJob } = await import("./store");
   const job = await getResearchJob(jobId);
-  if (!job || !canRetryResearchJob(job)) return null;
+  if (!job || (!options.force && !canRetryResearchJob(job))) return null;
+  if (hasCompletedOutput(job)) return null;
+  if (getRetryCount(job) >= MAX_MANUAL_RESEARCH_RETRIES) return null;
+  const retryCount = getRetryCount(job) + 1;
 
   return updateResearchJob(jobId, {
     stage: "queued",
     progress: 5,
     message: "Queued",
-    detail: "Retry queued after a recoverable research failure.",
+    detail: options.detail ?? "Retry queued after a recoverable research failure.",
     error: null,
     failedStage: null,
+    previous_failure_code: job.failure_code ?? job.previous_failure_code ?? null,
+    previous_failure_stage:
+      typeof job.failure_stage === "string"
+        ? job.failure_stage
+        : (job.failedStage ?? job.previous_failure_stage ?? null),
+    previous_failure_message_internal:
+      job.failure_message_internal ?? job.previous_failure_message_internal ?? null,
     failure_code: null,
     failure_stage: null,
     failure_message_internal: null,
+    failure_generated_entity_name: null,
+    failure_generated_slug: null,
+    failure_suspected_source_publisher: null,
+    active_started_at: null,
+    stage_started_at: null,
+    last_heartbeat_at: null,
+    retry_count: retryCount,
     completedAt: null,
     cancellationRequested: false,
     orchestration: {
@@ -305,7 +403,8 @@ export async function safeResumeOrRetryJob(jobId: string) {
       lastRunFinishedAt: null,
       nextRetryAt: null,
       retryable: false,
-      failureType: null
+      failureType: null,
+      stuckMarkedAt: null
     }
   });
 }
@@ -316,6 +415,10 @@ export function buildInputFingerprint(input: string) {
 
 export function getAttemptCount(job: ResearchJob) {
   return Math.max(0, Math.floor(job.orchestration?.attemptCount ?? 0));
+}
+
+export function getRetryCount(job: ResearchJob) {
+  return Math.max(0, Math.floor(job.retry_count ?? 0));
 }
 
 export function nextAttempt(job: ResearchJob) {
@@ -370,6 +473,14 @@ function failureCodeForMessage(
   return "research_pipeline_error";
 }
 
+export function stageTimeoutForResearchStage(stage: ResearchStage) {
+  return stageTimeoutsMs[stage] ?? null;
+}
+
+export function workerStalledThresholdMs() {
+  return workerStalledMs;
+}
+
 function isResearchStage(value: string): value is ResearchStage {
   return [
     "queued",
@@ -414,23 +525,17 @@ function isTransientFailure(message: string | null | undefined) {
   return transientFailurePatterns.some((pattern) => pattern.test(text));
 }
 
-function stuckThresholdMs(stage: ResearchStage) {
-  if (
-    stage === "drafting_outputs" ||
-    stage === "publishing_article" ||
-    stage === "publishing_profile" ||
-    stage === "finalizing_dossier"
-  ) {
-    return 25 * 60 * 1000;
-  }
-  if (stage === "queued") return 20 * 60 * 1000;
-  return 15 * 60 * 1000;
+function parseTimestamp(value: string | null | undefined) {
+  if (!value) return null;
+  const time = Date.parse(value);
+  return Number.isFinite(time) ? new Date(time) : null;
 }
 
-function mostRecentTimestamp(values: Array<string | null | undefined>) {
-  const times = values
-    .map((value) => (value ? Date.parse(value) : Number.NaN))
-    .filter((value) => Number.isFinite(value));
-  if (times.length === 0) return null;
-  return new Date(Math.max(...times));
+function formatDuration(ms: number) {
+  const seconds = Math.max(0, Math.floor(ms / 1000));
+  const minutes = Math.floor(seconds / 60);
+  const remainingSeconds = seconds % 60;
+  if (minutes < 60) return `${minutes}m ${remainingSeconds}s`;
+  const hours = Math.floor(minutes / 60);
+  return `${hours}h ${minutes % 60}m`;
 }

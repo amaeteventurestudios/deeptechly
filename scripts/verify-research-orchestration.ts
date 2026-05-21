@@ -3,6 +3,7 @@ import {
   buildJobLockKey,
   canRetryResearchJob,
   computeRetryDelay,
+  getResearchJobStallReason,
   isActiveResearchStatus,
   isTerminalResearchStatus,
   jobMatchesInput,
@@ -38,6 +39,13 @@ function job(overrides: Partial<ResearchJob> = {}): ResearchJob {
     resolvedName: overrides.resolvedName ?? null,
     resolutionStatus: overrides.resolutionStatus ?? null,
     stageStartedAt: overrides.stageStartedAt ?? createdAt,
+    active_started_at: overrides.active_started_at ?? null,
+    stage_started_at: overrides.stage_started_at ?? overrides.stageStartedAt ?? createdAt,
+    last_heartbeat_at: overrides.last_heartbeat_at ?? null,
+    retry_count: overrides.retry_count ?? 0,
+    previous_failure_code: overrides.previous_failure_code ?? null,
+    previous_failure_stage: overrides.previous_failure_stage ?? null,
+    previous_failure_message_internal: overrides.previous_failure_message_internal ?? null,
     publicResearchReadyAt: overrides.publicResearchReadyAt ?? null,
     cancellationRequested: overrides.cancellationRequested ?? false,
     error: overrides.error ?? null,
@@ -105,7 +113,9 @@ function verifyStuckDetection() {
       job({
         stage: "searching_web",
         updatedAt: "2026-05-18T15:50:30.000Z",
-        stageStartedAt: "2026-05-18T15:50:30.000Z"
+        stageStartedAt: "2026-05-18T15:58:30.000Z",
+        stage_started_at: "2026-05-18T15:58:30.000Z",
+        last_heartbeat_at: "2026-05-18T15:58:30.000Z"
       }),
       now
     ),
@@ -130,6 +140,28 @@ function verifyStuckDetection() {
     false,
     "completed jobs are never marked stuck"
   );
+
+  const timedOut = getResearchJobStallReason(
+    job({
+      stage: "verifying_claims",
+      stageStartedAt: "2026-05-18T15:50:00.000Z",
+      stage_started_at: "2026-05-18T15:50:00.000Z",
+      last_heartbeat_at: "2026-05-18T15:59:00.000Z"
+    }),
+    now
+  );
+  assert.equal(timedOut?.code, "STAGE_TIMEOUT", "stage timeouts are reported separately from worker stalls");
+
+  const stalled = getResearchJobStallReason(
+    job({
+      stage: "drafting_outputs",
+      stageStartedAt: "2026-05-18T15:59:00.000Z",
+      stage_started_at: "2026-05-18T15:59:00.000Z",
+      last_heartbeat_at: "2026-05-18T15:54:30.000Z"
+    }),
+    now
+  );
+  assert.equal(stalled?.code, "WORKER_STALLED", "missing heartbeat reports worker stall");
 }
 
 function verifyRetryEligibility() {
@@ -190,6 +222,27 @@ function verifyRetryEligibility() {
     ),
     false,
     "completed jobs do not retry"
+  );
+  assert.equal(
+    canRetryResearchJob(
+      job({
+        stage: "failed",
+        error: "Network timeout",
+        retry_count: 3,
+        orchestration: {
+          lockKey: "entity:titanym",
+          inputFingerprint: "entity:titanym",
+          attemptCount: 1,
+          maxAttempts: 3,
+          nextRetryAt: "2026-05-18T15:59:00.000Z",
+          retryable: true,
+          failureType: "transient"
+        }
+      }),
+      now
+    ),
+    false,
+    "manual retry limit prevents endless retries"
   );
 }
 

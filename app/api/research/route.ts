@@ -13,11 +13,10 @@ import { drainResearchQueue } from "@/lib/research/queue";
 import {
   canRetryResearchJob,
   jobMatchesInput,
-  safeMarkJobStuck,
   safeResumeOrRetryJob,
-  shouldMarkJobStuck,
   shouldReuseActiveJob
 } from "@/lib/research/orchestration";
+import { runResearchWatchdog } from "@/lib/research/watchdog";
 
 export const dynamic = "force-dynamic";
 
@@ -38,7 +37,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "query is required" }, { status: 400 });
     }
 
-    await markStuckJobsForUser(session.userId);
+    await runResearchWatchdog();
     const existingJobs = await listResearchJobs(session.userId);
     const duplicateActiveJob = existingJobs.find((job) =>
       shouldReuseActiveJob(job, query, session.userId)
@@ -117,12 +116,6 @@ function inputTypeToMode(inputType: ReturnType<typeof classifyEntityInput>): Res
   return "company";
 }
 
-async function markStuckJobsForUser(userId: string) {
-  const jobs = await listResearchJobs(userId);
-  const stuckJobs = jobs.filter((job) => shouldMarkJobStuck(job));
-  await Promise.all(stuckJobs.map((job) => safeMarkJobStuck(job.id)));
-}
-
 export async function GET() {
   try {
     const session = await getAuthSession();
@@ -133,7 +126,7 @@ export async function GET() {
       });
     }
 
-    await markStuckJobsForUser(session.userId);
+    await runResearchWatchdog();
     const drained = await drainResearchQueue(session.userId);
     return NextResponse.json({
       jobs: drained.jobs,

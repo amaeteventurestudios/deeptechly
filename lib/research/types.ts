@@ -73,6 +73,13 @@ export type ResearchJob = {
   normalized_requested_entity_name?: string | null;
   resolutionMetadata?: EntityResolutionMetadata;
   stageStartedAt?: string;
+  active_started_at?: string | null;
+  stage_started_at?: string | null;
+  last_heartbeat_at?: string | null;
+  retry_count?: number;
+  previous_failure_code?: string | null;
+  previous_failure_stage?: string | null;
+  previous_failure_message_internal?: string | null;
   publicResearchReadyAt?: string | null;
   cancellationRequested?: boolean;
   failedStage?: ResearchStage | null;

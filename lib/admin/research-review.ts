@@ -75,6 +75,12 @@ export type AdminResearchReviewSummary = {
     failureStage: string | null;
     failureMessage: string | null;
     failureMessageInternal: string | null;
+    activeStartedAt: string | null;
+    stageStartedAt: string | null;
+    lastHeartbeatAt: string | null;
+    retryCount: number;
+    previousFailureCode: string | null;
+    previousFailureStage: string | null;
   };
   publishReadiness: {
     status: "READY" | "REVIEW RECOMMENDED" | "NOT READY";
@@ -311,7 +317,13 @@ function summarizeOrchestration(job: ResearchJob): AdminResearchReviewSummary["o
     failureCode: failed ? job.failure_code ?? null : null,
     failureStage: failed ? job.failure_stage ?? job.failedStage ?? null : null,
     failureMessage,
-    failureMessageInternal: failed ? internalFailureMessage : null
+    failureMessageInternal: failed ? internalFailureMessage : null,
+    activeStartedAt: job.active_started_at ?? null,
+    stageStartedAt: job.stage_started_at ?? job.stageStartedAt ?? null,
+    lastHeartbeatAt: job.last_heartbeat_at ?? null,
+    retryCount: job.retry_count ?? 0,
+    previousFailureCode: job.previous_failure_code ?? null,
+    previousFailureStage: job.previous_failure_stage ?? null
   };
 }
 

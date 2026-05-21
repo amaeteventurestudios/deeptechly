@@ -6,8 +6,10 @@ import { getAuthSession } from "@/lib/auth/session";
 import { isAdminEmail } from "@/lib/admin/invite-codes";
 import {
   publishContent,
+  recoverResearchJob,
   unpublishContent,
-  toggleArticleFeatured
+  toggleArticleFeatured,
+  type AdminRecoveryAction
 } from "@/lib/admin/content";
 
 const ADMIN_ROUTE = "/admin/content";
@@ -49,6 +51,19 @@ export async function featureContentAction(formData: FormData) {
   redirect(`${ADMIN_ROUTE}?featured=${encodeURIComponent(slug)}&value=${featured}`);
 }
 
+export async function recoverResearchJobAction(formData: FormData) {
+  await requireAdminAccess();
+  const jobId = getField(formData, "jobId");
+  const action = getField(formData, "recoveryAction") as AdminRecoveryAction;
+  if (!jobId || !isAdminRecoveryAction(action)) redirectWithError("invalid");
+
+  const result = await recoverResearchJob(jobId, action);
+  if (!result.ok) redirectWithError(result.reason);
+
+  revalidatePath(ADMIN_ROUTE);
+  redirect(`${ADMIN_ROUTE}?recovered=${encodeURIComponent(jobId)}&action=${encodeURIComponent(action)}`);
+}
+
 async function requireAdminAccess() {
   const session = await getAuthSession();
   if (!session) redirect(`/sign-in?redirectTo=${encodeURIComponent(ADMIN_ROUTE)}`);
@@ -62,4 +77,8 @@ function redirectWithError(error: string): never {
 function getField(formData: FormData, key: string) {
   const value = formData.get(key);
   return typeof value === "string" ? value.trim() : "";
+}
+
+function isAdminRecoveryAction(value: string): value is AdminRecoveryAction {
+  return ["force_retry", "mark_failed", "clear_stuck", "restart_queued"].includes(value);
 }
