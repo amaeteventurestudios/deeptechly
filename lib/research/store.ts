@@ -309,7 +309,7 @@ function articleToRow(article: StoredResearchArticle, entityId: string | null) {
     author_name: article.authorPersona,
     confidence: null,
     source_count: article.sources.length,
-    hero_image_url: article.heroImage,
+    hero_image_url: article.heroImageUrl ?? article.heroImage,
     published: article.publishedStatus === "published",
     published_at: article.publishedAt,
     data: article,
@@ -821,7 +821,17 @@ export async function createLinkedResearchJob(
       confidenceLabel: entity.confidenceLabel,
       confidenceScore: entity.confidenceScore,
       sourceCount: entity.sourceCount,
-      heroImage: entity.heroImage ?? entity.article.heroImage ?? null,
+      heroImage:
+        entity.article.heroImageUrl ??
+        entity.article.heroImage ??
+        entity.heroImageUrl ??
+        entity.heroImage ??
+        entity.logoUrl ??
+        entity.article.entityLogoUrl ??
+        entity.faviconUrl ??
+        entity.article.faviconUrl ??
+        entity.article.sourceOgImageUrl ??
+        null,
       authorPersona: entity.article.authorPersona,
       sectorTags: entity.article.sectorTags ?? entity.sectorTags ?? [],
       stageTag: entity.article.stageTag ?? entity.stageTag ?? "UNKNOWN",
@@ -1103,7 +1113,17 @@ export async function saveResearchOutput(jobId: string, output: ResearchOutput) 
         confidenceLabel: entity.confidenceLabel,
         confidenceScore: entity.confidenceScore,
         sourceCount: entity.sourceCount,
-        heroImage: entity.heroImage ?? article.heroImage ?? null,
+        heroImage:
+          article.heroImageUrl ??
+          article.heroImage ??
+          entity.heroImageUrl ??
+          entity.heroImage ??
+          entity.logoUrl ??
+          article.entityLogoUrl ??
+          entity.faviconUrl ??
+          article.faviconUrl ??
+          article.sourceOgImageUrl ??
+          null,
         authorPersona: article.authorPersona,
         sectorTags: article.sectorTags ?? entity.article.sectorTags ?? entity.sectorTags ?? [],
         stageTag: article.stageTag ?? entity.article.stageTag ?? entity.stageTag ?? "UNKNOWN",
@@ -1203,7 +1223,17 @@ export async function savePublicResearchReady(jobId: string, output: ResearchOut
         confidenceLabel: entity.confidenceLabel,
         confidenceScore: entity.confidenceScore,
         sourceCount: entity.sourceCount,
-        heroImage: entity.heroImage ?? article.heroImage ?? null,
+        heroImage:
+          article.heroImageUrl ??
+          article.heroImage ??
+          entity.heroImageUrl ??
+          entity.heroImage ??
+          entity.logoUrl ??
+          article.entityLogoUrl ??
+          entity.faviconUrl ??
+          article.faviconUrl ??
+          article.sourceOgImageUrl ??
+          null,
         authorPersona: article.authorPersona,
         sectorTags: article.sectorTags ?? entity.article.sectorTags ?? entity.sectorTags ?? [],
         stageTag: article.stageTag ?? entity.article.stageTag ?? entity.stageTag ?? "UNKNOWN",

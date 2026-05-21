@@ -128,6 +128,7 @@ function homepageStoryFromEntity(entity: ResearchEntity): HomepageStory {
     profileHref: story.profileUrl,
     dossierHref: story.dossierUrl,
     heroImage: story.heroImage,
+    heroImageAlt: story.heroImageAlt,
     researchMode: entity.entityTypeTag ?? entity.entityType ?? entity.stage,
     tags: storyTags(story).slice(0, 3),
     time: story.publishedAt ? formatRelativeTime(story.publishedAt) : "JUST NOW",

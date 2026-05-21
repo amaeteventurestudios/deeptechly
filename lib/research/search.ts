@@ -148,6 +148,13 @@ export async function fetchReadablePage(url: string): Promise<ReadablePage> {
       html,
       /<meta[^>]+name=["']twitter:image["'][^>]+content=["']([^"']+)/i
     );
+    const canonicalUrl = attr(
+      html,
+      /<link[^>]+rel=["']canonical["'][^>]+href=["']([^"']+)/i
+    );
+    const faviconUrl =
+      attr(html, /<link[^>]+rel=["'][^"']*(?:icon|shortcut icon)[^"']*["'][^>]+href=["']([^"']+)/i) ||
+      "/favicon.ico";
     const links = Array.from(html.matchAll(/<a[^>]+href=["']([^"']+)["']/gi))
       .map((match) => absolutize(match[1], finalUrl))
       .filter(Boolean)
@@ -163,6 +170,8 @@ export async function fetchReadablePage(url: string): Promise<ReadablePage> {
       url: finalUrl,
       title: stripTags(title).slice(0, 180),
       description: stripTags(description).slice(0, 400),
+      canonicalUrl: canonicalUrl ? absolutize(canonicalUrl, finalUrl) : finalUrl,
+      faviconUrl: faviconUrl ? absolutize(faviconUrl, finalUrl) : null,
       text: stripTags(html).slice(0, 14000),
       links,
       images,

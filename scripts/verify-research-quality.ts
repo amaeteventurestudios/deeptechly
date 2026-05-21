@@ -516,6 +516,66 @@ async function verifyPublicGatedSerialization() {
   );
 }
 
+async function verifyResearchImageStorage() {
+  const imageUrl = "https://example.com/og-image.jpg";
+  const sourceUrl = "https://example.com/company";
+  const summaries = [
+    sourceSummary({
+      url: sourceUrl,
+      title: "Image Storage Test company overview",
+      sourceType: "company_site",
+      keyFacts: ["Image Storage Test describes a technical product."]
+    })
+  ];
+  const facts = {
+    ...extractEntityFacts(
+      "image storage test",
+      null,
+      summaries,
+      buildTargetEntityAnchor({
+        query: "image storage test",
+        requestedEntityType: "company"
+      })
+    ),
+    name: "Image Storage Test"
+  };
+  const verification = verifyClaims(facts, summaries);
+  const withImage = await generateResearchOutput({
+    query: "image storage test",
+    facts,
+    verification,
+    summaries,
+    heroImage: null,
+    targetEntity: buildTargetEntityAnchor({
+      query: "image storage test",
+      requestedEntityType: "company"
+    }),
+    imageResolution: {
+      heroImageUrl: imageUrl,
+      heroImageSourceUrl: sourceUrl,
+      heroImageAlt: "Image Storage Test research image",
+      imageAttribution: "Image via example.com",
+      sourceOgImageUrl: imageUrl,
+      entityLogoUrl: "https://example.com/favicon.ico",
+      faviconUrl: "https://example.com/favicon.ico",
+      resolvedSources: [
+        {
+          url: sourceUrl,
+          ogImageUrl: imageUrl,
+          faviconUrl: "https://example.com/favicon.ico"
+        }
+      ]
+    }
+  });
+
+  assert.equal(withImage.entity.heroImageUrl, imageUrl, "stores resolved hero image on entity JSON");
+  assert.equal(withImage.entity.article.heroImageUrl, imageUrl, "stores resolved hero image on article JSON");
+  assert.equal(withImage.article.heroImageUrl, imageUrl, "stores resolved hero image on stored article JSON");
+  assert.equal(withImage.article.heroImageSourceUrl, sourceUrl, "stores image source attribution URL");
+  assert.equal(withImage.article.imageAttribution, "Image via example.com", "stores image attribution");
+  assert.equal(withImage.article.sources[0].ogImageUrl, imageUrl, "stores source OG image in source JSON");
+}
+
 function verifyBannedLanguageTemplates() {
   const generateSource = readFileSync(
     join(process.cwd(), "lib/research/generate.ts"),
@@ -540,6 +600,7 @@ async function main() {
   verifyEntityAnchoring();
   await verifyWeakDataBehavior();
   await verifyClaimSafety();
+  await verifyResearchImageStorage();
   await verifyPublicGatedSerialization();
   verifyBannedLanguageTemplates();
 

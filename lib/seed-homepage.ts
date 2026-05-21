@@ -41,6 +41,7 @@ export type HomepageStory = {
   profileHref?: string;
   dossierHref?: string;
   heroImage?: string | null;
+  heroImageAlt?: string | null;
   researchMode?: string;
   tags: string[];
   time: string;

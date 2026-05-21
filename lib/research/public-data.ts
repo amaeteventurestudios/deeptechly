@@ -135,7 +135,24 @@ export async function getPublishedArticles() {
           ...sectorTags,
           entity.summary
         ]),
-      heroImage: entity.article.heroImage ?? entity.heroImage ?? null,
+      heroImage:
+        entity.article.heroImageUrl ??
+        entity.article.heroImage ??
+        entity.heroImageUrl ??
+        entity.heroImage ??
+        entity.logoUrl ??
+        entity.article.entityLogoUrl ??
+        entity.faviconUrl ??
+        entity.article.faviconUrl ??
+        entity.article.sourceOgImageUrl ??
+        null,
+      heroImageUrl: entity.article.heroImageUrl ?? entity.heroImageUrl ?? null,
+      heroImageSourceUrl: entity.article.heroImageSourceUrl ?? entity.heroImageSourceUrl ?? null,
+      heroImageAlt: entity.article.heroImageAlt ?? entity.heroImageAlt ?? null,
+      imageAttribution: entity.article.imageAttribution ?? entity.imageAttribution ?? null,
+      sourceOgImageUrl: entity.article.sourceOgImageUrl ?? null,
+      entityLogoUrl: entity.article.entityLogoUrl ?? entity.logoUrl ?? null,
+      faviconUrl: entity.article.faviconUrl ?? entity.faviconUrl ?? null,
       bodySections: entity.article.sections,
       tags: entity.tags,
       sectorTags,

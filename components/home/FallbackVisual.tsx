@@ -21,10 +21,12 @@ const visualIcons: Record<HomepageVisualKind, LucideIcon> = {
 
 export function FallbackVisual({
   kind,
-  label
+  label,
+  className
 }: {
   kind: HomepageVisualKind;
   label: string;
+  className?: string;
 }) {
   const Icon = visualIcons[kind] ?? Orbit;
 
@@ -32,7 +34,7 @@ export function FallbackVisual({
     <div
       role="img"
       aria-label={label}
-      className="relative flex h-44 w-full items-center justify-center overflow-hidden border-b border-black bg-ink text-deepOrange sm:h-40 lg:h-36 xl:h-44"
+      className={`relative flex w-full items-center justify-center overflow-hidden border-b border-black bg-ink text-deepOrange ${className ?? "h-44 sm:h-40 lg:h-36 xl:h-44"}`}
     >
       <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(255,90,0,0.38)_0_1px,transparent_1px_14px)]" />
       <div className="absolute left-4 top-4 h-10 w-10 border border-deepOrange/70" />

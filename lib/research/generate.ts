@@ -30,6 +30,7 @@ import {
 } from "./source-quality";
 import type { EntityResolutionMetadata, EntityInputType } from "./entity-resolution";
 import type { TargetEntityAnchor } from "./entity-anchor";
+import type { ResearchImageResolution } from "./image-resolution";
 
 const profilePersona = "Axon Reyes";
 const dossierPersona = "Daxon Pierce";
@@ -117,6 +118,27 @@ function compactSources(summaries: SourceSummary[], facts: ExtractedEntityFacts)
   }
 
   return normalizeStoredSources(sources).slice(0, 14);
+}
+
+function attachImageMetadataToSources(
+  sources: Source[],
+  imageResolution?: ResearchImageResolution | null
+) {
+  if (!imageResolution?.resolvedSources.length) return sources;
+  const imageMetadata = new Map(
+    imageResolution.resolvedSources.map((source) => [source.url, source])
+  );
+
+  return sources.map((source) => {
+    const metadata = imageMetadata.get(source.url);
+    if (!metadata) return source;
+
+    return {
+      ...source,
+      ogImageUrl: source.ogImageUrl ?? metadata.ogImageUrl ?? null,
+      faviconUrl: source.faviconUrl ?? metadata.faviconUrl ?? null
+    };
+  });
 }
 
 function safeHost(url: string) {
@@ -712,6 +734,7 @@ export async function generateResearchOutput({
   verification,
   summaries,
   heroImage,
+  imageResolution,
   resolution,
   targetEntity
 }: {
@@ -720,6 +743,7 @@ export async function generateResearchOutput({
   verification: ClaimVerification;
   summaries: SourceSummary[];
   heroImage: string | null;
+  imageResolution?: ResearchImageResolution | null;
   targetEntity?: TargetEntityAnchor;
   resolution?: {
     slug: string;
@@ -731,7 +755,15 @@ export async function generateResearchOutput({
 }): Promise<ResearchOutput> {
   const now = new Date().toISOString();
   const slug = resolution?.slug ?? slugify(facts.name || query);
-  const sources = compactSources(summaries, facts);
+  const sources = attachImageMetadataToSources(
+    compactSources(summaries, facts),
+    imageResolution
+  );
+  const resolvedHeroImage = imageResolution?.heroImageUrl ?? heroImage ?? null;
+  const heroImageSourceUrl = imageResolution?.heroImageSourceUrl ?? null;
+  const heroImageAlt =
+    imageResolution?.heroImageAlt ?? `${facts.name} research image`;
+  const imageAttribution = imageResolution?.imageAttribution ?? null;
   const sourceCount = Math.max(sources.length, facts.sourceUrls.length);
   const score = confidenceScoreForSources(summaries, verification);
   const label = confidenceLabel(score);
@@ -812,7 +844,13 @@ export async function generateResearchOutput({
     confidenceScore: score,
     confidenceLabel: label,
     lastResearchedAt: "just now",
-    heroImage,
+    heroImage: resolvedHeroImage,
+    heroImageUrl: resolvedHeroImage,
+    heroImageSourceUrl,
+    heroImageAlt,
+    imageAttribution,
+    logoUrl: imageResolution?.entityLogoUrl ?? null,
+    faviconUrl: imageResolution?.faviconUrl ?? null,
     publishedStatus: "draft",
     searchCount: 1,
     resolutionMetadata: resolution?.metadata,
@@ -838,7 +876,14 @@ export async function generateResearchOutput({
       entitySlug: slug,
       authorPersona: articlePersona,
       publishedAt: now,
-      heroImage,
+      heroImage: resolvedHeroImage,
+      heroImageUrl: resolvedHeroImage,
+      heroImageSourceUrl,
+      heroImageAlt,
+      imageAttribution,
+      sourceOgImageUrl: imageResolution?.sourceOgImageUrl ?? null,
+      entityLogoUrl: imageResolution?.entityLogoUrl ?? null,
+      faviconUrl: imageResolution?.faviconUrl ?? null,
       dossierUrl: `/dossier/${slug}`,
       visualLabel: facts.sector.toUpperCase(),
       visualCaption: `${facts.name} extracted source visual`,
@@ -873,7 +918,14 @@ export async function generateResearchOutput({
     title: headline,
     dek,
     authorPersona: articlePersona,
-    heroImage,
+    heroImage: resolvedHeroImage,
+    heroImageUrl: resolvedHeroImage,
+    heroImageSourceUrl,
+    heroImageAlt,
+    imageAttribution,
+    sourceOgImageUrl: imageResolution?.sourceOgImageUrl ?? null,
+    entityLogoUrl: imageResolution?.entityLogoUrl ?? null,
+    faviconUrl: imageResolution?.faviconUrl ?? null,
     bodySections: sections,
     tags,
     sectorTags,

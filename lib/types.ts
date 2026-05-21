@@ -27,6 +27,8 @@ export type Source = {
   publisher?: string;
   date?: string;
   type: SourceType;
+  ogImageUrl?: string | null;
+  faviconUrl?: string | null;
   retrievedAt?: string;
   supportsClaims?: string[];
   publicSectorSignals?: {
@@ -100,6 +102,13 @@ export type Article = {
   authorPersona?: string;
   publishedAt?: string;
   heroImage?: string | null;
+  heroImageUrl?: string | null;
+  heroImageSourceUrl?: string | null;
+  heroImageAlt?: string | null;
+  imageAttribution?: string | null;
+  sourceOgImageUrl?: string | null;
+  entityLogoUrl?: string | null;
+  faviconUrl?: string | null;
   dossierUrl?: string;
   visualLabel: string;
   visualCaption: string;
@@ -228,6 +237,12 @@ export type ResearchEntity = {
   confidenceLabel: ConfidenceLabel;
   lastResearchedAt: string;
   heroImage?: string | null;
+  heroImageUrl?: string | null;
+  heroImageSourceUrl?: string | null;
+  heroImageAlt?: string | null;
+  imageAttribution?: string | null;
+  logoUrl?: string | null;
+  faviconUrl?: string | null;
   publishedStatus?: "draft" | "published";
   searchCount?: number;
   resolutionMetadata?: {

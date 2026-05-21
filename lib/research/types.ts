@@ -135,6 +135,8 @@ export type ReadablePage = {
   url: string;
   title: string;
   description: string;
+  canonicalUrl?: string | null;
+  faviconUrl?: string | null;
   text: string;
   links: string[];
   images: string[];
@@ -205,6 +207,13 @@ export type StoredResearchArticle = {
   dek: string;
   authorPersona: string;
   heroImage: string | null;
+  heroImageUrl?: string | null;
+  heroImageSourceUrl?: string | null;
+  heroImageAlt?: string | null;
+  imageAttribution?: string | null;
+  sourceOgImageUrl?: string | null;
+  entityLogoUrl?: string | null;
+  faviconUrl?: string | null;
   bodySections: ResearchEntity["article"]["sections"];
   tags: string[];
   sectorTags?: string[];

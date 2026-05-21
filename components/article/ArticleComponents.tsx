@@ -105,14 +105,23 @@ export function ArticleHero({ entity }: { entity: ResearchEntity }) {
 }
 
 function ArticleVisual({ entity }: { entity: ResearchEntity }) {
-  const image = entity.article.heroImage ?? entity.heroImage;
+  const image =
+    entity.article.heroImageUrl ??
+    entity.article.heroImage ??
+    entity.heroImageUrl ??
+    entity.heroImage ??
+    entity.logoUrl ??
+    entity.article.entityLogoUrl ??
+    entity.faviconUrl ??
+    entity.article.faviconUrl ??
+    entity.article.sourceOgImageUrl;
 
   if (image) {
     return (
       <div
-        className="h-64 border-b border-black bg-cover bg-center sm:h-80"
+        className="h-64 border-b border-black bg-paleOrange bg-cover bg-center sm:h-80"
         role="img"
-        aria-label={`${entity.name} research visual`}
+        aria-label={entity.article.heroImageAlt ?? `${entity.name} research visual`}
         style={{ backgroundImage: `url(${image})` }}
       />
     );

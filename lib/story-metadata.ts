@@ -214,6 +214,7 @@ export type StoryCardData = StoryMetadata & {
   headline: string;
   summary: string;
   heroImage: string | null;
+  heroImageAlt?: string | null;
   isGenerated: boolean;
 };
 
@@ -488,7 +489,21 @@ export function storyFromEntity(entity: ResearchEntity): StoryCardData {
     articleUrl: `/article/${entity.slug}`,
     profileUrl: `/startup/${entity.slug}`,
     dossierUrl: `/dossier/${entity.slug}`,
-    heroImage: entity.heroImage ?? entity.article.heroImage ?? null,
+    heroImage:
+      entity.article.heroImageUrl ??
+      entity.article.heroImage ??
+      entity.heroImageUrl ??
+      entity.heroImage ??
+      entity.logoUrl ??
+      entity.article.entityLogoUrl ??
+      entity.faviconUrl ??
+      entity.article.faviconUrl ??
+      entity.article.sourceOgImageUrl ??
+      null,
+    heroImageAlt:
+      entity.article.heroImageAlt ??
+      entity.heroImageAlt ??
+      `${entity.name} research image`,
     isGenerated: entity.stage === "Generated research"
   };
 }
@@ -532,6 +547,7 @@ export function storyFromJob(job: ResearchJob): StoryCardData | null {
     profileUrl: job.profileUrl ?? `/startup/${slug}`,
     dossierUrl: job.dossierUrl ?? `/dossier/${slug}`,
     heroImage: job.feed?.heroImage ?? null,
+    heroImageAlt: job.feed?.articleTitle ?? `${job.feed?.entityName ?? job.query} research image`,
     isGenerated: true
   };
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useRef } from "react";
+import { useMemo, useRef, useState } from "react";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import { FallbackVisual } from "./FallbackVisual";
 import { HomeSaveButton } from "./HomeSaveButton";
@@ -214,25 +214,60 @@ function buildSecondaryArticles(articles: LatestArticle[]) {
 }
 
 function ArticleVisual({ article }: { article: LatestArticle }) {
-  if (article.heroImage) {
+  const [imageFailed, setImageFailed] = useState(false);
+  const imageUrl = safeDisplayImageUrl(article.heroImage);
+  const fallbackKind = article.visual ?? visualForSector(article.sector);
+  const fallbackLabel = `${article.sector} fallback visual`;
+
+  if (imageUrl && !imageFailed) {
     return (
-      <div
-        aria-label={`${article.entityName} article visual`}
-        className="h-32 border-b border-black bg-cover bg-center bg-no-repeat"
-        role="img"
-        style={{ backgroundImage: `url(${article.heroImage})` }}
-      />
+      <div className="relative h-32 overflow-hidden border-b border-black bg-ink">
+        <FallbackVisual kind={fallbackKind} label={fallbackLabel} className="h-full" />
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={imageUrl}
+          alt={article.heroImageAlt ?? `${article.entityName} research image`}
+          className="absolute inset-0 h-full w-full object-cover"
+          loading="lazy"
+          referrerPolicy="no-referrer"
+          onLoad={(event) => {
+            const image = event.currentTarget;
+            if (image.naturalWidth <= 2 || image.naturalHeight <= 2) {
+              setImageFailed(true);
+            }
+          }}
+          onError={() => setImageFailed(true)}
+        />
+      </div>
     );
   }
 
   return (
     <div className="h-32 overflow-hidden border-b border-black">
       <FallbackVisual
-        kind={article.visual ?? visualForSector(article.sector)}
-        label={`${article.sector} editorial visual`}
+        kind={fallbackKind}
+        label={fallbackLabel}
+        className="h-full"
       />
     </div>
   );
+}
+
+function safeDisplayImageUrl(value?: string | null) {
+  const url = value?.trim();
+  if (!url || /^data:/i.test(url)) return null;
+
+  try {
+    const parsed = new URL(url);
+    if (!["http:", "https:"].includes(parsed.protocol)) return null;
+    const text = `${parsed.pathname} ${parsed.search}`.toLowerCase();
+    if (/\b(?:pixel|spacer|blank|transparent|tracking|1x1|collect)\b/.test(text)) {
+      return null;
+    }
+    return parsed.toString();
+  } catch {
+    return null;
+  }
 }
 
 function visualForSector(sector: string): HomepageVisualKind {

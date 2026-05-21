@@ -52,9 +52,9 @@ import {
   isProbableDomain,
   pickImportantInternalLinks,
   ResearchSearchError,
-  searchWeb,
-  selectHeroImage
+  searchWeb
 } from "./search";
+import { resolveResearchImage } from "./image-resolution";
 import { normalizeSearchResults } from "./source-quality";
 import type { ReadablePage, ResearchStage, SearchResult } from "./types";
 
@@ -551,13 +551,31 @@ export async function runResearchJob(jobId: string, query: string) {
     await move(jobId, "drafting_outputs", startedAt, {
       sourceCount: summaries.length
     });
-    const heroImage = selectHeroImage(homepage);
+    const fallbackHeroImage =
+      homepage?.ogImage ?? homepage?.twitterImage ?? homepage?.images[0] ?? null;
+    const imageResolution = await resolveResearchImage({
+      entityName: facts.name,
+      entityWebsite: facts.website ?? facts.domain ?? resolution.domain,
+      sector: facts.sector,
+      sources: summaries
+    }).catch((error) => ({
+      heroImageUrl: fallbackHeroImage,
+      heroImageSourceUrl: homepage?.url ?? null,
+      heroImageAlt: `${facts.name} research image`,
+      imageAttribution: homepage ? "Image via public source" : null,
+      diagnostics: [
+        `Image resolution failed: ${error instanceof Error ? error.name : "unknown"}`
+      ],
+      resolvedSources: []
+    }));
+    const heroImage = imageResolution.heroImageUrl ?? fallbackHeroImage;
     const output = await generateResearchOutput({
       query: resolution.researchQuery,
       facts,
       verification,
       summaries,
       heroImage,
+      imageResolution,
       targetEntity,
       resolution: {
         slug: canonicalEntity.slug,
