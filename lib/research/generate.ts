@@ -29,6 +29,7 @@ import {
   type EnrichedSourceSummary
 } from "./source-quality";
 import type { EntityResolutionMetadata, EntityInputType } from "./entity-resolution";
+import type { TargetEntityAnchor } from "./entity-anchor";
 
 const profilePersona = "Axon Reyes";
 const dossierPersona = "Daxon Pierce";
@@ -588,11 +589,20 @@ async function callOpenAIJson(
 
 async function aiArticleSections(
   facts: ExtractedEntityFacts,
-  summaries: SourceSummary[]
+  summaries: SourceSummary[],
+  targetEntity?: TargetEntityAnchor
 ) {
   const prompt = `You are an institutional deep-tech analyst writing for DeepTechly.
 
 Write a feature article based ONLY on the provided source summaries and structured facts.
+TARGET ENTITY ANCHOR:
+- The primary entity is locked to the submitted query: "${targetEntity?.requestedEntityName ?? facts.name}"
+- The submitted query was: "${targetEntity?.requestedEntityQuery ?? facts.name}"
+- Do not rename the entity unless sources confirm an alias or legal name for this same target
+- Treat source publishers as evidence sources, not research subjects
+- Do not substitute a better-known source company as the article subject
+- If public data is limited, say public data is limited
+- If the entity cannot be confirmed, keep the result low-confidence or failed; never switch to a different entity
 RULES:
 - Never invent founders, funding, investors, customers, patents, revenue, or technical metrics
 - Never claim government funding, contracts, customers, partnerships, endorsement, procurement interest, patent ownership, exclusivity, or active license unless explicitly source-backed
@@ -644,11 +654,20 @@ ${JSON.stringify(summaries.slice(0, 8))}`;
 async function aiDossierHighlights(
   facts: ExtractedEntityFacts,
   verification: ClaimVerification,
-  summaries: SourceSummary[]
+  summaries: SourceSummary[],
+  targetEntity?: TargetEntityAnchor
 ) {
   const prompt = `You are an institutional deep-tech diligence analyst writing for DeepTechly.
 
 Generate only the executive summary and strategic outlook for a research dossier.
+TARGET ENTITY ANCHOR:
+- The primary entity is locked to the submitted query: "${targetEntity?.requestedEntityName ?? facts.name}"
+- The submitted query was: "${targetEntity?.requestedEntityQuery ?? facts.name}"
+- Do not rename the entity unless sources confirm an alias or legal name for this same target
+- Treat source publishers as evidence sources, not research subjects
+- Do not substitute a better-known source company as the dossier subject
+- If public data is limited, say public data is limited
+- If the entity cannot be confirmed, keep the result low-confidence or failed; never switch to a different entity
 RULES:
 - Never invent founders, funding, investors, customers, patents, revenue, or technical metrics
 - Never claim government funding, contracts, customers, partnerships, endorsement, procurement interest, patent ownership, exclusivity, or active license unless explicitly source-backed
@@ -693,13 +712,15 @@ export async function generateResearchOutput({
   verification,
   summaries,
   heroImage,
-  resolution
+  resolution,
+  targetEntity
 }: {
   query: string;
   facts: ExtractedEntityFacts;
   verification: ClaimVerification;
   summaries: SourceSummary[];
   heroImage: string | null;
+  targetEntity?: TargetEntityAnchor;
   resolution?: {
     slug: string;
     entityId?: string | null;
@@ -717,8 +738,8 @@ export async function generateResearchOutput({
   const secondary = facts.secondarySectors.length
     ? facts.secondarySectors
     : ["Technology", "Government Relevance"];
-  const aiArticle = await aiArticleSections(facts, summaries);
-  const aiDossier = await aiDossierHighlights(facts, verification, summaries);
+  const aiArticle = await aiArticleSections(facts, summaries, targetEntity);
+  const aiDossier = await aiDossierHighlights(facts, verification, summaries, targetEntity);
   const sections = aiArticle?.sections ?? fallbackArticleSections(facts);
   const openQuestions = aiArticle?.openQuestions?.length
     ? aiArticle.openQuestions

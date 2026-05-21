@@ -29,6 +29,9 @@ let dossierMarkdown!: typeof import("@/lib/research/markdown").dossierMarkdown;
 let extractEntityFacts!: typeof import("@/lib/research/extract").extractEntityFacts;
 let verifyClaims!: typeof import("@/lib/research/extract").verifyClaims;
 let generateResearchOutput!: typeof import("@/lib/research/generate").generateResearchOutput;
+let buildTargetEntityAnchor!: typeof import("@/lib/research/entity-anchor").buildTargetEntityAnchor;
+let sourcePublishersFromSummaries!: typeof import("@/lib/research/entity-anchor").sourcePublishersFromSummaries;
+let validateEntityAnchor!: typeof import("@/lib/research/entity-anchor").validateEntityAnchor;
 let classifySource!: typeof import("@/lib/research/source-quality").classifySource;
 let dedupeSourceSummaries!: typeof import("@/lib/research/source-quality").dedupeSourceSummaries;
 let normalizeSearchResults!: typeof import("@/lib/research/source-quality").normalizeSearchResults;
@@ -56,12 +59,16 @@ async function loadResearchModules() {
   const markdown = await import("@/lib/research/markdown");
   const extract = await import("@/lib/research/extract");
   const generate = await import("@/lib/research/generate");
+  const entityAnchor = await import("@/lib/research/entity-anchor");
   const sourceQuality = await import("@/lib/research/source-quality");
 
   dossierMarkdown = markdown.dossierMarkdown;
   extractEntityFacts = extract.extractEntityFacts;
   verifyClaims = extract.verifyClaims;
   generateResearchOutput = generate.generateResearchOutput;
+  buildTargetEntityAnchor = entityAnchor.buildTargetEntityAnchor;
+  sourcePublishersFromSummaries = entityAnchor.sourcePublishersFromSummaries;
+  validateEntityAnchor = entityAnchor.validateEntityAnchor;
   classifySource = sourceQuality.classifySource;
   dedupeSourceSummaries = sourceQuality.dedupeSourceSummaries;
   normalizeSearchResults = sourceQuality.normalizeSearchResults;
@@ -135,8 +142,12 @@ async function generateFixture(
   factOverrides: Partial<ExtractedEntityFacts> = {},
   verificationOverrides: Partial<ClaimVerification> = {}
 ) {
+  const targetEntity = buildTargetEntityAnchor({
+    query,
+    requestedEntityType: "company"
+  });
   const facts = {
-    ...extractEntityFacts(query, null, summaries),
+    ...extractEntityFacts(query, null, summaries, targetEntity),
     ...factOverrides
   };
   const verification = {
@@ -157,11 +168,101 @@ async function generateFixture(
       facts,
       verification,
       summaries,
-      heroImage: null
+      heroImage: null,
+      targetEntity
     });
   } finally {
     console.log = originalConsoleLog;
   }
+}
+
+function verifyEntityAnchoring() {
+  const cbInsightsPublisher = sourceSummary({
+    url: "https://www.cbinsights.com/company/velaura-ai",
+    title: "Velaura AI - CB Insights",
+    sourcePublisher: "CB Insights",
+    keyFacts: ["CB Insights lists Velaura AI as a private company profile."]
+  });
+  const velauraPass = validateEntityAnchor({
+    requestedEntityName: "Velaura AI",
+    generatedEntityName: "Velaura AI",
+    generatedSlug: "velaura-ai",
+    generatedHeadline: "Velaura AI moves into limited-data diligence",
+    sourcePublishers: sourcePublishersFromSummaries([cbInsightsPublisher]),
+    extractedAliases: []
+  });
+  assert.equal(velauraPass.ok, true, "Velaura AI remains valid when CB Insights is only a source");
+
+  const velauraMismatch = validateEntityAnchor({
+    requestedEntityName: "Velaura AI",
+    generatedEntityName: "CB Insights",
+    generatedSlug: "cb-insights-predictive-intelligence-on-private-companies",
+    generatedHeadline: "CB Insights maps private-company intelligence",
+    sourcePublishers: sourcePublishersFromSummaries([cbInsightsPublisher]),
+    extractedAliases: []
+  });
+  assert.equal(velauraMismatch.ok, false, "Velaura AI must not publish as CB Insights");
+  assert.equal(
+    velauraMismatch.suspectedSourcePublisher,
+    "cb insights",
+    "CB Insights is diagnosed as the suspected source publisher"
+  );
+
+  const cbInsightsSelf = validateEntityAnchor({
+    requestedEntityName: "CB Insights",
+    generatedEntityName: "CB Insights",
+    generatedSlug: "cb-insights",
+    sourcePublishers: ["CB Insights"],
+    extractedAliases: []
+  });
+  assert.equal(cbInsightsSelf.ok, true, "CB Insights remains valid when it is the requested entity");
+
+  const nasaCollapse = validateEntityAnchor({
+    requestedEntityName: "NASA SiGe on sapphire",
+    generatedEntityName: "NASA",
+    generatedSlug: "nasa",
+    generatedHeadline: "NASA research programs",
+    sourcePublishers: ["NASA"],
+    extractedAliases: []
+  });
+  assert.equal(nasaCollapse.ok, false, "NASA technology requests must not collapse to NASA broadly");
+
+  const nasaTechnology = validateEntityAnchor({
+    requestedEntityName: "NASA SiGe on sapphire",
+    generatedEntityName: "NASA SiGe on sapphire",
+    generatedSlug: "nasa-sige-on-sapphire",
+    sourcePublishers: ["NASA"],
+    extractedAliases: ["SiGe on sapphire technology"]
+  });
+  assert.equal(nasaTechnology.ok, true, "NASA source can support the requested SiGe technology entity");
+
+  const darpaCollapse = validateEntityAnchor({
+    requestedEntityName: "DARPA NOM4D",
+    generatedEntityName: "DARPA",
+    generatedSlug: "darpa",
+    generatedHeadline: "DARPA programs",
+    sourcePublishers: ["DARPA"],
+    extractedAliases: []
+  });
+  assert.equal(darpaCollapse.ok, false, "DARPA program requests must not collapse to DARPA broadly");
+
+  const darpaProgram = validateEntityAnchor({
+    requestedEntityName: "DARPA NOM4D",
+    generatedEntityName: "DARPA NOM4D",
+    generatedSlug: "darpa-nom4d",
+    sourcePublishers: ["DARPA"],
+    extractedAliases: []
+  });
+  assert.equal(darpaProgram.ok, true, "DARPA NOM4D remains valid as the requested program");
+
+  const titanym = validateEntityAnchor({
+    requestedEntityName: "Titanym",
+    generatedEntityName: "Titanym",
+    generatedSlug: "titanym",
+    sourcePublishers: ["External Article"],
+    extractedAliases: []
+  });
+  assert.equal(titanym.ok, true, "Titanym remains valid with an external publisher source");
 }
 
 function verifySourceQualityRegressions() {
@@ -436,6 +537,7 @@ function verifyBannedLanguageTemplates() {
 async function main() {
   await loadResearchModules();
   verifySourceQualityRegressions();
+  verifyEntityAnchoring();
   await verifyWeakDataBehavior();
   await verifyClaimSafety();
   await verifyPublicGatedSerialization();

@@ -37,6 +37,8 @@ export type ResearchStage =
   | "failed"
   | "cancelled";
 
+export type ResearchFailureStage = ResearchStage | "pre_publish_validation";
+
 export type PublishedStatus = "draft" | "published";
 
 export type ResearchJob = {
@@ -65,14 +67,21 @@ export type ResearchJob = {
   resolvedName?: string | null;
   resolutionStatus?: "resolved" | "limited" | null;
   entityInputType?: EntityInputType;
+  requested_entity_name?: string | null;
+  requested_entity_query?: string | null;
+  requested_entity_type?: EntityInputType | string | null;
+  normalized_requested_entity_name?: string | null;
   resolutionMetadata?: EntityResolutionMetadata;
   stageStartedAt?: string;
   publicResearchReadyAt?: string | null;
   cancellationRequested?: boolean;
   failedStage?: ResearchStage | null;
   failure_code?: string | null;
-  failure_stage?: ResearchStage | null;
+  failure_stage?: ResearchFailureStage | null;
   failure_message_internal?: string | null;
+  failure_generated_entity_name?: string | null;
+  failure_generated_slug?: string | null;
+  failure_suspected_source_publisher?: string | null;
   error: string | null;
   articleId: string | null;
   entityId: string | null;
@@ -170,6 +179,9 @@ export type SourceSummary = {
   url: string;
   title: string;
   sourceType: Source["type"];
+  sourcePublisher?: string;
+  mentionedEntities?: string[];
+  inferredCanonicalEntity?: string | null;
   keyFacts: string[];
   claims: string[];
   numbers: string[];

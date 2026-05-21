@@ -1,4 +1,4 @@
-import type { ResearchJob, ResearchStage } from "./types";
+import type { ResearchFailureStage, ResearchJob, ResearchStage } from "./types";
 import {
   createCanonicalSlug,
   normalizeDomain,
@@ -197,7 +197,7 @@ export async function safeMarkJobFailed(
     retryable?: boolean;
     failureType?: NonNullable<ResearchJob["orchestration"]>["failureType"];
     failureCode?: string;
-    failureStage?: ResearchStage | null;
+    failureStage?: ResearchFailureStage | null;
     internalMessage?: string;
   } = {}
 ) {
@@ -211,7 +211,7 @@ export async function safeMarkJobFailed(
     (!isPermanentFailure(message) && attemptCount < getMaxAttempts(job));
   const now = new Date();
   const failedStage =
-    options.failureStage ?? (job.stage !== "failed" ? job.stage : (job.failure_stage ?? job.failedStage ?? null));
+    job.stage !== "failed" ? job.stage : (job.failedStage ?? null);
 
   return updateResearchJob(jobId, {
     stage: "failed",
@@ -221,7 +221,7 @@ export async function safeMarkJobFailed(
     error: safeErrorMessage(message),
     failedStage,
     failure_code: options.failureCode ?? failureCodeForMessage(message, options.failureType),
-    failure_stage: failedStage,
+    failure_stage: options.failureStage ?? failedStage,
     failure_message_internal: safeInternalFailureMessage(options.internalMessage ?? message),
     completedAt: now.toISOString(),
     orchestration: {
@@ -247,7 +247,7 @@ export async function safeMarkJobStuck(jobId: string) {
   if (!job || !shouldMarkJobStuck(job)) return job;
 
   const now = new Date().toISOString();
-  const failedStage = job.stage !== "failed" ? job.stage : (job.failure_stage ?? job.failedStage ?? null);
+  const failedStage = job.stage !== "failed" ? job.stage : (job.failedStage ?? null);
   return updateResearchJob(jobId, {
     stage: "failed",
     statusLabel: "FAILED",

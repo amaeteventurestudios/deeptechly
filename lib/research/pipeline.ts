@@ -22,6 +22,12 @@ import {
   entityTypeForInput
 } from "./entity-resolution";
 import {
+  buildTargetEntityAnchor,
+  ENTITY_ANCHOR_MISMATCH_COPY,
+  sourcePublishersFromSummaries,
+  validateEntityAnchor
+} from "./entity-anchor";
+import {
   getResearchJob,
   isActiveResearchStage,
   listResearchJobs,
@@ -436,6 +442,9 @@ export async function runResearchJob(jobId: string, query: string) {
       failure_code: null,
       failure_stage: null,
       failure_message_internal: null,
+      failure_generated_entity_name: null,
+      failure_generated_slug: null,
+      failure_suspected_source_publisher: null,
       error: null
     });
 
@@ -444,6 +453,11 @@ export async function runResearchJob(jobId: string, query: string) {
     }
 
     await waitForGlobalTurn(jobId, startedAt);
+    const targetEntity = buildTargetEntityAnchor({
+      query: currentJob.requested_entity_query ?? query,
+      requestedEntityType:
+        currentJob.requested_entity_type ?? currentJob.entityInputType ?? currentJob.mode
+    });
     const resolution = await resolveEntity(jobId, query, startedAt);
     const { homepage, pages, searchResults, searchesUsed } = await collectSources({
       jobId,
@@ -459,7 +473,12 @@ export async function runResearchJob(jobId: string, query: string) {
       sourceCount: pages.length + searchResults.length
     });
     let summaries = summarizeSources(pages, searchResults).slice(0, MAX_SOURCE_COUNT);
-    let facts = extractEntityFacts(resolution.researchQuery, homepage, summaries);
+    let facts = extractEntityFacts(
+      resolution.researchQuery,
+      homepage,
+      summaries,
+      targetEntity
+    );
 
     await move(jobId, "filling_gaps", startedAt, {
       sourceCount: summaries.length
@@ -481,7 +500,12 @@ export async function runResearchJob(jobId: string, query: string) {
       pages,
       normalizeSearchResults([...searchResults, ...followUpResults])
     ).slice(0, MAX_SOURCE_COUNT);
-    facts = extractEntityFacts(resolution.researchQuery, homepage, summaries);
+    facts = extractEntityFacts(
+      resolution.researchQuery,
+      homepage,
+      summaries,
+      targetEntity
+    );
 
     await move(jobId, "verifying_claims", startedAt, {
       sourceCount: summaries.length
@@ -534,6 +558,7 @@ export async function runResearchJob(jobId: string, query: string) {
       verification,
       summaries,
       heroImage,
+      targetEntity,
       resolution: {
         slug: canonicalEntity.slug,
         entityId: canonicalEntity.match?.entity.id ?? null,
@@ -542,6 +567,34 @@ export async function runResearchJob(jobId: string, query: string) {
         metadata: canonicalEntity.metadata
       }
     });
+
+    const anchorValidation = validateEntityAnchor({
+      requestedEntityName: targetEntity.requestedEntityName,
+      generatedEntityName: output.entity.name,
+      generatedSlug: output.entity.slug,
+      generatedHeadline: output.article.title,
+      sourcePublishers: sourcePublishersFromSummaries(summaries),
+      extractedAliases: output.entity.resolutionMetadata?.aliases ?? []
+    });
+
+    if (!anchorValidation.ok) {
+      const suspectedSourcePublisher =
+        anchorValidation.suspectedSourcePublisher ?? "unknown source publisher";
+      await safeMarkJobFailed(jobId, ENTITY_ANCHOR_MISMATCH_COPY, {
+        retryable: false,
+        failureType: "permanent",
+        failureCode: "ENTITY_ANCHOR_MISMATCH",
+        failureStage: "pre_publish_validation",
+        internalMessage: `Entity anchor mismatch: requested "${anchorValidation.requestedEntityName}" but generated output centered "${anchorValidation.generatedEntityName || anchorValidation.generatedSlug}". Suspected source publisher: ${suspectedSourcePublisher}.`
+      });
+      await updateResearchJob(jobId, {
+        detail: ENTITY_ANCHOR_MISMATCH_COPY,
+        failure_generated_entity_name: anchorValidation.generatedEntityName,
+        failure_generated_slug: anchorValidation.generatedSlug,
+        failure_suspected_source_publisher: anchorValidation.suspectedSourcePublisher ?? null
+      });
+      return;
+    }
 
     await move(jobId, "publishing_article", startedAt, {
       sourceCount: output.entity.sourceCount

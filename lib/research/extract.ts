@@ -7,6 +7,8 @@ import type {
   SearchResult,
   SourceSummary
 } from "./types";
+import type { TargetEntityAnchor } from "./entity-anchor";
+import { validateEntityAnchor } from "./entity-anchor";
 import {
   classifySource,
   dedupeSourceSummaries,
@@ -61,6 +63,34 @@ function detectSectors(text: string) {
   return sectors.length > 0 ? sectors : ["Deep Tech"];
 }
 
+function mentionedEntitiesFromText(text: string) {
+  return Array.from(
+    new Set(
+      text
+        .match(/\b[A-Z][A-Za-z0-9&.-]*(?:\s+[A-Z][A-Za-z0-9&.-]*){0,4}\b/g)
+        ?.map((item) => item.trim())
+        .filter((item) => item.length > 2 && item.length <= 80) ?? []
+    )
+  ).slice(0, 12);
+}
+
+function inferredCanonicalEntityForSource(title: string, requestedEntityName: string) {
+  const candidate = title
+    .replace(/\s+[|\-–]\s+.*$/, "")
+    .replace(/\b(Home|Homepage)\b/gi, "")
+    .trim();
+
+  if (!candidate) return null;
+
+  const validation = validateEntityAnchor({
+    requestedEntityName,
+    generatedEntityName: candidate,
+    generatedSlug: candidate
+  });
+
+  return validation.ok ? candidate : null;
+}
+
 export function summarizeSources(
   pages: ReadablePage[],
   searchResults: SearchResult[]
@@ -73,6 +103,9 @@ export function summarizeSources(
     url,
     title: page.title,
     sourceType: displaySourceType(sourceTypeCategory),
+    sourcePublisher: publisherFromUrl(url),
+    mentionedEntities: mentionedEntitiesFromText(sourceText),
+    inferredCanonicalEntity: inferredCanonicalEntityForSource(page.title, page.title),
     sourceTypeCategory,
     publisher: publisherFromUrl(url),
     retrievedAt: new Date().toISOString(),
@@ -107,6 +140,9 @@ export function summarizeSources(
       sourceTypeCategory:
         (result as EnrichedSearchResult).sourceTypeCategory ??
         classifySource(result.url, result.title),
+      sourcePublisher: (result as EnrichedSearchResult).publisher ?? publisherFromUrl(result.url),
+      mentionedEntities: mentionedEntitiesFromText(`${result.title} ${result.snippet ?? ""}`),
+      inferredCanonicalEntity: null,
       publisher: (result as EnrichedSearchResult).publisher ?? publisherFromUrl(result.url),
       retrievedAt: (result as EnrichedSearchResult).retrievedAt ?? new Date().toISOString(),
       qualityTier:
@@ -130,7 +166,8 @@ export function summarizeSources(
 export function extractEntityFacts(
   query: string,
   homepage: ReadablePage | null,
-  sourceSummaries: SourceSummary[]
+  sourceSummaries: SourceSummary[],
+  targetEntity?: TargetEntityAnchor
 ): ExtractedEntityFacts {
   const allText = [
     homepage?.title,
@@ -148,11 +185,31 @@ export function extractEntityFacts(
   const normalizedDomain =
     homepage?.url ? new URL(homepage.url).host.replace(/^www\./, "") : null;
   const fallbackName = normalizedDomain ? titleCase(normalizedDomain) : titleCase(query);
+  const requestedEntityName = targetEntity?.requestedEntityName ?? titleCase(query);
   const titleName = homepage?.title
     ?.replace(/\s+[|\-–]\s+.*$/, "")
     .replace(/\b(Home|Homepage)\b/gi, "")
     .trim();
-  const name = titleName && titleName.length <= 60 ? titleName : fallbackName;
+  const titleValidation = titleName
+    ? validateEntityAnchor({
+        requestedEntityName,
+        generatedEntityName: titleName,
+        generatedSlug: titleName,
+        sourcePublishers: sourceSummaries
+          .map((summary) => summary.sourcePublisher)
+          .filter((value): value is string => Boolean(value)),
+        extractedAliases: []
+      })
+    : null;
+  const name =
+    targetEntity && !titleValidation?.ok
+      ? requestedEntityName
+      : titleName && titleName.length <= 60
+        ? titleName
+        : targetEntity
+          ? requestedEntityName
+          : fallbackName;
+  const homepageMatchesTarget = !targetEntity || titleValidation?.ok;
   const year = /\b(19|20)\d{2}\b/.exec(allText)?.[0] ?? null;
   const founders: string[] = [];
   const governmentLinks = sourceSummaries
@@ -192,8 +249,8 @@ export function extractEntityFacts(
 
   return {
     name,
-    domain: normalizedDomain,
-    website: homepage?.url ?? null,
+    domain: homepageMatchesTarget ? normalizedDomain : null,
+    website: homepageMatchesTarget ? homepage?.url ?? null : null,
     foundedYear: year,
     headquarters: null,
     founders,

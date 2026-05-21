@@ -31,6 +31,7 @@ import {
   isActiveResearchStatus,
   MAX_RESEARCH_JOB_ATTEMPTS
 } from "./orchestration";
+import { buildTargetEntityAnchor } from "./entity-anchor";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.replace(/\/$/, "") ?? null;
 const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY ?? null;
@@ -661,6 +662,10 @@ export async function createResearchJob(
   const now = new Date().toISOString();
   const normalizedQuery = normalizeQuery(query);
   const inputType = classifyEntityInput(query);
+  const targetEntity = buildTargetEntityAnchor({
+    query,
+    requestedEntityType: inputType
+  });
   const stage = "queued" satisfies ResearchStage;
   const copy = stageMessage(stage, normalizedQuery.includes(".") ? normalizedQuery : null);
   const data = await readStore();
@@ -681,6 +686,10 @@ export async function createResearchJob(
     resolvedName: null,
     resolutionStatus: null,
     entityInputType: inputType,
+    requested_entity_name: targetEntity.requestedEntityName,
+    requested_entity_query: targetEntity.requestedEntityQuery,
+    requested_entity_type: targetEntity.requestedEntityType,
+    normalized_requested_entity_name: targetEntity.normalizedRequestedEntityName,
     stageStartedAt: now,
     publicResearchReadyAt: null,
     cancellationRequested: false,
@@ -688,6 +697,9 @@ export async function createResearchJob(
     failure_code: null,
     failure_stage: null,
     failure_message_internal: null,
+    failure_generated_entity_name: null,
+    failure_generated_slug: null,
+    failure_suspected_source_publisher: null,
     error: null,
     articleId: null,
     entityId: null,
@@ -727,6 +739,10 @@ export async function createLinkedResearchJob(
   const data = await readStore();
   const now = new Date().toISOString();
   const inputType = classifyEntityInput(query);
+  const targetEntity = buildTargetEntityAnchor({
+    query,
+    requestedEntityType: inputType
+  });
   const candidate = buildEntityCandidates({
     input: query,
     name: entity.name,
@@ -755,6 +771,10 @@ export async function createLinkedResearchJob(
     resolvedName: entity.name,
     resolutionStatus: "resolved",
     entityInputType: inputType,
+    requested_entity_name: targetEntity.requestedEntityName,
+    requested_entity_query: targetEntity.requestedEntityQuery,
+    requested_entity_type: targetEntity.requestedEntityType,
+    normalized_requested_entity_name: targetEntity.normalizedRequestedEntityName,
     resolutionMetadata: metadataForResolution(candidate, match),
     stageStartedAt: now,
     publicResearchReadyAt: publishedAt,
@@ -763,6 +783,9 @@ export async function createLinkedResearchJob(
     failure_code: null,
     failure_stage: null,
     failure_message_internal: null,
+    failure_generated_entity_name: null,
+    failure_generated_slug: null,
+    failure_suspected_source_publisher: null,
     error: null,
     articleId: article?.id ?? entity.article.entitySlug ?? entity.slug,
     entityId: entity.id ?? entity.slug,
@@ -1040,6 +1063,9 @@ export async function saveResearchOutput(jobId: string, output: ResearchOutput) 
       failure_code: null,
       failure_stage: null,
       failure_message_internal: null,
+      failure_generated_entity_name: null,
+      failure_generated_slug: null,
+      failure_suspected_source_publisher: null,
       entityId: entity.id ?? entity.slug,
       articleId: article.id,
       dossierId: dossier.id,
@@ -1137,6 +1163,9 @@ export async function savePublicResearchReady(jobId: string, output: ResearchOut
       failure_code: null,
       failure_stage: null,
       failure_message_internal: null,
+      failure_generated_entity_name: null,
+      failure_generated_slug: null,
+      failure_suspected_source_publisher: null,
       entityId: entity.id ?? entity.slug,
       articleId: article.id,
       articleUrl: `/article/${entity.slug}`,
