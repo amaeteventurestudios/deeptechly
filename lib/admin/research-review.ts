@@ -71,7 +71,10 @@ export type AdminResearchReviewSummary = {
     maxAttempts: number | null;
     stuckOrRetryWarning: boolean;
     lastUpdated: string;
+    failureCode: string | null;
+    failureStage: string | null;
     failureMessage: string | null;
+    failureMessageInternal: string | null;
   };
   publishReadiness: {
     status: "READY" | "REVIEW RECOMMENDED" | "NOT READY";
@@ -292,6 +295,11 @@ function summarizeOrchestration(job: ResearchJob): AdminResearchReviewSummary["o
   const stuck =
     job.orchestration?.failureType === "stuck" ||
     Boolean(job.orchestration?.stuckMarkedAt);
+  const failureMessage = failed ? safeErrorMessage(job.error ?? job.detail) : null;
+  const internalFailureMessage =
+    failed && job.failure_message_internal
+      ? job.failure_message_internal
+      : failureMessage;
 
   return {
     jobStatus: job.stage,
@@ -300,7 +308,10 @@ function summarizeOrchestration(job: ResearchJob): AdminResearchReviewSummary["o
     maxAttempts: job.orchestration?.maxAttempts ?? null,
     stuckOrRetryWarning: retryable || stuck,
     lastUpdated: job.updatedAt,
-    failureMessage: failed ? safeErrorMessage(job.error ?? job.detail) : null
+    failureCode: failed ? job.failure_code ?? null : null,
+    failureStage: failed ? job.failure_stage ?? job.failedStage ?? null : null,
+    failureMessage,
+    failureMessageInternal: failed ? internalFailureMessage : null
   };
 }
 
@@ -378,7 +389,10 @@ function buildWarnings(input: {
   if (input.job.stage === "failed") {
     add({
       code: "FAILED JOB",
-      detail: input.orchestrationSummary.failureMessage ?? "The research job failed.",
+      detail:
+        input.orchestrationSummary.failureMessageInternal ??
+        input.orchestrationSummary.failureMessage ??
+        "The research job failed.",
       severity: "blocker"
     });
   }

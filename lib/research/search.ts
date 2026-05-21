@@ -7,6 +7,28 @@ const provider = process.env.SEARCH_PROVIDER ?? "openai";
 const defaultOpenAIModel = "gpt-5.4-mini";
 const openAIWebSearchEnabled = process.env.OPENAI_ENABLE_WEB_SEARCH === "true";
 
+export class ResearchSearchError extends Error {
+  code: string;
+  provider: "openai" | "tavily";
+  retryable: boolean;
+  status?: number;
+
+  constructor(input: {
+    code: string;
+    provider: "openai" | "tavily";
+    message: string;
+    retryable?: boolean;
+    status?: number;
+  }) {
+    super(input.message);
+    this.name = "ResearchSearchError";
+    this.code = input.code;
+    this.provider = input.provider;
+    this.retryable = input.retryable ?? false;
+    this.status = input.status;
+  }
+}
+
 const searchResultsSchema = {
   type: "object",
   additionalProperties: false,
@@ -47,6 +69,39 @@ function absolutize(url: string, base: string) {
   } catch {
     return "";
   }
+}
+
+function isRetryableSearchStatus(status: number) {
+  return status === 408 || status === 409 || status === 425 || status === 429 || status >= 500;
+}
+
+async function readProviderError(response: Response) {
+  const text = await response.text().catch(() => "");
+  if (!text) {
+    return response.statusText || "No response body";
+  }
+
+  try {
+    const parsed = JSON.parse(text) as {
+      error?: { message?: string; type?: string; code?: string };
+      message?: string;
+    };
+    return [parsed.error?.message, parsed.error?.type, parsed.error?.code, parsed.message]
+      .filter(Boolean)
+      .join(" ");
+  } catch {
+    return text;
+  }
+}
+
+function redactProviderError(value: string) {
+  return value
+    .replace(/Bearer\s+[A-Za-z0-9._-]+/gi, "Bearer [redacted]")
+    .replace(/sk-[A-Za-z0-9_-]+/gi, "sk-[redacted]")
+    .replace(/eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/g, "[redacted-token]")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 600);
 }
 
 export function isProbableDomain(query: string) {
@@ -122,7 +177,12 @@ export async function fetchReadablePage(url: string): Promise<ReadablePage> {
 async function searchWithTavily(query: string): Promise<SearchResult[]> {
   const key = process.env.TAVILY_API_KEY;
   if (!key) {
-    return [];
+    throw new ResearchSearchError({
+      code: "tavily_api_key_missing",
+      provider: "tavily",
+      message: "SEARCH_PROVIDER is tavily but TAVILY_API_KEY is not configured.",
+      retryable: false
+    });
   }
 
   const response = await fetch("https://api.tavily.com/search", {
@@ -140,12 +200,30 @@ async function searchWithTavily(query: string): Promise<SearchResult[]> {
   });
 
   if (!response.ok) {
-    return [];
+    const detail = redactProviderError(await readProviderError(response));
+    throw new ResearchSearchError({
+      code: "tavily_search_failed",
+      provider: "tavily",
+      status: response.status,
+      message: `Tavily search failed (${response.status}): ${detail}`,
+      retryable: isRetryableSearchStatus(response.status)
+    });
   }
 
-  const body = (await response.json()) as {
-    results?: { title?: string; url?: string; content?: string }[];
-  };
+  let body: { results?: { title?: string; url?: string; content?: string }[] };
+  try {
+    body = (await response.json()) as typeof body;
+  } catch (error) {
+    throw new ResearchSearchError({
+      code: "tavily_search_parse_failed",
+      provider: "tavily",
+      message:
+        error instanceof Error
+          ? `Tavily search response could not be parsed: ${error.message}`
+          : "Tavily search response could not be parsed.",
+      retryable: false
+    });
+  }
 
   return (body.results ?? [])
     .filter((item) => item.url)
@@ -158,8 +236,16 @@ async function searchWithTavily(query: string): Promise<SearchResult[]> {
 
 async function searchWithOpenAI(query: string): Promise<SearchResult[]> {
   const key = process.env.OPENAI_API_KEY;
-  if (!key || !openAIWebSearchEnabled) {
+  if (!key) {
     return [];
+  }
+  if (!openAIWebSearchEnabled) {
+    throw new ResearchSearchError({
+      code: "openai_web_search_disabled",
+      provider: "openai",
+      message: "OPENAI_ENABLE_WEB_SEARCH must be true when SEARCH_PROVIDER is openai.",
+      retryable: false
+    });
   }
 
   const response = await fetch("https://api.openai.com/v1/responses", {
@@ -185,10 +271,33 @@ async function searchWithOpenAI(query: string): Promise<SearchResult[]> {
   });
 
   if (!response.ok) {
-    return [];
+    const detail = redactProviderError(await readProviderError(response));
+    throw new ResearchSearchError({
+      code: "openai_web_search_failed",
+      provider: "openai",
+      status: response.status,
+      message: `OpenAI web search failed (${response.status}): ${detail}`,
+      retryable: isRetryableSearchStatus(response.status)
+    });
   }
 
-  const body = await response.json();
+  let body: {
+    output_text?: string;
+    output?: { content?: { text?: string }[] }[];
+  };
+  try {
+    body = (await response.json()) as typeof body;
+  } catch (error) {
+    throw new ResearchSearchError({
+      code: "openai_web_search_parse_failed",
+      provider: "openai",
+      message:
+        error instanceof Error
+          ? `OpenAI web search response could not be parsed: ${error.message}`
+          : "OpenAI web search response could not be parsed.",
+      retryable: false
+    });
+  }
   const outputText =
     body.output_text ??
     body.output
@@ -201,8 +310,16 @@ async function searchWithOpenAI(query: string): Promise<SearchResult[]> {
       results?: SearchResult[];
     };
     return (parsed.results ?? []).filter((item) => item.url).slice(0, 8);
-  } catch {
-    return [];
+  } catch (error) {
+    throw new ResearchSearchError({
+      code: "openai_web_search_parse_failed",
+      provider: "openai",
+      message:
+        error instanceof Error
+          ? `OpenAI web search response could not be parsed: ${error.message}`
+          : "OpenAI web search response could not be parsed.",
+      retryable: false
+    });
   }
 }
 

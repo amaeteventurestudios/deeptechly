@@ -45,6 +45,7 @@ import {
   fetchReadablePage,
   isProbableDomain,
   pickImportantInternalLinks,
+  ResearchSearchError,
   searchWeb,
   selectHeroImage
 } from "./search";
@@ -136,7 +137,10 @@ async function safeFetch(url: string) {
 async function safeSearch(query: string) {
   try {
     return await withStageLimit(searchWeb(query), [] as SearchResult[]);
-  } catch {
+  } catch (error) {
+    if (error instanceof ResearchSearchError) {
+      throw error;
+    }
     return [];
   }
 }
@@ -199,6 +203,51 @@ function isLikelyOfficialResult(result: SearchResult, query: string) {
   }
 
   return queryTokens.some((token) => host.includes(token) || lowerTitle.includes(token));
+}
+
+function diagnosticsForResearchFailure(
+  error: unknown,
+  stage?: ResearchStage | null
+): {
+  retryable: boolean;
+  failureType?: "transient" | "permanent" | "stuck" | "timeout" | null;
+  failureCode: string;
+  failureStage: ResearchStage | null;
+  internalMessage: string;
+} {
+  const failureStage = stage ?? null;
+
+  if (error instanceof ResearchTimeoutError) {
+    return {
+      retryable: true,
+      failureType: "timeout",
+      failureCode: "research_timeout",
+      failureStage,
+      internalMessage: error.message
+    };
+  }
+
+  if (error instanceof ResearchSearchError) {
+    return {
+      retryable: error.retryable,
+      failureType: error.retryable ? "transient" : "permanent",
+      failureCode: error.code,
+      failureStage: failureStage ?? "searching_web",
+      internalMessage: error.message
+    };
+  }
+
+  const message =
+    error instanceof Error ? error.message : "Unknown research pipeline failure";
+  const permanent = /invalid|authorization|cancelled/i.test(message);
+
+  return {
+    retryable: !permanent,
+    failureType: permanent ? "permanent" : undefined,
+    failureCode: "research_pipeline_error",
+    failureStage,
+    internalMessage: message
+  };
 }
 
 async function resolveEntity(jobId: string, query: string, startedAt: number) {
@@ -382,7 +431,12 @@ export async function runResearchJob(jobId: string, query: string) {
         nextRetryAt: null,
         retryable: false,
         failureType: null
-      }
+      },
+      failedStage: null,
+      failure_code: null,
+      failure_stage: null,
+      failure_message_internal: null,
+      error: null
     });
 
     if (!process.env.OPENAI_API_KEY) {
@@ -452,7 +506,10 @@ export async function runResearchJob(jobId: string, query: string) {
       await updateResearchJob(jobId, { sourceCount: summaries.length });
       await safeMarkJobFailed(jobId, RETRYABLE_RESEARCH_FAILURE_COPY, {
         retryable: false,
-        failureType: "permanent"
+        failureType: "permanent",
+        failureCode: "insufficient_sources",
+        failureStage: "verifying_claims",
+        internalMessage: `Research produced ${summaries.length} sources, below the publish threshold of ${MIN_SOURCE_COUNT_TO_PUBLISH}.`
       });
       return;
     }
@@ -504,10 +561,14 @@ export async function runResearchJob(jobId: string, query: string) {
       return;
     }
 
-    const timeout = error instanceof ResearchTimeoutError;
-    await safeMarkJobFailed(jobId, error instanceof Error ? error.message : "Unknown research pipeline failure", {
-      retryable: timeout || !(error instanceof Error && /invalid|authorization|cancelled/i.test(error.message)),
-      failureType: timeout ? "timeout" : undefined
+    const latestJob = await getResearchJob(jobId);
+    const diagnostics = diagnosticsForResearchFailure(error, latestJob?.stage ?? null);
+    await safeMarkJobFailed(jobId, RETRYABLE_RESEARCH_FAILURE_COPY, {
+      retryable: diagnostics.retryable,
+      failureType: diagnostics.failureType,
+      failureCode: diagnostics.failureCode,
+      failureStage: diagnostics.failureStage,
+      internalMessage: diagnostics.internalMessage
     });
   } finally {
     const latestJob = await getResearchJob(jobId);

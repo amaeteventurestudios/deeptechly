@@ -685,6 +685,9 @@ export async function createResearchJob(
     publicResearchReadyAt: null,
     cancellationRequested: false,
     failedStage: null,
+    failure_code: null,
+    failure_stage: null,
+    failure_message_internal: null,
     error: null,
     articleId: null,
     entityId: null,
@@ -757,6 +760,9 @@ export async function createLinkedResearchJob(
     publicResearchReadyAt: publishedAt,
     cancellationRequested: false,
     failedStage: null,
+    failure_code: null,
+    failure_stage: null,
+    failure_message_internal: null,
     error: null,
     articleId: article?.id ?? entity.article.entitySlug ?? entity.slug,
     entityId: entity.id ?? entity.slug,
@@ -1031,6 +1037,9 @@ export async function saveResearchOutput(jobId: string, output: ResearchOutput) 
       detail: publishStatus === "published" ? "Research complete and published" : "Research complete as draft",
       sourceCount: entity.sourceCount,
       failedStage: null,
+      failure_code: null,
+      failure_stage: null,
+      failure_message_internal: null,
       entityId: entity.id ?? entity.slug,
       articleId: article.id,
       dossierId: dossier.id,
@@ -1125,6 +1134,9 @@ export async function savePublicResearchReady(jobId: string, output: ResearchOut
       detail: "Article and profile are published. Institutional dossier is still finalizing.",
       sourceCount: entity.sourceCount,
       failedStage: null,
+      failure_code: null,
+      failure_stage: null,
+      failure_message_internal: null,
       entityId: entity.id ?? entity.slug,
       articleId: article.id,
       articleUrl: `/article/${entity.slug}`,
@@ -1184,6 +1196,7 @@ export async function savePublicResearchReady(jobId: string, output: ResearchOut
 export async function cancelResearchJob(id: string) {
   const copy = stageMessage("cancelled");
   const job = await getResearchJob(id);
+  const failureStage = job?.stage && job.stage !== "cancelled" ? job.stage : null;
 
   return updateResearchJob(id, {
     stage: "cancelled",
@@ -1191,7 +1204,10 @@ export async function cancelResearchJob(id: string) {
     message: copy.message,
     detail: copy.detail,
     cancellationRequested: true,
-    failedStage: job?.stage && job.stage !== "cancelled" ? job.stage : null,
+    failedStage: failureStage,
+    failure_code: "job_cancelled",
+    failure_stage: failureStage,
+    failure_message_internal: "Research job cancelled by user.",
     completedAt: new Date().toISOString()
   });
 }

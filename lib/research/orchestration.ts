@@ -196,6 +196,9 @@ export async function safeMarkJobFailed(
   options: {
     retryable?: boolean;
     failureType?: NonNullable<ResearchJob["orchestration"]>["failureType"];
+    failureCode?: string;
+    failureStage?: ResearchStage | null;
+    internalMessage?: string;
   } = {}
 ) {
   const { getResearchJob, updateResearchJob } = await import("./store");
@@ -207,6 +210,8 @@ export async function safeMarkJobFailed(
     options.retryable ??
     (!isPermanentFailure(message) && attemptCount < getMaxAttempts(job));
   const now = new Date();
+  const failedStage =
+    options.failureStage ?? (job.stage !== "failed" ? job.stage : (job.failure_stage ?? job.failedStage ?? null));
 
   return updateResearchJob(jobId, {
     stage: "failed",
@@ -214,7 +219,10 @@ export async function safeMarkJobFailed(
     message: "Research failed",
     detail: RETRYABLE_RESEARCH_FAILURE_COPY,
     error: safeErrorMessage(message),
-    failedStage: job.stage !== "failed" ? job.stage : (job.failedStage ?? null),
+    failedStage,
+    failure_code: options.failureCode ?? failureCodeForMessage(message, options.failureType),
+    failure_stage: failedStage,
+    failure_message_internal: safeInternalFailureMessage(options.internalMessage ?? message),
     completedAt: now.toISOString(),
     orchestration: {
       ...job.orchestration,
@@ -239,13 +247,19 @@ export async function safeMarkJobStuck(jobId: string) {
   if (!job || !shouldMarkJobStuck(job)) return job;
 
   const now = new Date().toISOString();
+  const failedStage = job.stage !== "failed" ? job.stage : (job.failure_stage ?? job.failedStage ?? null);
   return updateResearchJob(jobId, {
     stage: "failed",
     statusLabel: "FAILED",
     message: "Research failed",
     detail: RETRYABLE_RESEARCH_FAILURE_COPY,
-    error: "Research job stalled before completion.",
-    failedStage: job.stage !== "failed" ? job.stage : (job.failedStage ?? null),
+    error: RETRYABLE_RESEARCH_FAILURE_COPY,
+    failedStage,
+    failure_code: "job_stalled",
+    failure_stage: failedStage,
+    failure_message_internal: safeInternalFailureMessage(
+      `Research job stalled before completion at stage ${failedStage ?? "unknown"}.`
+    ),
     completedAt: now,
     orchestration: {
       ...job.orchestration,
@@ -275,6 +289,9 @@ export async function safeResumeOrRetryJob(jobId: string) {
     detail: "Retry queued after a recoverable research failure.",
     error: null,
     failedStage: null,
+    failure_code: null,
+    failure_stage: null,
+    failure_message_internal: null,
     completedAt: null,
     cancellationRequested: false,
     orchestration: {
@@ -313,10 +330,44 @@ export function safeErrorMessage(message: string | null | undefined) {
   const fallback = RETRYABLE_RESEARCH_FAILURE_COPY;
   const text = String(message ?? "").trim();
   if (!text) return fallback;
-  if (/stack|trace|at\s+\w+|apikey|api_key|service_role|supabase_service_role/i.test(text)) {
+  if (/stack|trace|at\s+\w+|api\s*key|apikey|api_key|service_role|supabase_service_role|authorization|bearer/i.test(text)) {
     return fallback;
   }
   return text.length > 180 ? fallback : text;
+}
+
+export function safeInternalFailureMessage(message: string | null | undefined) {
+  const text = String(message ?? "").replace(/\s+/g, " ").trim();
+  if (!text) {
+    return "Unknown research failure.";
+  }
+
+  const redacted = text
+    .replace(/Bearer\s+[A-Za-z0-9._-]+/gi, "Bearer [redacted]")
+    .replace(/sk-[A-Za-z0-9_-]+/gi, "sk-[redacted]")
+    .replace(/eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/g, "[redacted-token]")
+    .replace(
+      /\b(apikey|api_key|service_role|supabase_service_role|authorization)\b\s*[:=]\s*[^,\s}]+/gi,
+      "$1=[redacted]"
+    );
+
+  return redacted.length > 1200 ? `${redacted.slice(0, 1197)}...` : redacted;
+}
+
+function failureCodeForMessage(
+  message: string | null | undefined,
+  failureType?: NonNullable<ResearchJob["orchestration"]>["failureType"]
+) {
+  if (failureType === "timeout") return "research_timeout";
+  if (failureType === "stuck") return "job_stalled";
+
+  const text = String(message ?? "").toLowerCase();
+  if (text.includes("openai")) return "openai_error";
+  if (text.includes("tavily")) return "tavily_error";
+  if (text.includes("supabase")) return "supabase_error";
+  if (text.includes("timeout") || text.includes("timed out")) return "research_timeout";
+  if (text.includes("source")) return "insufficient_sources";
+  return "research_pipeline_error";
 }
 
 function isResearchStage(value: string): value is ResearchStage {

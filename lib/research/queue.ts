@@ -136,6 +136,10 @@ async function reserveResearchJobSlot(jobId: string) {
     progress: 12,
     message: "Starting research",
     detail: "An active research slot is now preparing this job.",
-    failedStage: null
+    failedStage: null,
+    failure_code: null,
+    failure_stage: null,
+    failure_message_internal: null,
+    error: null
   });
 }
