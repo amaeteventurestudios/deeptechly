@@ -16,7 +16,7 @@ export default async function StartupsPage() {
   return (
     <PageShell>
       <section className="w-full border-b border-black bg-deepOrange deeptech-texture">
-        <div className="mx-auto max-w-5xl px-4 py-12 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-[1280px] px-4 py-12 sm:px-6 lg:px-8">
           <p className="text-[11px] font-black uppercase tracking-[0.28em]">
             Startups
           </p>
@@ -31,7 +31,7 @@ export default async function StartupsPage() {
       </section>
 
       <section className="w-full bg-paper">
-        <div className="mx-auto grid max-w-6xl gap-5 px-4 py-10 sm:px-6 md:grid-cols-2 lg:grid-cols-3 lg:px-8">
+        <div className="mx-auto grid max-w-[1280px] gap-5 px-4 py-10 sm:px-6 md:grid-cols-2 lg:grid-cols-3 lg:px-8">
           {entities.map((entity) => (
             <Link
               key={entity.slug}
@@ -39,10 +39,15 @@ export default async function StartupsPage() {
               className="block border border-black bg-white p-5 shadow-hard hover:bg-paleOrange"
             >
               <p className="text-[10px] font-black uppercase tracking-[0.18em] text-deepOrange">
-                {entity.sector} - {entity.confidenceLabel}
+                {entity.entityType ?? "Research profile"} · {entity.sector}
               </p>
               <h2 className="mt-2 text-xl font-black leading-tight">{entity.name}</h2>
               <p className="mt-2 text-sm leading-6 text-charcoal">{entity.summary}</p>
+              <div className="mt-4 flex flex-wrap gap-2 text-[10px] font-black uppercase tracking-[0.13em] text-muted">
+                {entity.region ? <span className="border border-black bg-offWhite px-2 py-1">{entity.region}</span> : null}
+                {entity.sourceCount > 0 ? <span className="border border-black bg-offWhite px-2 py-1">{entity.sourceCount} sources</span> : null}
+                {entity.confidenceLabel ? <span className="border border-black bg-offWhite px-2 py-1">{entity.confidenceLabel}</span> : null}
+              </div>
               <span className="mt-4 inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.14em]">
                 Open Profile
                 <ArrowRight size={13} />

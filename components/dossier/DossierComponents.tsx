@@ -81,7 +81,7 @@ export function DossierHero({
     ["Sources", `${entity.sourceCount}`],
     ["Confidence", `${entity.confidenceLabel} (${entity.confidenceScore}/100)`],
     ["Updated", entity.updatedAt ?? entity.lastResearchedAt]
-  ];
+  ].filter(([, value]) => hasPublicValue(value));
 
   return (
     <section className="w-full border-b border-black bg-deepOrange deeptech-texture">
@@ -124,7 +124,7 @@ export function DossierHero({
                     <span className="block text-[10px] font-black uppercase tracking-[0.18em] text-deepOrange">
                       {label}
                     </span>
-                    <span className="font-black">{value || notConfirmed}</span>
+                    <span className="font-black">{value}</span>
                   </p>
                 ))}
                 {articleAvailable ? <Link
@@ -159,6 +159,8 @@ export function ExternalLinksRow({ entity }: { entity: ResearchEntity }) {
             <a
               key={link.label}
               href={link.href}
+              target="_blank"
+              rel="noreferrer"
               className="inline-flex shrink-0 items-center gap-2 border border-black bg-white px-3 py-2 text-[10px] font-black uppercase tracking-[0.14em] hover:bg-deepOrange"
             >
               {link.label}
@@ -188,7 +190,7 @@ export function SnapshotPanel({
     ["Confidence", entity.snapshot.confidence],
     ["Last updated", entity.updatedAt ?? entity.lastResearchedAt],
     ["Research status", entity.snapshot.researchStatus]
-  ];
+  ].filter(([, value]) => hasPublicValue(value));
 
   return (
     <section className="w-full bg-transparent">
@@ -205,7 +207,7 @@ export function SnapshotPanel({
                 <p className="text-[10px] font-black uppercase tracking-[0.16em] text-muted">
                   {label}
                 </p>
-                <p className="mt-1 text-sm font-bold">{value || notConfirmed}</p>
+                <p className="mt-1 text-sm font-bold">{value}</p>
               </div>
             ))}
           </div>
@@ -213,6 +215,10 @@ export function SnapshotPanel({
       </div>
     </section>
   );
+}
+
+function hasPublicValue(value: string | null | undefined) {
+  return Boolean(value && value.trim() && !/^(unknown|n\/a|null|undefined)$/i.test(value.trim()));
 }
 
 export function ExecutiveSummary({ entity }: { entity: ResearchEntity }) {
@@ -1171,6 +1177,8 @@ function SourceCard({ source, index }: { source: Source; index: number }) {
   return (
     <a
       href={source.url}
+      target="_blank"
+      rel="noreferrer"
       className={`${panelClass} block p-4 transition-colors hover:bg-paleOrange focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-deepOrange`}
     >
       <p className="text-[10px] font-black uppercase tracking-[0.18em] text-deepOrange">

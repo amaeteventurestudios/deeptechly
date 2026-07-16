@@ -70,7 +70,7 @@ export default async function StartupProfilePage({
     <PageShell>
       <ProfileHero entity={entity} articleAvailable={availability.article} dossierAvailable={availability.dossier} />
       <section className="w-full bg-paper">
-        <div className="mx-auto grid max-w-[1040px] gap-8 px-4 py-10 sm:px-6 lg:grid-cols-[1fr_320px] lg:px-8">
+        <div className="mx-auto grid max-w-[1200px] gap-8 px-4 py-10 sm:px-6 lg:grid-cols-[minmax(0,1fr)_320px] lg:px-8">
           <main className="min-w-0">
             <OverviewSection entity={entity} />
             <TechnicalSummarySection entity={entity} />

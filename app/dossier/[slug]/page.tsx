@@ -81,7 +81,7 @@ export default async function DossierPage({ params }: DossierPageProps) {
       <ExternalLinksRow entity={entity} />
       <SnapshotPanel entity={entity} />
       <section className="w-full bg-paper">
-        <div className="mx-auto max-w-4xl px-4 pb-12 pt-2 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-[1200px] px-4 pb-12 pt-2 sm:px-6 lg:px-8">
           <ExecutiveSummary entity={entity} />
           <OverviewSection entity={entity} />
           <TechnicalSummarySection entity={entity} />
