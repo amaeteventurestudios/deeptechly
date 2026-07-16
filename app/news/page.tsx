@@ -24,7 +24,7 @@ export default async function NewsPage() {
   return (
     <PageShell>
       <section className="w-full border-b border-black bg-deepOrange deeptech-texture">
-        <div className="mx-auto max-w-5xl px-4 py-12 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-[1840px] px-4 py-12 sm:px-6 lg:px-8">
           <p className="text-[11px] font-black uppercase tracking-[0.28em]">
             News &amp; Research
           </p>
@@ -41,7 +41,7 @@ export default async function NewsPage() {
       <SectorNav />
 
       <section className="w-full bg-paper">
-        <div className="mx-auto max-w-5xl px-4 py-10 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-[1840px] px-4 py-10 sm:px-6 lg:px-8">
           {stories.length === 0 ? (
             <div className="border border-black bg-white p-8 text-center shadow-hard">
               <p className="text-[11px] font-black uppercase tracking-[0.22em] text-deepOrange">

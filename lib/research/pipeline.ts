@@ -162,6 +162,12 @@ async function safeSearch(query: string) {
 
 function followUpQueries(name: string) {
   return [
+    `"${name}"`,
+    `"${name}" company`,
+    `${name} official site`,
+    `${name} LinkedIn`,
+    `${name} Crunchbase`,
+    `${name} CB Insights`,
     `${name} founders`,
     `${name} headquarters founded year`,
     `${name} funding investors`,
@@ -176,10 +182,13 @@ function followUpQueries(name: string) {
 
 function resolverQueries(name: string) {
   return [
+    `"${name}"`,
     `${name} official website`,
     `${name} company`,
     `${name} LinkedIn`,
     `${name} startup`,
+    `${name} Crunchbase`,
+    `${name} CB Insights`,
     `${name} about`,
     `${name} technology`,
     `${name} press`

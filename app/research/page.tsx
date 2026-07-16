@@ -13,7 +13,7 @@ export default async function ResearchPage({
   return (
     <PageShell>
       <section className="w-full border-b border-black bg-deepOrange deeptech-texture">
-        <div className="mx-auto max-w-5xl px-4 py-12 text-center sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-[1840px] px-4 py-12 text-center sm:px-6 lg:px-8">
           <p className="text-[11px] font-black uppercase tracking-[0.28em]">
             DeepTechly Research
           </p>
@@ -29,7 +29,7 @@ export default async function ResearchPage({
         </div>
       </section>
       <section className="w-full bg-paper">
-        <div className="mx-auto max-w-[1040px] px-4 py-10 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-[1840px] px-4 py-10 sm:px-6 lg:px-8">
           <ResearchQueueClient initialJobId={jobId} />
         </div>
       </section>

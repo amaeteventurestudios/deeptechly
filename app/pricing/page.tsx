@@ -81,7 +81,7 @@ export default function PricingPage() {
   return (
     <PageShell>
       <section className="w-full border-b border-black bg-deepOrange deeptech-texture">
-        <div className="mx-auto max-w-5xl px-4 py-12 text-center sm:px-6 lg:px-8 lg:text-left">
+        <div className="mx-auto max-w-[1840px] px-4 py-12 text-center sm:px-6 lg:px-8 lg:text-left">
           <p className="text-[11px] font-black uppercase tracking-[0.28em]">
             Access Tiers
           </p>
@@ -97,7 +97,7 @@ export default function PricingPage() {
       </section>
 
       <section className="w-full bg-paper">
-        <div className="mx-auto grid max-w-7xl gap-5 px-4 py-12 sm:px-6 md:grid-cols-2 xl:grid-cols-4 lg:px-8">
+        <div className="mx-auto grid max-w-[1840px] gap-5 px-4 py-12 sm:px-6 md:grid-cols-2 xl:grid-cols-4 lg:px-8">
           {tiers.map((tier) => (
             <article
               key={tier.name}

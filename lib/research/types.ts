@@ -89,6 +89,13 @@ export type ResearchJob = {
   failure_generated_entity_name?: string | null;
   failure_generated_slug?: string | null;
   failure_suspected_source_publisher?: string | null;
+  profile_status?: "published" | "draft_ready" | "failed" | "missing";
+  article_status?: "published" | "draft_ready" | "failed" | "missing";
+  dossier_status?: "published" | "draft_ready" | "failed" | "missing";
+  completion_mode?: "full" | "partial" | "limited_public_data" | "needs_review";
+  profile_error_internal?: string | null;
+  article_error_internal?: string | null;
+  dossier_error_internal?: string | null;
   error: string | null;
   articleId: string | null;
   entityId: string | null;

@@ -33,7 +33,7 @@ export default async function AccountPage() {
   return (
     <PageShell>
       <section className="w-full border-b border-black bg-deepOrange deeptech-texture">
-        <div className="mx-auto max-w-5xl px-4 py-12 text-center sm:px-6 lg:px-8 lg:text-left">
+        <div className="mx-auto max-w-[1840px] px-4 py-12 text-center sm:px-6 lg:px-8 lg:text-left">
           <p className="text-[11px] font-black uppercase tracking-[0.28em] text-white">
             Account
           </p>
@@ -44,7 +44,7 @@ export default async function AccountPage() {
       </section>
 
       <section className="w-full bg-paper">
-        <div className="mx-auto grid max-w-5xl gap-6 px-4 py-10 sm:px-6 lg:grid-cols-[minmax(0,1fr)_320px] lg:px-8">
+        <div className="mx-auto grid max-w-[1840px] gap-6 px-4 py-10 sm:px-6 lg:grid-cols-[minmax(0,1fr)_320px] lg:px-8">
           <ProfileSettings
             initialProfile={{
               fullName: session.name ?? "",

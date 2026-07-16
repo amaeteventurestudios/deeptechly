@@ -11,7 +11,7 @@ export default async function ExplorePage() {
   return (
     <PageShell>
       <section className="w-full border-b border-black bg-deepOrange deeptech-texture">
-        <div className="mx-auto max-w-5xl px-4 py-12 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-[1840px] px-4 py-12 sm:px-6 lg:px-8">
           <p className="text-[11px] font-black uppercase tracking-[0.28em]">
             Research Profiles
           </p>
@@ -21,7 +21,7 @@ export default async function ExplorePage() {
         </div>
       </section>
       <section className="w-full bg-paper">
-        <div className="mx-auto grid max-w-6xl gap-5 px-4 py-10 sm:px-6 md:grid-cols-2 lg:grid-cols-3 lg:px-8">
+        <div className="mx-auto grid max-w-[1840px] gap-5 px-4 py-10 sm:px-6 md:grid-cols-2 lg:grid-cols-3 lg:px-8">
           {entities.map((entity) => (
             <Link
               href={`/startup/${entity.slug}`}

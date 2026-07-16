@@ -279,6 +279,29 @@ export async function safeMarkJobFailed(
   const job = await getResearchJob(jobId);
   if (!job || isTerminalResearchStatus(job.stage)) return job;
 
+  if (hasUsableArtifact(job)) {
+    const now = new Date().toISOString();
+    const failedStage = job.stage !== "failed" ? job.stage : (job.failedStage ?? null);
+    const dossierFailure = failedStage === "finalizing_dossier";
+    return updateResearchJob(jobId, {
+      stage: "done",
+      progress: 100,
+      statusLabel: "DONE",
+      message: "Research complete",
+      detail: dossierFailure ? "Public research is ready. The institutional dossier is still unavailable." : "Research is ready with the available public artifacts.",
+      completedAt: now,
+      completion_mode: job.feed?.confidenceLabel === "LIMITED PUBLIC DATA" ? "limited_public_data" : "partial",
+      profile_status: job.profileUrl ? "published" : "missing",
+      article_status: job.articleUrl ? "published" : "missing",
+      dossier_status: job.dossierUrl ? "published" : (dossierFailure ? "failed" : "missing"),
+      dossier_error_internal: dossierFailure ? safeInternalFailureMessage(options.internalMessage ?? message) : job.dossier_error_internal ?? null,
+      failure_code: options.failureCode ?? failureCodeForMessage(message, options.failureType),
+      failure_stage: options.failureStage ?? failedStage,
+      failure_message_internal: safeInternalFailureMessage(options.internalMessage ?? message),
+      orchestration: { ...job.orchestration, lockKey: job.orchestration?.lockKey ?? buildJobLockKey({ query: job.query }), inputFingerprint: job.orchestration?.inputFingerprint ?? buildInputFingerprint(job.query), attemptCount: getAttemptCount(job), maxAttempts: getMaxAttempts(job), lastRunFinishedAt: now, nextRetryAt: null, retryable: false, failureType: null }
+    });
+  }
+
   const attemptCount = getAttemptCount(job);
   const retryable =
     options.retryable ??
@@ -507,11 +530,15 @@ function isResearchStage(value: string): value is ResearchStage {
   ].includes(value);
 }
 
+function hasUsableArtifact(job: ResearchJob) {
+  return Boolean(job.profileUrl || job.articleUrl || job.dossierUrl);
+}
+
 function hasCompletedOutput(job: ResearchJob) {
   return Boolean(
     job.stage === "done" ||
       job.completedAt ||
-      (job.articleUrl && job.profileUrl && job.dossierUrl)
+      hasUsableArtifact(job)
   );
 }
 

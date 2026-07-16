@@ -657,7 +657,7 @@ function QueueCard({
 
           {active || queued ? <ResearchWorkflowChecklist stage={job.stage} /> : null}
 
-          {done ? <CompletedJobSummary sourceCount={sourceCount} /> : null}
+          {done ? <CompletedJobSummary job={job} sourceCount={sourceCount} /> : null}
 
           {failed ? <FailedJobSummary job={job} /> : null}
         </div>
@@ -719,7 +719,7 @@ function JobLinks({
       />
       {job.articleUrl ? <QueueLink href={job.articleUrl}>OPEN ARTICLE</QueueLink> : null}
       {job.profileUrl ? <QueueLink href={job.profileUrl}>OPEN PROFILE</QueueLink> : null}
-      {done && job.dossierUrl ? (
+      {job.dossierUrl ? (
         <QueueLink href={job.dossierUrl} dark>
           OPEN DOSSIER
         </QueueLink>
@@ -826,14 +826,20 @@ function WorkflowIndicator({
   );
 }
 
-function CompletedJobSummary({ sourceCount }: { sourceCount: number }) {
+function CompletedJobSummary({ job, sourceCount }: { job: ResearchJob; sourceCount: number }) {
+  const limited = job.completion_mode === "limited_public_data" || job.feed?.confidenceLabel === "LIMITED PUBLIC DATA";
+  const partial = job.completion_mode === "partial";
   return (
     <div className="mt-4 border border-black bg-offWhite p-3 text-left">
       <p className="text-[10px] font-black uppercase tracking-[0.18em] text-deepOrange">
         Research Complete
       </p>
       <p className="mt-1 text-sm font-bold leading-6 text-charcoal">
-        Article, profile, and dossier outputs are ready
+        {partial
+          ? "Available research artifacts are ready; unavailable material is clearly marked."
+          : limited
+            ? "A structured profile is ready with limited public evidence and clear uncertainty labels."
+            : "Article, profile, and dossier outputs are ready"}
         {sourceCount > 0 ? ` with ${sourceCount} public sources attached.` : "."}
       </p>
     </div>
