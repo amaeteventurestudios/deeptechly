@@ -4,7 +4,7 @@ import { PageShell } from "@/components/layout/PageShell";
 const routes = [
   ["Articles", "/articles", "/article/[slug].md"],
   ["Company profiles", "/startups", "/startup/[slug].md"],
-  ["Research dossiers", "/dossier/[slug]", "/dossier/[slug].md"]
+  ["Research dossiers", null, "/dossier/[slug].md"]
 ];
 
 export default function ApiAccessPage() {
@@ -23,7 +23,7 @@ export default function ApiAccessPage() {
             <article key={label} className="border border-black bg-white p-5 shadow-hard">
               <p className="text-[10px] font-black uppercase tracking-[0.18em] text-deepOrange">{label}</p>
               <p className="mt-3 text-sm font-semibold leading-6 text-charcoal">Browse the public index, then append <code>.md</code> to a supported public artifact URL for Markdown.</p>
-              <Link href={indexRoute} className="mt-5 inline-block text-[10px] font-black uppercase tracking-[0.14em] underline">Open index</Link>
+              {indexRoute ? <Link href={indexRoute} className="mt-5 inline-block text-[10px] font-black uppercase tracking-[0.14em] underline">Open index</Link> : <p className="mt-5 text-[10px] font-black uppercase tracking-[0.14em]">Linked from its public profile or article</p>}
               <p className="mt-3 break-all text-xs font-bold">{markdownRoute}</p>
             </article>
           ))}
