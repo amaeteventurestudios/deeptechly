@@ -562,7 +562,17 @@ function QueueCard({
   const sourceCount = job.feed?.sourceCount ?? job.sourceCount;
   const confidenceLabel = job.feed?.confidenceLabel;
   const entityType = job.feed?.entityTypeTag ?? job.mode;
-  const Icon = failed ? AlertTriangle : done ? CheckCircle2 : queued ? Clock3 : LoaderCircle;
+  const visualState = queueVisualState(job);
+  const Icon =
+    visualState === "failed"
+      ? AlertTriangle
+      : visualState === "done"
+        ? CheckCircle2
+        : visualState === "caution"
+          ? AlertTriangle
+          : queued
+            ? Clock3
+            : LoaderCircle;
 
   return (
     <article
@@ -573,7 +583,15 @@ function QueueCard({
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
         <span
           className={`mx-auto flex h-10 w-10 shrink-0 items-center justify-center border border-black bg-offWhite sm:mx-0 ${
-            failed ? "text-darkOrange" : queued ? "text-ink" : "text-deepOrange"
+            visualState === "done"
+              ? "border-[#166534] bg-[#f0fdf4] text-[#166534]"
+              : visualState === "caution"
+                ? "border-[#a16207] bg-[#fefce8] text-[#a16207]"
+                : visualState === "failed"
+                  ? "border-[#b91c1c] bg-[#fef2f2] text-[#b91c1c]"
+                  : queued
+                    ? "text-muted"
+                    : "border-deepOrange bg-paleOrange text-deepOrange"
           }`}
         >
           <Icon
@@ -587,7 +605,7 @@ function QueueCard({
         <div className="min-w-0 flex-1 text-center sm:text-left">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
             <div className="min-w-0">
-              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-deepOrange">
+              <p className={`text-[10px] font-black uppercase tracking-[0.18em] ${queueStatusClass(visualState)}`}>
                 {queued && queuePosition
                   ? `QUEUED · POSITION ${queuePosition}`
                   : getQueueStatusLabel(job)}
@@ -601,7 +619,8 @@ function QueueCard({
                   <QueueTag key={label}>{label}</QueueTag>
                 ))}
                 {sourceCount > 0 ? <QueueTag>{sourceCount} sources</QueueTag> : null}
-                {confidenceLabel ? <QueueTag>{confidenceLabel}</QueueTag> : null}
+                {confidenceLabel ? <QueueTag tone={confidenceLabel === "LIMITED PUBLIC DATA" ? "caution" : "neutral"}>{confidenceLabel}</QueueTag> : null}
+                {visualState === "caution" && confidenceLabel !== "LIMITED PUBLIC DATA" ? <QueueTag tone="caution">{getQueueStatusLabel(job)}</QueueTag> : null}
               </div>
             </div>
 
@@ -615,7 +634,7 @@ function QueueCard({
                   {queued
                     ? "Queue Status"
                     : done
-                      ? "Completion Status"
+                      ? "Research Status"
                       : failed
                         ? "Failure Status"
                         : "Current Stage"}
@@ -647,7 +666,7 @@ function QueueCard({
               >
                 <div
                   className={`h-full transition-[width] duration-700 motion-reduce:transition-none ${
-                    failed ? "bg-darkOrange" : "bg-deepOrange"
+                    visualState === "failed" ? "bg-[#b91c1c]" : visualState === "caution" ? "bg-[#a16207]" : "bg-deepOrange"
                   }`}
                   style={{ width: `${failed ? Math.max(progress, 8) : progress}%` }}
                 />
@@ -657,7 +676,7 @@ function QueueCard({
 
           {active || queued ? <ResearchWorkflowChecklist stage={job.stage} /> : null}
 
-          {done ? <CompletedJobSummary job={job} sourceCount={sourceCount} /> : null}
+          {done || visualState === "caution" ? <CompletedJobSummary job={job} sourceCount={sourceCount} /> : null}
 
           {failed ? <FailedJobSummary job={job} /> : null}
         </div>
@@ -750,9 +769,15 @@ function QueueLink({
   );
 }
 
-function QueueTag({ children }: { children: ReactNode }) {
+function QueueTag({
+  children,
+  tone = "neutral"
+}: {
+  children: ReactNode;
+  tone?: "neutral" | "caution";
+}) {
   return (
-    <span className="inline-flex min-h-7 items-center border border-black bg-offWhite px-2 py-1 text-[10px] font-black uppercase leading-4 tracking-[0.13em] text-charcoal">
+    <span className={`inline-flex min-h-7 items-center border px-2 py-1 text-[10px] font-black uppercase leading-4 tracking-[0.13em] ${tone === "caution" ? "border-[#a16207] bg-[#fefce8] text-[#854d0e]" : "border-black bg-offWhite text-charcoal"}`}>
       {children}
     </span>
   );
@@ -829,13 +854,16 @@ function WorkflowIndicator({
 function CompletedJobSummary({ job, sourceCount }: { job: ResearchJob; sourceCount: number }) {
   const limited = job.completion_mode === "limited_public_data" || job.feed?.confidenceLabel === "LIMITED PUBLIC DATA";
   const partial = job.completion_mode === "partial";
+  const finalizing = job.stage === "public_research_ready";
   return (
-    <div className="mt-4 border border-black bg-offWhite p-3 text-left">
-      <p className="text-[10px] font-black uppercase tracking-[0.18em] text-deepOrange">
-        Research Complete
+    <div className={`mt-4 border p-3 text-left ${limited || partial ? "border-[#a16207] bg-[#fefce8]" : "border-[#166534] bg-[#f0fdf4]"}`}>
+      <p className={`text-[10px] font-black uppercase tracking-[0.18em] ${limited || partial ? "text-[#a16207]" : "text-[#166534]"}`}>
+        {finalizing ? "Still Finalizing" : limited ? "Limited Public Data" : partial ? "Research Available" : "Research Complete"}
       </p>
       <p className="mt-1 text-sm font-bold leading-6 text-charcoal">
-        {partial
+        {finalizing
+          ? "Public research is ready. The institutional dossier is still finalizing."
+          : partial
           ? "Available research artifacts are ready; unavailable material is clearly marked."
           : limited
             ? "A structured profile is ready with limited public evidence and clear uncertainty labels."
@@ -847,19 +875,13 @@ function CompletedJobSummary({ job, sourceCount }: { job: ResearchJob; sourceCou
 }
 
 function FailedJobSummary({ job }: { job: ResearchJob }) {
-  const failedStage = getKnownFailedStage(job);
   const cancelled = job.stage === "cancelled";
 
   return (
-    <div className="mt-4 border border-black bg-offWhite p-3 text-left">
-      <p className="text-[10px] font-black uppercase tracking-[0.18em] text-darkOrange">
+    <div className="mt-4 border border-[#b91c1c] bg-[#fef2f2] p-3 text-left">
+      <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#b91c1c]">
         {cancelled ? "Cancelled" : "Failed"}
       </p>
-      {failedStage ? (
-        <p className="mt-1 text-xs font-black uppercase leading-5 tracking-[0.12em] text-charcoal">
-          {cancelled ? "Stopped during" : "Failed during"} {getQueueStageLabel(failedStage)}
-        </p>
-      ) : null}
       <p className="mt-2 text-sm font-bold leading-6 text-charcoal">
         {cancelled
           ? "This research job was cancelled before completion."
@@ -871,13 +893,21 @@ function FailedJobSummary({ job }: { job: ResearchJob }) {
   );
 }
 
-function getKnownFailedStage(job: ResearchJob) {
-  const failedStage = job.failedStage;
-  if (!failedStage || failedStage === "failed" || failedStage === "cancelled") {
-    return null;
-  }
+function queueVisualState(job: ResearchJob): "done" | "active" | "queued" | "caution" | "failed" {
+  if (job.stage === "failed" || job.stage === "cancelled") return "failed";
+  if (job.completion_mode === "needs_review") return "caution";
+  if (job.stage === "done") return "done";
+  if (job.completion_mode === "limited_public_data" || job.feed?.confidenceLabel === "LIMITED PUBLIC DATA" || job.stage === "public_research_ready") return "caution";
+  if (job.stage === "queued") return "queued";
+  return "active";
+}
 
-  return failedStage;
+function queueStatusClass(state: ReturnType<typeof queueVisualState>) {
+  if (state === "done") return "text-[#166534]";
+  if (state === "caution") return "text-[#a16207]";
+  if (state === "failed") return "text-[#b91c1c]";
+  if (state === "queued") return "text-muted";
+  return "text-deepOrange";
 }
 
 function sortQueueJobs(jobs: ResearchJob[]) {

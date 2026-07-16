@@ -165,7 +165,15 @@ export function getQueueProgress(job: ResearchJob) {
 export function getQueueStatusLabel(job: ResearchJob) {
   if (job.stage === "queued") return "QUEUED";
   if (job.stage === "failed" || job.stage === "cancelled") return "FAILED";
+  if (job.completion_mode === "needs_review") return "NEEDS REVIEW";
+  if (job.stage === "public_research_ready") return "STILL FINALIZING";
   if (job.stage === "done") return "DONE";
+  if (
+    job.completion_mode === "limited_public_data" ||
+    job.feed?.confidenceLabel === "LIMITED PUBLIC DATA"
+  ) {
+    return "LIMITED PUBLIC DATA";
+  }
   return "IN PROGRESS";
 }
 
