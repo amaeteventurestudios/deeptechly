@@ -1,4 +1,4 @@
-import { getPublishedEntities } from "@/lib/research/public-data";
+import { getPublishedArtifactAvailabilityForSlugs, getPublishedEntities } from "@/lib/research/public-data";
 
 export const dynamic = "force-dynamic";
 
@@ -7,12 +7,21 @@ const categories =
 
 export async function GET() {
   const entities = await getPublishedEntities();
+  const availability = await getPublishedArtifactAvailabilityForSlugs(entities.map((entity) => entity.slug));
   const recent = entities
     .slice(0, 12)
     .map(
-      (entity) =>
-        `- ${entity.name}: /article/${entity.slug} | /startup/${entity.slug} | /dossier/${entity.slug}`
+      (entity) => {
+        const artifact = availability.get(entity.slug);
+        const routes = [
+          artifact?.article ? `/article/${entity.slug}` : "",
+          artifact?.profile ? `/startup/${entity.slug}` : "",
+          artifact?.dossier ? `/dossier/${entity.slug}` : ""
+        ].filter(Boolean);
+        return routes.length ? `- ${entity.name}: ${routes.join(" | ")}` : "";
+      }
     )
+    .filter(Boolean)
     .join("\n");
 
   const body = `# DeepTechly

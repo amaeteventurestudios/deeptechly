@@ -22,7 +22,7 @@ import {
   getInstitutionalAccessState
 } from "@/lib/auth/session";
 import { entities } from "@/lib/data";
-import { getPublishedEntityBySlug } from "@/lib/research/public-data";
+import { getPublishedArtifactAvailability, getPublishedDossierEntityBySlug } from "@/lib/research/public-data";
 
 export const dynamic = "force-dynamic";
 
@@ -36,7 +36,7 @@ export function generateStaticParams() {
 
 export async function generateMetadata({ params }: DossierPageProps) {
   const { slug } = await params;
-  const entity = await getPublishedEntityBySlug(slug);
+  const entity = await getPublishedDossierEntityBySlug(slug);
 
   if (!entity) {
     return { title: "Dossier not found | DeepTechly" };
@@ -64,7 +64,7 @@ export async function generateMetadata({ params }: DossierPageProps) {
 
 export default async function DossierPage({ params }: DossierPageProps) {
   const { slug } = await params;
-  const entity = await getPublishedEntityBySlug(slug);
+  const entity = await getPublishedDossierEntityBySlug(slug);
   const session = await getAuthSession();
   const accessState: InstitutionalAccessState =
     getInstitutionalAccessState(session);
@@ -73,9 +73,11 @@ export default async function DossierPage({ params }: DossierPageProps) {
     notFound();
   }
 
+  const availability = await getPublishedArtifactAvailability(slug);
+
   return (
     <PageShell>
-      <DossierHero entity={entity} />
+      <DossierHero entity={entity} articleAvailable={availability.article} />
       <ExternalLinksRow entity={entity} />
       <SnapshotPanel entity={entity} />
       <section className="w-full bg-paper">

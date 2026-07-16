@@ -67,7 +67,13 @@ function BulletList({ items }: { items: string[] }) {
   );
 }
 
-export function DossierHero({ entity }: { entity: ResearchEntity }) {
+export function DossierHero({
+  entity,
+  articleAvailable
+}: {
+  entity: ResearchEntity;
+  articleAvailable: boolean;
+}) {
   const headerStats = [
     ["Sector", entity.sector],
     ["Region", entity.region],
@@ -121,13 +127,13 @@ export function DossierHero({ entity }: { entity: ResearchEntity }) {
                     <span className="font-black">{value || notConfirmed}</span>
                   </p>
                 ))}
-                <Link
+                {articleAvailable ? <Link
                   href={`/article/${entity.slug}`}
                   className="inline-flex items-center justify-center gap-2 border border-black bg-ink px-3 py-2 text-[10px] font-black uppercase tracking-[0.14em] text-white"
                 >
                   Read Article
                   <ArrowRight size={13} />
-                </Link>
+                </Link> : null}
                 <Link
                   href={`/startup/${entity.slug}`}
                   className="inline-flex items-center justify-center gap-2 border border-black bg-white px-3 py-2 text-[10px] font-black uppercase tracking-[0.14em] text-ink"
@@ -1125,17 +1131,32 @@ export function StrategicOutlookSection({ entity }: { entity: ResearchEntity }) 
 }
 
 export function DossierSourcesBlock({ sources }: { sources: Source[] }) {
-  if (!sources.length) return null;
+  const visibleSources = publicSources(sources);
+  if (!visibleSources.length) return null;
 
   return (
     <SectionFrame title="Sources">
       <div className="space-y-3">
-        {sources.map((source, index) => (
+        {visibleSources.map((source, index) => (
           <SourceCard key={`${source.url}-${index}`} source={source} index={index} />
         ))}
       </div>
     </SectionFrame>
   );
+}
+
+function publicSources(sources: Source[]) {
+  const seen = new Set<string>();
+  return sources.filter((source) => {
+    try {
+      const url = new URL(source.url);
+      if (!/^https?:$/.test(url.protocol) || seen.has(url.href)) return false;
+      seen.add(url.href);
+      return Boolean(source.title?.trim());
+    } catch {
+      return false;
+    }
+  });
 }
 
 function SourceCard({ source, index }: { source: Source; index: number }) {

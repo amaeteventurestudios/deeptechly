@@ -13,7 +13,7 @@ import {
 } from "@/components/dossier/DossierComponents";
 import { PageShell } from "@/components/layout/PageShell";
 import { entities } from "@/lib/data";
-import { getPublishedEntityBySlug } from "@/lib/research/public-data";
+import { getPublishedArtifactAvailability, getPublishedEntityBySlug } from "@/lib/research/public-data";
 import type { ResearchEntity } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -64,9 +64,11 @@ export default async function StartupProfilePage({
     notFound();
   }
 
+  const availability = await getPublishedArtifactAvailability(slug);
+
   return (
     <PageShell>
-      <ProfileHero entity={entity} />
+      <ProfileHero entity={entity} articleAvailable={availability.article} dossierAvailable={availability.dossier} />
       <section className="w-full bg-paper">
         <div className="mx-auto grid max-w-[1040px] gap-8 px-4 py-10 sm:px-6 lg:grid-cols-[1fr_320px] lg:px-8">
           <main className="min-w-0">
@@ -83,7 +85,7 @@ export default async function StartupProfilePage({
           <aside className="min-w-0 space-y-6 lg:sticky lg:top-24 lg:self-start">
             <SnapshotPanel entity={entity} embedded />
             <ConfidenceScorePanel entity={entity} />
-            <ProfileLinksSection entity={entity} />
+            <ProfileLinksSection entity={entity} articleAvailable={availability.article} dossierAvailable={availability.dossier} />
           </aside>
         </div>
       </section>
@@ -91,7 +93,7 @@ export default async function StartupProfilePage({
   );
 }
 
-function ProfileHero({ entity }: { entity: ResearchEntity }) {
+function ProfileHero({ entity, articleAvailable, dossierAvailable }: { entity: ResearchEntity; articleAvailable: boolean; dossierAvailable: boolean }) {
   return (
     <section className="w-full border-b border-black bg-deepOrange deeptech-texture">
       <div className="mx-auto max-w-5xl px-4 py-12 text-center sm:px-6 lg:px-8">
@@ -115,20 +117,14 @@ function ProfileHero({ entity }: { entity: ResearchEntity }) {
           ))}
         </div>
         <div className="mt-7 flex flex-col justify-center gap-3 min-[430px]:flex-row">
-          <Link
+          {articleAvailable ? <Link
             href={`/article/${entity.slug}`}
             className="inline-flex items-center justify-center gap-2 border border-black bg-ink px-4 py-3 text-[11px] font-black uppercase tracking-[0.14em] text-white shadow-hard"
           >
             Read Article
             <ArrowRight size={14} />
-          </Link>
-          <Link
-            href={`/dossier/${entity.slug}`}
-            className="inline-flex items-center justify-center gap-2 border border-black bg-white px-4 py-3 text-[11px] font-black uppercase tracking-[0.14em] shadow-hard"
-          >
-            Open Dossier
-            <ArrowRight size={14} />
-          </Link>
+          </Link> : null}
+          {dossierAvailable ? <Link href={`/dossier/${entity.slug}`} className="inline-flex items-center justify-center gap-2 border border-black bg-white px-4 py-3 text-[11px] font-black uppercase tracking-[0.14em] shadow-hard">Open Dossier<ArrowRight size={14} /></Link> : null}
         </div>
       </div>
     </section>
@@ -213,11 +209,11 @@ function OpenQuestionsSection({ entity }: { entity: ResearchEntity }) {
   );
 }
 
-function ProfileLinksSection({ entity }: { entity: ResearchEntity }) {
+function ProfileLinksSection({ entity, articleAvailable, dossierAvailable }: { entity: ResearchEntity; articleAvailable: boolean; dossierAvailable: boolean }) {
   return (
     <section className="border-t border-black/20 py-8">
       <div className="grid gap-4">
-        <Link
+        {articleAvailable ? <Link
           href={`/article/${entity.slug}`}
           className="block border border-black bg-white p-5 shadow-hard hover:bg-paleOrange"
         >
@@ -234,8 +230,8 @@ function ProfileLinksSection({ entity }: { entity: ResearchEntity }) {
             Open Article
             <ArrowRight size={13} />
           </span>
-        </Link>
-        <Link
+        </Link> : null}
+        {dossierAvailable ? <Link
           href={`/dossier/${entity.slug}`}
           className="block border border-black bg-ink p-5 text-white shadow-hard hover:bg-charcoal"
         >
@@ -252,7 +248,7 @@ function ProfileLinksSection({ entity }: { entity: ResearchEntity }) {
             Open Dossier
             <ArrowRight size={13} />
           </span>
-        </Link>
+        </Link> : null}
       </div>
     </section>
   );

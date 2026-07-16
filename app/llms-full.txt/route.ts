@@ -1,4 +1,4 @@
-import { getPublishedEntities } from "@/lib/research/public-data";
+import { getPublishedArtifactAvailabilityForSlugs, getPublishedEntities } from "@/lib/research/public-data";
 
 export const dynamic = "force-dynamic";
 
@@ -20,12 +20,21 @@ const categories = [
 
 export async function GET() {
   const entities = await getPublishedEntities();
+  const availability = await getPublishedArtifactAvailabilityForSlugs(entities.map((entity) => entity.slug));
   const researchIndex = entities
     .slice(0, 36)
     .map(
-      (entity) =>
-        `- ${entity.name}: article /article/${entity.slug}.md, profile /startup/${entity.slug}.md, public dossier /dossier/${entity.slug}.md`
+      (entity) => {
+        const artifact = availability.get(entity.slug);
+        const routes = [
+          artifact?.article ? `article /article/${entity.slug}.md` : "",
+          artifact?.profile ? `profile /startup/${entity.slug}.md` : "",
+          artifact?.dossier ? `public dossier /dossier/${entity.slug}.md` : ""
+        ].filter(Boolean);
+        return routes.length ? `- ${entity.name}: ${routes.join(", ")}` : "";
+      }
     )
+    .filter(Boolean)
     .join("\n");
 
   const body = `# DeepTechly Expanded LLM Guide

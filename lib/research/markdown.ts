@@ -113,15 +113,22 @@ ${bulletList(accuracy.unverified)}
 `;
 }
 
-function relatedPages(entity: ResearchEntity) {
+type PublicArtifactAvailability = {
+  profile: boolean;
+  article: boolean;
+  dossier: boolean;
+};
+
+function relatedPages(entity: ResearchEntity, availability: PublicArtifactAvailability) {
+  const links = [
+    availability.article ? `- Article: /article/${entity.slug}\n- Article markdown: /article/${entity.slug}.md` : "",
+    availability.profile ? `- Profile: /startup/${entity.slug}\n- Profile markdown: /startup/${entity.slug}.md` : "",
+    availability.dossier ? `- Dossier: /dossier/${entity.slug}\n- Dossier markdown: /dossier/${entity.slug}.md` : ""
+  ].filter(Boolean);
+
   return `## Related Pages
 
-- Article: /article/${entity.slug}
-- Profile: /startup/${entity.slug}
-- Dossier: /dossier/${entity.slug}
-- Article markdown: /article/${entity.slug}.md
-- Profile markdown: /startup/${entity.slug}.md
-- Dossier markdown: /dossier/${entity.slug}.md`;
+${links.join("\n")}`;
 }
 
 function articleBody(entity: ResearchEntity) {
@@ -135,7 +142,10 @@ ${joinSections(section.body) || emptyCopy}`
     .join("\n\n");
 }
 
-export function articleMarkdown(entity: ResearchEntity) {
+export function articleMarkdown(
+  entity: ResearchEntity,
+  availability: PublicArtifactAvailability = { profile: true, article: true, dossier: true }
+) {
   const openQuestions =
     entity.article.openQuestions?.length
       ? entity.article.openQuestions
@@ -164,7 +174,7 @@ export function articleMarkdown(entity: ResearchEntity) {
     markdownSection("Open Questions", bulletList(openQuestions)),
     markdownSection("Sources", sourceList(entity.sources)),
     confidenceBlock(entity),
-    relatedPages(entity)
+    relatedPages(entity, availability)
   ]
     .filter(Boolean)
     .join("\n\n")
@@ -172,7 +182,10 @@ export function articleMarkdown(entity: ResearchEntity) {
     .concat("\n");
 }
 
-export function startupMarkdown(entity: ResearchEntity) {
+export function startupMarkdown(
+  entity: ResearchEntity,
+  availability: PublicArtifactAvailability = { profile: true, article: true, dossier: true }
+) {
   return [
     `# ${valueOrEmpty(entity.name)}`,
     `## Snapshot
@@ -191,7 +204,7 @@ export function startupMarkdown(entity: ResearchEntity) {
     markdownSection("Open Questions", bulletList(entity.dossier.accuracyAndConfidence.unverified)),
     markdownSection("Sources", sourceList(entity.sources)),
     confidenceBlock(entity),
-    relatedPages(entity)
+    relatedPages(entity, availability)
   ]
     .filter(Boolean)
     .join("\n\n")
@@ -199,7 +212,10 @@ export function startupMarkdown(entity: ResearchEntity) {
     .concat("\n");
 }
 
-export function dossierMarkdown(entity: ResearchEntity) {
+export function dossierMarkdown(
+  entity: ResearchEntity,
+  availability: PublicArtifactAvailability = { profile: true, article: true, dossier: true }
+) {
   return [
     `# ${valueOrEmpty(entity.name)} Research Dossier`,
     markdownSection("Overview", joinSections([entity.summary, ...entity.dossier.companyOverview])),
@@ -211,7 +227,7 @@ export function dossierMarkdown(entity: ResearchEntity) {
     `## Public Access Notice
 
 This markdown route includes only public dossier sections. Institutional analysis may require verified access on the web dossier page.`,
-    relatedPages(entity)
+    relatedPages(entity, availability)
   ]
     .filter(Boolean)
     .join("\n\n")

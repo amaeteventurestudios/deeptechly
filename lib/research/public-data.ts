@@ -198,3 +198,83 @@ export async function getPublishedEntityBySlug(slug: string) {
 
   return entity;
 }
+
+/**
+ * Public pages must respect artifact-level publication, not just the profile's
+ * entity record. Seed research is intentionally treated as a complete public set.
+ */
+async function hasPublishedStoredArtifact(
+  slug: string,
+  artifact: "article" | "dossier"
+) {
+  if (getSeedEntityBySlug(slug)) return true;
+
+  try {
+    const data = await readStore();
+    return artifact === "article"
+      ? data.articles.some(
+          (item) => item.slug === slug && item.publishedStatus === "published"
+        )
+      : data.dossiers.some(
+          (item) => item.slug === slug && item.publishedStatus === "published"
+        );
+  } catch (error) {
+    console.error("Generated research store unavailable", error);
+    return false;
+  }
+}
+
+export async function getPublishedArticleEntityBySlug(slug: string) {
+  const entity = await getPublishedEntityBySlug(slug);
+  if (!entity || !(await hasPublishedStoredArtifact(slug, "article"))) return null;
+  return entity;
+}
+
+export async function getPublishedDossierEntityBySlug(slug: string) {
+  const entity = await getPublishedEntityBySlug(slug);
+  if (!entity || !(await hasPublishedStoredArtifact(slug, "dossier"))) return null;
+  return entity;
+}
+
+export async function getPublishedArtifactAvailability(slug: string) {
+  const entity = await getPublishedEntityBySlug(slug);
+  if (!entity) return { profile: false, article: false, dossier: false };
+  const [article, dossier] = await Promise.all([
+    hasPublishedStoredArtifact(slug, "article"),
+    hasPublishedStoredArtifact(slug, "dossier")
+  ]);
+  return { profile: true, article, dossier };
+}
+
+/** Batch availability is used by discovery routes to avoid one store read per URL. */
+export async function getPublishedArtifactAvailabilityForSlugs(slugs: string[]) {
+  const uniqueSlugs = Array.from(new Set(slugs));
+  const result = new Map<string, { profile: boolean; article: boolean; dossier: boolean }>();
+  let data: Awaited<ReturnType<typeof readStore>> | null = null;
+
+  try {
+    data = await readStore();
+  } catch (error) {
+    console.error("Generated research store unavailable", error);
+  }
+
+  for (const slug of uniqueSlugs) {
+    const seed = getSeedEntityBySlug(slug);
+    const entity = seed
+      ? seedAsPublished(seed)
+      : data?.entities.find(
+          (item) => item.slug === slug && item.publishedStatus === "published"
+        );
+    result.set(slug, {
+      profile: Boolean(entity),
+      article: Boolean(
+        seed || data?.articles.some((item) => item.slug === slug && item.publishedStatus === "published")
+      ),
+      dossier: Boolean(
+        seed || data?.dossiers.some((item) => item.slug === slug && item.publishedStatus === "published")
+      )
+    });
+  }
+
+  return result;
+}

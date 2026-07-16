@@ -14,7 +14,7 @@ import {
 } from "@/components/article/ArticleComponents";
 import { PageShell } from "@/components/layout/PageShell";
 import { entities } from "@/lib/data";
-import { getPublishedEntityBySlug } from "@/lib/research/public-data";
+import { getPublishedArticleEntityBySlug, getPublishedArtifactAvailability } from "@/lib/research/public-data";
 
 export const dynamic = "force-dynamic";
 
@@ -28,7 +28,7 @@ export function generateStaticParams() {
 
 export async function generateMetadata({ params }: ArticlePageProps) {
   const { slug } = await params;
-  const entity = await getPublishedEntityBySlug(slug);
+  const entity = await getPublishedArticleEntityBySlug(slug);
 
   if (!entity) {
     return { title: "Article not found | DeepTechly" };
@@ -58,12 +58,13 @@ export async function generateMetadata({ params }: ArticlePageProps) {
 
 export default async function ArticlePage({ params }: ArticlePageProps) {
   const { slug } = await params;
-  const entity = await getPublishedEntityBySlug(slug);
+  const entity = await getPublishedArticleEntityBySlug(slug);
 
   if (!entity) {
     notFound();
   }
 
+  const availability = await getPublishedArtifactAvailability(slug);
   const [whyItMatters, technicalWedge, marketContext, ...remainingSections] =
     entity.article.sections;
 
@@ -83,8 +84,8 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
         <ConfidenceEvidencePanel entity={entity} />
         <SourcesBlock sources={entity.sources} />
       </ArticleBody>
-      <DossierCTA entity={entity} />
-      <ArticleFooterActions entity={entity} />
+      {availability.dossier ? <DossierCTA entity={entity} /> : null}
+      <ArticleFooterActions entity={entity} dossierAvailable={availability.dossier} />
       <RelatedResearch entity={entity} />
     </PageShell>
   );

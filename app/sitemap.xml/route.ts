@@ -1,4 +1,4 @@
-import { getPublishedEntities } from "@/lib/research/public-data";
+import { getPublishedArtifactAvailabilityForSlugs, getPublishedEntities } from "@/lib/research/public-data";
 import { siteUrl } from "@/lib/site";
 
 export const dynamic = "force-dynamic";
@@ -38,6 +38,7 @@ function urlEntry(route: string, lastmod?: string | null) {
 
 export async function GET() {
   const entities = await getPublishedEntities();
+  const availability = await getPublishedArtifactAvailabilityForSlugs(entities.map((entity) => entity.slug));
   const staticRoutes = [
     "/",
     "/news",
@@ -55,14 +56,15 @@ export async function GET() {
   const sectorRoutes = sectorSlugs.map((slug) => `/sector/${slug}`);
   const entityRoutes = entities.flatMap((entity) => {
     const lastmod = entity.updatedAt ?? entity.article.publishedAt ?? entity.createdAt ?? null;
+    const artifact = availability.get(entity.slug);
     return [
-      [`/article/${entity.slug}`, lastmod],
-      [`/article/${entity.slug}.md`, lastmod],
-      [`/startup/${entity.slug}`, lastmod],
-      [`/startup/${entity.slug}.md`, lastmod],
-      [`/dossier/${entity.slug}`, lastmod],
-      [`/dossier/${entity.slug}.md`, lastmod]
-    ] as Array<[string, string | null]>;
+      artifact?.article ? [`/article/${entity.slug}`, lastmod] : null,
+      artifact?.article ? [`/article/${entity.slug}.md`, lastmod] : null,
+      artifact?.profile ? [`/startup/${entity.slug}`, lastmod] : null,
+      artifact?.profile ? [`/startup/${entity.slug}.md`, lastmod] : null,
+      artifact?.dossier ? [`/dossier/${entity.slug}`, lastmod] : null,
+      artifact?.dossier ? [`/dossier/${entity.slug}.md`, lastmod] : null
+    ].filter(Boolean) as Array<[string, string | null]>;
   });
 
   const seen = new Set<string>();

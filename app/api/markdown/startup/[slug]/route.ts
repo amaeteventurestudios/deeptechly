@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { getPublishedEntityBySlug } from "@/lib/research/public-data";
+import { getPublishedArtifactAvailability, getPublishedEntityBySlug } from "@/lib/research/public-data";
 import { startupMarkdown } from "@/lib/research/markdown";
 
 export const dynamic = "force-dynamic";
@@ -16,7 +16,7 @@ export async function GET(_request: Request, { params }: RouteProps) {
     notFound();
   }
 
-  return new Response(startupMarkdown(entity), {
+  return new Response(startupMarkdown(entity, await getPublishedArtifactAvailability(slug)), {
     headers: {
       "content-type": "text/markdown; charset=utf-8"
     }

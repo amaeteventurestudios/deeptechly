@@ -260,7 +260,8 @@ export function OpenQuestionsSection({ entity }: { entity: ResearchEntity }) {
 }
 
 export function SourcesBlock({ sources }: { sources: Source[] }) {
-  if (!sources.length) return null;
+  const visibleSources = publicSources(sources);
+  if (!visibleSources.length) return null;
 
   return (
     <section className="border-t border-black/20 py-8">
@@ -268,12 +269,26 @@ export function SourcesBlock({ sources }: { sources: Source[] }) {
         Sources
       </h2>
       <div className="space-y-3">
-        {sources.map((source, index) => (
+        {visibleSources.map((source, index) => (
           <SourceRow key={`${source.url}-${index}`} source={source} index={index} />
         ))}
       </div>
     </section>
   );
+}
+
+function publicSources(sources: Source[]) {
+  const seen = new Set<string>();
+  return sources.filter((source) => {
+    try {
+      const url = new URL(source.url);
+      if (!/^https?:$/.test(url.protocol) || seen.has(url.href)) return false;
+      seen.add(url.href);
+      return Boolean(source.title?.trim());
+    } catch {
+      return false;
+    }
+  });
 }
 
 export function SourceRow({ source, index }: { source: Source; index?: number }) {
@@ -429,12 +444,18 @@ export function ConfidenceEvidencePanel({ entity }: { entity: ResearchEntity }) 
   );
 }
 
-export function ArticleFooterActions({ entity }: { entity: ResearchEntity }) {
+export function ArticleFooterActions({
+  entity,
+  dossierAvailable
+}: {
+  entity: ResearchEntity;
+  dossierAvailable: boolean;
+}) {
   return (
     <section className="w-full bg-paper">
       <div className="mx-auto max-w-[760px] px-4 pb-12 sm:px-6 lg:px-8">
         <div className="grid gap-4 sm:grid-cols-2">
-          <Link
+          {dossierAvailable ? <Link
             href={`/startup/${entity.slug}`}
             className="flex min-h-24 items-center gap-3 border border-black bg-white p-4 shadow-hard hover:bg-paleOrange"
           >
@@ -445,7 +466,7 @@ export function ArticleFooterActions({ entity }: { entity: ResearchEntity }) {
               </span>
               <span className="mt-1 block text-sm font-black">Open structured profile</span>
             </span>
-          </Link>
+          </Link> : null}
           <Link
             href={`/dossier/${entity.slug}`}
             className="flex min-h-24 items-center gap-3 border border-black bg-white p-4 shadow-hard hover:bg-paleOrange"
