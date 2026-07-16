@@ -95,6 +95,16 @@ export async function HomeResearchFeed() {
 async function getGeneratedHomepageStories() {
   try {
     const store = await readStore();
+    const publishedArticleSlugs = new Set(
+      store.articles
+        .filter((article) => article.publishedStatus === "published")
+        .map((article) => article.slug)
+    );
+    const publishedDossierSlugs = new Set(
+      store.dossiers
+        .filter((dossier) => dossier.publishedStatus === "published")
+        .map((dossier) => dossier.slug)
+    );
     const entities = store.entities
       .filter(
         (entity) =>
@@ -104,8 +114,8 @@ async function getGeneratedHomepageStories() {
       .sort(compareHomepageEntities);
 
     return entities
-      .filter(isGeneratedEntity)
-      .map(homepageStoryFromEntity);
+      .filter((entity) => isGeneratedEntity(entity) && publishedArticleSlugs.has(entity.slug))
+      .map((entity) => homepageStoryFromEntity(entity, publishedDossierSlugs.has(entity.slug)));
   } catch {
     return [];
   }
@@ -115,7 +125,10 @@ function isGeneratedEntity(entity: ResearchEntity) {
   return entity.stage === "Generated research" || entity.id?.startsWith("entity_");
 }
 
-function homepageStoryFromEntity(entity: ResearchEntity): HomepageStory {
+function homepageStoryFromEntity(
+  entity: ResearchEntity,
+  dossierAvailable: boolean
+): HomepageStory {
   const story = storyFromEntity(entity);
   return {
     id: `generated-${entity.slug}`,
@@ -126,7 +139,7 @@ function homepageStoryFromEntity(entity: ResearchEntity): HomepageStory {
     analyst: story.authorPersona as DeepTechlyAnalyst,
     href: story.articleUrl,
     profileHref: story.profileUrl,
-    dossierHref: story.dossierUrl,
+    dossierHref: dossierAvailable ? story.dossierUrl : undefined,
     heroImage: story.heroImage,
     heroImageAlt: story.heroImageAlt,
     researchMode: entity.entityTypeTag ?? entity.entityType ?? entity.stage,
@@ -168,8 +181,11 @@ function mergeStories(primary: HomepageStory[], fallback: HomepageStory[]) {
 }
 
 function newsstandItemsFromStory(story: HomepageStory): NewsstandItem[] {
-  return [
-    {
+  const items: NewsstandItem[] = [
+  ];
+
+  if (story.dossierHref) {
+    items.push({
       id: `${story.id}-article`,
       type: "ARTICLE",
       title: story.headline,
@@ -205,11 +221,13 @@ function newsstandItemsFromStory(story: HomepageStory): NewsstandItem[] {
       time: story.time,
       sourceCount: story.sourceCount ?? 0,
       confidence: story.confidence ?? "Moderate",
-      href: story.dossierHref ?? story.href.replace("/article/", "/dossier/"),
+      href: story.dossierHref,
       cta: "Open Dossier",
       gated: true
-    }
-  ];
+    });
+  }
+
+  return items;
 }
 
 function mergeNewsstandItems(primary: NewsstandItem[], fallback: NewsstandItem[]) {

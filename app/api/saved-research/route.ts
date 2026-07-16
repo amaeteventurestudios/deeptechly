@@ -12,7 +12,10 @@ export async function GET() {
   const session = await getAuthSession();
 
   if (!session) {
-    return NextResponse.json({ error: "sign_in_required" }, { status: 401 });
+    // Save controls load on public cards as well. An empty collection preserves
+    // their signed-out state without reporting an expected request as a browser
+    // resource error; mutations remain authenticated below.
+    return NextResponse.json({ items: [], count: 0, unavailable: false });
   }
 
   const savedResearch = await listSavedResearchItems(session.userId, 50);

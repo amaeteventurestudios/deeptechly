@@ -9,3 +9,6 @@ dist
 npm-debug.log*
 .DS_Store
 data/research-store.json
+playwright-report/
+test-results/
+artifacts/visual-qa/

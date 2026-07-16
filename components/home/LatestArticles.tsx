@@ -134,10 +134,10 @@ export function LatestArticles({ articles }: { articles?: LatestArticle[] }) {
                   <ArrowRight size={10} aria-hidden="true" />
                 </Link>
                 <Link
-                  href={dossierHrefFor(article)}
+                  href={article.dossierHref ?? article.profileHref ?? "/research"}
                   className="inline-flex h-8 items-center justify-center gap-1 border border-black bg-white px-2 text-[8px] font-black uppercase tracking-[0.12em] hover:bg-paleOrange"
                 >
-                  Dossier
+                  {article.dossierHref ? "Dossier" : "Profile"}
                   <ArrowRight size={10} aria-hidden="true" />
                 </Link>
               </div>
@@ -280,12 +280,4 @@ function visualForSector(sector: string): HomepageVisualKind {
   }
   if (normalized.includes("sensor") || normalized.includes("bio")) return "sensing";
   return "chip";
-}
-
-function dossierHrefFor(article: LatestArticle) {
-  if (article.dossierHref) return article.dossierHref;
-  if (article.href.startsWith("/article/")) {
-    return article.href.replace("/article/", "/dossier/");
-  }
-  return "/research";
 }

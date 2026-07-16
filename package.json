@@ -6,6 +6,8 @@
     "dev": "next dev",
     "lint": "eslint .",
     "build": "next build",
+    "test:visual": "playwright test",
+    "test:visual:headed": "playwright test --headed",
     "audit:links": "npx tsx scripts/audit-links.ts",
     "verify:research-quality": "npx tsx scripts/verify-entity-resolution.ts && npx tsx scripts/verify-public-sector-recognition.ts && npx tsx scripts/verify-research-quality.ts",
     "verify:research-orchestration": "npx tsx scripts/verify-research-orchestration.ts",
@@ -24,6 +26,7 @@
     "recharts": "^2.13.3"
   },
   "devDependencies": {
+    "@playwright/test": "^1.61.1",
     "@types/node": "^20.17.6",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
