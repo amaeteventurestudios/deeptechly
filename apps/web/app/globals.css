@@ -6,6 +6,33 @@
   --font-sans: "Inter", "Arial", sans-serif;
   --font-serif: Georgia, "Times New Roman", serif;
   --font-mono: "IBM Plex Mono", "SFMono-Regular", Consolas, monospace;
+  --background: 40 37% 97%;
+  --foreground: 0 0% 5%;
+  --paper: 40 37% 97%;
+  --off-white: 34 36% 95%;
+  --ink: 0 0% 5%;
+  --charcoal: 0 0% 15%;
+  --line: 38 20% 87%;
+  --deep-orange: 21 100% 50%;
+  --burnt-orange: 20 100% 46%;
+  --dark-orange: 19 100% 39%;
+  --pale-orange: 24 100% 95%;
+  --border: 0 0% 7%;
+  --input: 38 20% 75%;
+  --ring: 21 100% 50%;
+  --primary: 21 100% 50%;
+  --primary-foreground: 0 0% 5%;
+  --secondary: 0 0% 5%;
+  --secondary-foreground: 0 0% 100%;
+  --destructive: 0 72% 42%;
+  --destructive-foreground: 0 0% 100%;
+  --muted: 34 20% 92%;
+  --muted-foreground: 0 0% 38%;
+  --accent: 24 100% 95%;
+  --accent-foreground: 0 0% 5%;
+  --shadow-hard: 4px 4px 0 hsl(var(--ink));
+  --shadow-hard-lg: 8px 8px 0 hsl(var(--ink));
+  --shadow-orange: 4px 4px 0 hsl(var(--deep-orange));
   color-scheme: light;
 }
 
@@ -15,12 +42,13 @@
 
 html {
   scroll-behavior: smooth;
+  background: hsl(var(--background));
 }
 
 body {
   margin: 0;
-  background: #faf8f4;
-  color: #0e0e0e;
+  background: hsl(var(--background));
+  color: hsl(var(--foreground));
   font-family: var(--font-sans);
 }
 
@@ -30,8 +58,26 @@ a {
 }
 
 button,
-input {
+input,
+textarea,
+select {
   font: inherit;
+}
+
+:where(a, button, input, textarea, select, [tabindex]):focus-visible {
+  outline: 3px solid hsl(var(--ring));
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 ::selection {
@@ -61,8 +107,8 @@ input {
 }
 
 .hard-panel {
-  border: 1px solid #111111;
-  box-shadow: 4px 4px 0 #0f0f0f;
+  border: 1px solid hsl(var(--border));
+  box-shadow: var(--shadow-hard);
 }
 
 .scrollbar-thin::-webkit-scrollbar {
