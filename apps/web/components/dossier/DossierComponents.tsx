@@ -32,7 +32,7 @@ function SectionFrame({
   return (
     <section className="border-t border-black/20 py-8">
       {eyebrow ? <p className={labelClass}>{eyebrow}</p> : null}
-      <h2 className="mt-1 text-3xl font-black leading-tight">{title}</h2>
+      <h2 className="mt-1 font-serif text-3xl font-black leading-tight tracking-[-0.02em]">{title}</h2>
       <div className="mt-5">{children}</div>
     </section>
   );

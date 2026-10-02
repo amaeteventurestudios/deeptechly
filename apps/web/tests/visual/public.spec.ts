@@ -229,4 +229,31 @@ test.describe("public visual QA", () => {
     expect(markdown.ok()).toBeTruthy();
     expect(await markdown.text()).toContain("# ");
   });
+
+  test("profile renders as an evidence-backed institutional fact sheet", async ({ page }) => {
+    const { profilePath, articlePath, dossierPath } = await discoverArtifactPaths(page);
+    await openPublicPage(page, profilePath, viewports.desktop);
+    await expect(page.getByText(/Public Research Profile \/ DT-/)).toBeVisible();
+    await expect(page.getByRole("img", { name: /technical research visual/i })).toBeVisible();
+    for (const heading of [
+      "Overview",
+      "Technical summary",
+      "Market position",
+      "Competitive landscape",
+      "Key signals",
+      "Open questions",
+      "Technology tags",
+      "Sources",
+      "Accuracy and confidence"
+    ]) {
+      await expect(page.getByRole("heading", { name: heading, exact: true })).toBeVisible();
+    }
+    await expect(page.locator(`a[href="${articlePath}"]`).first()).toBeVisible();
+    await expect(page.locator(`a[href="${dossierPath}"]`).first()).toBeVisible();
+    const markdownPath = `${profilePath}.md`;
+    await expect(page.locator(`a[href="${markdownPath}"]`)).toBeVisible();
+    const markdown = await page.request.get(markdownPath);
+    expect(markdown.ok()).toBeTruthy();
+    expect(await markdown.text()).toContain("# ");
+  });
 });

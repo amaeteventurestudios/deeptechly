@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, FileType2, ScanLine } from "lucide-react";
 import {
   CompetitiveLandscapeTable,
   AccuracyConfidencePanel,
@@ -96,38 +96,80 @@ export default async function StartupProfilePage({
 function ProfileHero({ entity, articleAvailable, dossierAvailable }: { entity: ResearchEntity; articleAvailable: boolean; dossierAvailable: boolean }) {
   return (
     <section className="w-full border-b border-black bg-deepOrange deeptech-texture">
-      <div className="mx-auto max-w-5xl px-4 py-12 text-center sm:px-6 lg:px-8">
-        <p className="text-[11px] font-black uppercase tracking-[0.28em]">
-          Public Research Profile
-        </p>
-        <h1 className="mx-auto mt-4 max-w-3xl text-5xl font-black leading-[0.92] sm:text-6xl md:text-7xl">
-          {entity.name}
-        </h1>
-        <p className="mx-auto mt-5 max-w-2xl text-base font-semibold leading-7 text-ink/82 md:text-lg">
-          {entity.summary}
-        </p>
-        <div className="mt-6 flex flex-wrap justify-center gap-2">
-          {entity.tags.slice(0, 6).map((tag) => (
-            <span
-              key={tag}
-              className="border border-black bg-white px-2 py-1 text-[10px] font-black uppercase tracking-[0.13em]"
+      <div className="mx-auto grid max-w-[1200px] gap-9 px-4 py-12 text-center sm:px-6 lg:grid-cols-[minmax(0,1fr)_420px] lg:items-center lg:px-8 lg:text-left">
+        <div>
+          <p className="font-mono text-[11px] font-black uppercase tracking-[0.22em]">
+            Public Research Profile / DT-{entity.slug.toUpperCase()}
+          </p>
+          <h1 className="mx-auto mt-4 max-w-3xl font-serif text-5xl font-black leading-[0.92] tracking-[-0.04em] sm:text-6xl md:text-7xl lg:mx-0">
+            {entity.name}
+          </h1>
+          <p className="mx-auto mt-5 max-w-2xl text-base font-semibold leading-7 text-ink/82 md:text-lg lg:mx-0">
+            {entity.summary}
+          </p>
+          <dl className="mt-6 flex flex-wrap justify-center gap-x-6 gap-y-2 font-mono text-[0.6875rem] font-bold uppercase tracking-[0.1em] lg:justify-start">
+            <div><dt className="inline text-ink/60">Sources </dt><dd className="inline">{entity.sourceCount}</dd></div>
+            <div><dt className="inline text-ink/60">Confidence </dt><dd className="inline">{entity.confidenceLabel}</dd></div>
+            <div><dt className="inline text-ink/60">Updated </dt><dd className="inline"><time>{entity.updatedAt ?? entity.lastResearchedAt}</time></dd></div>
+          </dl>
+          <div className="mt-6 flex flex-wrap justify-center gap-2 lg:justify-start">
+            {entity.tags.slice(0, 6).map((tag) => (
+              <span
+                key={tag}
+                className="border border-black bg-white px-2 py-1 text-[10px] font-black uppercase tracking-[0.13em]"
+              >
+                {tag}
+              </span>
+            ))}
+          </div>
+          <div className="mt-7 flex flex-col justify-center gap-3 min-[430px]:flex-row lg:justify-start">
+            {articleAvailable ? <Link
+              href={`/article/${entity.slug}`}
+              className="inline-flex min-h-11 items-center justify-center gap-2 border border-black bg-ink px-4 py-3 text-[11px] font-black uppercase tracking-[0.14em] text-white shadow-hard"
             >
-              {tag}
-            </span>
-          ))}
+              Read Article
+              <ArrowRight size={14} aria-hidden="true" />
+            </Link> : null}
+            {dossierAvailable ? <Link href={`/dossier/${entity.slug}`} className="inline-flex min-h-11 items-center justify-center gap-2 border border-black bg-white px-4 py-3 text-[11px] font-black uppercase tracking-[0.14em] shadow-hard">Open Dossier<ArrowRight size={14} aria-hidden="true" /></Link> : null}
+            <Link href={`/startup/${entity.slug}.md`} className="inline-flex min-h-11 items-center justify-center gap-2 border border-black bg-white px-4 py-3 text-[11px] font-black uppercase tracking-[0.14em] shadow-hard">
+              <FileType2 size={14} aria-hidden="true" />
+              Markdown
+            </Link>
+          </div>
         </div>
-        <div className="mt-7 flex flex-col justify-center gap-3 min-[430px]:flex-row">
-          {articleAvailable ? <Link
-            href={`/article/${entity.slug}`}
-            className="inline-flex items-center justify-center gap-2 border border-black bg-ink px-4 py-3 text-[11px] font-black uppercase tracking-[0.14em] text-white shadow-hard"
-          >
-            Read Article
-            <ArrowRight size={14} />
-          </Link> : null}
-          {dossierAvailable ? <Link href={`/dossier/${entity.slug}`} className="inline-flex items-center justify-center gap-2 border border-black bg-white px-4 py-3 text-[11px] font-black uppercase tracking-[0.14em] shadow-hard">Open Dossier<ArrowRight size={14} /></Link> : null}
-        </div>
+        <ProfileTechnicalVisual entity={entity} />
       </div>
     </section>
+  );
+}
+
+function ProfileTechnicalVisual({ entity }: { entity: ResearchEntity }) {
+  const image = entity.heroImageUrl ?? entity.heroImage ?? entity.article.heroImageUrl ?? entity.article.heroImage;
+
+  return (
+    <div className="border border-ink bg-white p-3 shadow-hardLg">
+      <div
+        className="relative flex min-h-72 items-center justify-center overflow-hidden border border-ink bg-ink text-deepOrange"
+        role="img"
+        aria-label={entity.heroImageAlt ?? `${entity.name} technical research visual`}
+        style={image ? { backgroundImage: `url(${image})`, backgroundPosition: "center", backgroundSize: "cover" } : undefined}
+      >
+        {!image ? (
+          <>
+            <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(255,90,0,0.35)_0_1px,transparent_1px_16px)]" />
+            <div className="absolute inset-8 border border-deepOrange/50" />
+            <div className="relative flex h-28 w-28 items-center justify-center border border-deepOrange bg-black shadow-orange">
+              <ScanLine size={52} strokeWidth={1.5} aria-hidden="true" />
+            </div>
+          </>
+        ) : null}
+        <div className="absolute bottom-3 left-3 right-3 border border-ink bg-white px-3 py-2 text-left text-ink">
+          <p className="font-mono text-[0.625rem] font-black uppercase tracking-[0.16em] text-darkOrange">Technical file / {entity.sector}</p>
+          <p className="mt-1 truncate text-sm font-black">{entity.article.visualCaption || entity.name}</p>
+        </div>
+      </div>
+      {entity.imageAttribution ? <p className="mt-2 text-[0.625rem] font-bold leading-4 text-muted">Image: {entity.imageAttribution}</p> : null}
+    </div>
   );
 }
 

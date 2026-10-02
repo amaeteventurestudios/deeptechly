@@ -103,3 +103,22 @@ Validation:
 - `pnpm test`
 - `pnpm build`
 - Responsive Playwright rendering for the article at 320, 390, 768, 1440, and 1920 pixels.
+
+## Phase 6 — Public research profile experience
+
+Status: implemented and validated; commit recorded in Git history after this document lands.
+
+- Upgraded the public profile masthead into an institutional research-file layout with a stable profile identifier, source count, confidence, update state, taxonomy, and technical visual.
+- Added resilient image fallback treatment and retained attribution when available.
+- Added direct public profile markdown access alongside availability-aware article and dossier actions.
+- Preserved the existing overview, technical summary, market position, competitive landscape, key signals, open questions, evidence, sources, and confidence sections.
+- Continued to omit unavailable optional facts through the existing public-value checks and explicit unconfirmed states.
+- Applied editorial typography to shared profile/dossier section frames and added browser coverage for the full profile fact-sheet hierarchy.
+
+Validation:
+
+- `pnpm lint`
+- `pnpm typecheck`
+- `pnpm test`
+- `pnpm build`
+- Responsive Playwright rendering for the profile at 320, 390, 768, 1440, and 1920 pixels.
