@@ -8,9 +8,13 @@
     "trigger:dev": "pnpm dlx trigger.dev@4.7.0 dev --config trigger.config.ts"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "3.1145.0",
+    "@aws-sdk/s3-request-presigner": "3.1145.0",
     "@deeptechly/aperture": "workspace:*",
     "@deeptechly/kernel": "workspace:*",
-    "@trigger.dev/sdk": "4.7.0"
+    "@deeptechly/shared": "workspace:*",
+    "@trigger.dev/sdk": "4.7.0",
+    "redis": "6.3.0"
   },
   "devDependencies": {
     "@types/node": "20.19.40",

@@ -1,5 +1,6 @@
 import { task } from "@trigger.dev/sdk";
 import type { ResearchDispatchInput } from "@deeptechly/kernel";
+import { traceWorkflow } from "../observability";
 
 export const deeptechlyResearchTask = task({
   id: "deeptechly-research",
@@ -14,21 +15,27 @@ export const deeptechlyResearchTask = task({
   },
   run: async (payload: ResearchDispatchInput) => {
     validatePayload(payload);
-    const baseUrl = requireEnvironment("DEEPTECHLY_INTERNAL_WEB_URL").replace(/\/$/, "");
-    const secret = requireEnvironment("DEEPTECHLY_WORKER_CALLBACK_SECRET");
-    const response = await fetch(`${baseUrl}/api/internal/research/run`, {
-      method: "POST",
-      headers: {
-        authorization: `Bearer ${secret}`,
-        "content-type": "application/json"
-      },
-      body: JSON.stringify(payload),
-      signal: AbortSignal.timeout(9 * 60 * 1000)
+    return traceWorkflow({
+      id: `research:${payload.jobId}`,
+      traceId: payload.jobId,
+      name: "deeptechly-research",
+      input: { query: payload.query },
+      metadata: { workflow: "research", jobId: payload.jobId }
+    }, async () => {
+      const baseUrl = requireEnvironment("DEEPTECHLY_INTERNAL_WEB_URL").replace(/\/$/, "");
+      const secret = requireEnvironment("DEEPTECHLY_WORKER_CALLBACK_SECRET");
+      const response = await fetch(`${baseUrl}/api/internal/research/run`, {
+        method: "POST",
+        headers: {
+          authorization: `Bearer ${secret}`,
+          "content-type": "application/json"
+        },
+        body: JSON.stringify(payload),
+        signal: AbortSignal.timeout(9 * 60 * 1000)
+      });
+      if (!response.ok) throw new Error(`Research callback failed with HTTP ${response.status}`);
+      return await response.json() as { jobId: string; status: string };
     });
-    if (!response.ok) {
-      throw new Error(`Research callback failed with HTTP ${response.status}`);
-    }
-    return await response.json() as { jobId: string; status: string };
   }
 });
 

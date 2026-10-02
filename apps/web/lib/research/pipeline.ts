@@ -57,6 +57,7 @@ import {
 import { resolveResearchImage } from "./image-resolution";
 import { normalizeSearchResults } from "./source-quality";
 import type { ReadablePage, ResearchStage, SearchResult } from "./types";
+import { recordObservation } from "@/lib/observability/langfuse";
 
 const stageDelayMs = Number(process.env.RESEARCH_STAGE_DELAY_MS ?? 450);
 
@@ -131,11 +132,19 @@ async function move(
 ) {
   await ensureRunnable(jobId, startedAt);
   const heartbeat = new Date().toISOString();
+  const stagePatch = patch ?? {};
   await updateResearchJob(jobId, {
     stage,
     progress: progressByStage[stage],
     last_heartbeat_at: heartbeat,
-    ...patch
+    ...stagePatch
+  });
+  void recordObservation({
+    traceId: jobId,
+    id: `${jobId}:${stage}:${heartbeat}`,
+    name: `research.stage.${stage}`,
+    startedAt: heartbeat,
+    metadata: { stage, progress: progressByStage[stage], elapsedMs: elapsed(startedAt), sourceCount: stagePatch.sourceCount ?? null }
   });
   await wait(stageDelayMs);
   await ensureRunnable(jobId, startedAt);
@@ -599,6 +608,7 @@ export async function runResearchJob(jobId: string, query: string) {
     }));
     const heroImage = imageResolution.heroImageUrl ?? fallbackHeroImage;
     const output = await generateResearchOutput({
+      traceId: jobId,
       query: resolution.researchQuery,
       facts,
       verification,

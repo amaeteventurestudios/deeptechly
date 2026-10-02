@@ -28,7 +28,7 @@ The image references are explicit and overrideable so upgrades are reviewed. The
 
 ## Deliberately not copied here
 
-- Trigger.dev and current Langfuse self-hosted deployments are multi-service upstream stacks. Use their maintained Compose distributions and connect via adapters instead of copying a stale subset into this repository.
+- Trigger.dev and current Langfuse self-hosted deployments are multi-service upstream stacks. Use their maintained Compose distributions and connect through the repository's Trigger and Langfuse v4 OTLP adapters instead of copying a stale subset here.
 - Crawl4AI activation depends on selecting and pinning a supported server image/API contract. The worker adapter accepts a versioned base URL and path without owning truth evaluation.
 - Appwrite and S3-compatible storage require dedicated activation and security configuration. Lago and Stripe now have server adapters and ledger schema, but remain external managed capabilities until accounts, plans, webhooks, and reconciliation are approved.
 

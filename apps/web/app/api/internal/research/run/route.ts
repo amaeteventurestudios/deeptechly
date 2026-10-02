@@ -12,12 +12,20 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "not_found" }, { status: 404 });
   }
 
+  const contentLength = Number(request.headers.get("content-length") ?? 0);
+  if (Number.isFinite(contentLength) && contentLength > 32_768) {
+    return NextResponse.json({ error: "payload_too_large" }, { status: 413 });
+  }
+
   const body = (await request.json().catch(() => null)) as {
     jobId?: string;
     query?: string;
     idempotencyKey?: string;
   } | null;
   if (!body?.jobId || !body.query || !body.idempotencyKey) {
+    return NextResponse.json({ error: "invalid_payload" }, { status: 400 });
+  }
+  if (body.jobId.length > 200 || body.query.length > 500 || body.idempotencyKey.length > 200) {
     return NextResponse.json({ error: "invalid_payload" }, { status: 400 });
   }
 

@@ -28,6 +28,7 @@ import {
   sourceMix,
   type EnrichedSourceSummary
 } from "./source-quality";
+import { recordObservation } from "@/lib/observability/langfuse";
 import type { EntityResolutionMetadata, EntityInputType } from "./entity-resolution";
 import type { TargetEntityAnchor } from "./entity-anchor";
 import type { ResearchImageResolution } from "./image-resolution";
@@ -551,13 +552,16 @@ function extractOutputText(body: {
 async function callOpenAIJson(
   prompt: string,
   schemaName: string,
-  schema: Record<string, unknown>
+  schema: Record<string, unknown>,
+  traceId?: string
 ) {
   if (!process.env.OPENAI_API_KEY) {
     console.log("OPENAI_API_KEY missing. Running research job in demo mode.");
     return null;
   }
 
+  const startedAt = new Date().toISOString();
+  const model = process.env.OPENAI_MODEL ?? defaultOpenAIModel;
   const response = await fetch("https://api.openai.com/v1/responses", {
     method: "POST",
     headers: {
@@ -565,7 +569,7 @@ async function callOpenAIJson(
       authorization: `Bearer ${process.env.OPENAI_API_KEY}`
     },
     body: JSON.stringify({
-      model: process.env.OPENAI_MODEL ?? defaultOpenAIModel,
+      model,
       input: prompt,
       text: {
         format: {
@@ -579,13 +583,52 @@ async function callOpenAIJson(
   });
 
   if (!response.ok) {
+    void recordObservation({
+      traceId: traceId ?? schemaName,
+      id: `${traceId ?? "research"}:${schemaName}:${startedAt}`,
+      name: `llm.${schemaName}`,
+      startedAt,
+      error: `OpenAI response failed with HTTP ${response.status}`,
+      metadata: { model, provider: "openai", latencyMs: Date.now() - new Date(startedAt).getTime() }
+    });
     return null;
   }
 
   try {
-    const body = await response.json();
-    return JSON.parse(extractOutputText(body) || "{}") as Record<string, unknown>;
-  } catch {
+    const body = await response.json() as {
+      id?: string;
+      output_text?: string;
+      output?: { content?: { text?: string }[] }[];
+      usage?: { input_tokens?: number; output_tokens?: number; total_tokens?: number };
+    };
+    const outputText = extractOutputText(body);
+    const parsed = JSON.parse(outputText || "{}") as Record<string, unknown>;
+    void recordObservation({
+      traceId: traceId ?? schemaName,
+      id: body.id ?? `${traceId ?? "research"}:${schemaName}:${startedAt}`,
+      name: `llm.${schemaName}`,
+      startedAt,
+      input: { prompt, schemaName },
+      output: parsed,
+      metadata: {
+        model,
+        provider: "openai",
+        latencyMs: Date.now() - new Date(startedAt).getTime(),
+        inputTokens: body.usage?.input_tokens,
+        outputTokens: body.usage?.output_tokens,
+        totalTokens: body.usage?.total_tokens
+      }
+    });
+    return parsed;
+  } catch (error) {
+    void recordObservation({
+      traceId: traceId ?? schemaName,
+      id: `${traceId ?? "research"}:${schemaName}:${startedAt}`,
+      name: `llm.${schemaName}`,
+      startedAt,
+      error: error instanceof Error ? error.message : "OpenAI response parsing failed",
+      metadata: { model, provider: "openai", latencyMs: Date.now() - new Date(startedAt).getTime() }
+    });
     return null;
   }
 }
@@ -593,7 +636,8 @@ async function callOpenAIJson(
 async function aiArticleSections(
   facts: ExtractedEntityFacts,
   summaries: SourceSummary[],
-  targetEntity?: TargetEntityAnchor
+  targetEntity?: TargetEntityAnchor,
+  traceId?: string
 ) {
   const prompt = `You are an institutional deep-tech analyst writing for DeepTechly.
 
@@ -638,7 +682,8 @@ ${JSON.stringify(summaries.slice(0, 8))}`;
   const response = await callOpenAIJson(
     prompt,
     "deeptechly_article",
-    articleSchema
+    articleSchema,
+    traceId
   );
   const sections = response?.sections as ArticleSection[] | undefined;
   const headline = typeof response?.headline === "string" ? response.headline : null;
@@ -658,7 +703,8 @@ async function aiDossierHighlights(
   facts: ExtractedEntityFacts,
   verification: ClaimVerification,
   summaries: SourceSummary[],
-  targetEntity?: TargetEntityAnchor
+  targetEntity?: TargetEntityAnchor,
+  traceId?: string
 ) {
   const prompt = `You are an institutional deep-tech diligence analyst writing for DeepTechly.
 
@@ -697,7 +743,8 @@ ${JSON.stringify(summaries.slice(0, 8))}`;
   const response = await callOpenAIJson(
     prompt,
     "deeptechly_dossier_highlights",
-    dossierHighlightsSchema
+    dossierHighlightsSchema,
+    traceId
   );
   const executiveSummary = response?.executiveSummary as string[] | undefined;
   const strategicOutlook = response?.strategicOutlook as string[] | undefined;
@@ -710,6 +757,7 @@ ${JSON.stringify(summaries.slice(0, 8))}`;
 }
 
 export async function generateResearchOutput({
+  traceId,
   query,
   facts,
   verification,
@@ -719,6 +767,7 @@ export async function generateResearchOutput({
   resolution,
   targetEntity
 }: {
+  traceId?: string;
   query: string;
   facts: ExtractedEntityFacts;
   verification: ClaimVerification;
@@ -751,8 +800,8 @@ export async function generateResearchOutput({
   const secondary = facts.secondarySectors.length
     ? facts.secondarySectors
     : ["Technology", "Government Relevance"];
-  const aiArticle = await aiArticleSections(facts, summaries, targetEntity);
-  const aiDossier = await aiDossierHighlights(facts, verification, summaries, targetEntity);
+  const aiArticle = await aiArticleSections(facts, summaries, targetEntity, traceId);
+  const aiDossier = await aiDossierHighlights(facts, verification, summaries, targetEntity, traceId);
   const sections = aiArticle?.sections ?? fallbackArticleSections(facts);
   const openQuestions = aiArticle?.openQuestions?.length
     ? aiArticle.openQuestions

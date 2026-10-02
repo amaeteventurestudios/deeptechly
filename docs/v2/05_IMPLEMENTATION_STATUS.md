@@ -288,3 +288,15 @@ Status: adapter and ledger foundation complete; commercial activation is externa
 - Prevented provider state or a Checkout redirect from becoming authorization; only a verified PostgreSQL access grant may unlock gated research.
 - Kept adapters disabled by default, installed no billing infrastructure, selected no final pricing, and contacted no live service.
 - Added deterministic entitlement, adapter-payload, configuration, credential-isolation, and migration verification.
+
+## Phase 20 — System hardening
+
+Status: complete for repository-owned controls; external service activation remains isolated.
+
+- Added public security headers, disabled framework fingerprinting, and exposed only a minimal no-store liveness endpoint.
+- Bounded the private durable-workflow callback by declared payload size and field length while retaining fail-closed authorization.
+- Added supported Langfuse v4 OTLP tracing for workflow roots, research stages, LLM model/latency/token/error metadata, and explicit content-capture opt-in.
+- Added recursive secret/PII redaction, cycle/depth/string/payload bounds, and fail-open observability behavior.
+- Implemented lazy Valkey/Redis cache and S3-compatible private object-store adapters behind existing kernel ports.
+- Added cache key/TTL constraints, object-key validation, server-side encryption, and one-hour signed-read limits.
+- Added deterministic hardening checks and live browser assertions for headers and health-data minimization.

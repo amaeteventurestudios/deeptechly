@@ -19,7 +19,10 @@ export class StripeCheckoutAdapter implements PaymentCheckout {
   async createSubscriptionCheckout(request: CheckoutRequest) {
     for (const [label, value] of [["successUrl", request.successUrl], ["cancelUrl", request.cancelUrl]] as const) {
       const url = new URL(value);
-      if (!/^https?:$/.test(url.protocol)) throw new Error(`${label} must use http or https`);
+      const local = url.hostname === "localhost" || url.hostname === "127.0.0.1";
+      if (url.protocol !== "https:" && !(local && url.protocol === "http:")) {
+        throw new Error(`${label} must use https outside local development`);
+      }
     }
     if (!/^price_[A-Za-z0-9]+$/.test(request.priceId)) throw new Error("Stripe priceId is invalid");
     const body = new URLSearchParams({

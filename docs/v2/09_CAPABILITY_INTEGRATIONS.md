@@ -15,8 +15,8 @@ Local Docker Compose profiles cover the stable, independently useful services: P
 | Search | Meilisearch | Search document policy, publication outbox, public/gated filtering, ranking inputs. |
 | Coordination | Valkey | Idempotency policy, workflow truth, artifact persistence. |
 | Durable execution | Trigger.dev (Phase 12) | Deterministic stage plan, research policy, artifact composition. |
-| LLM observability | Langfuse (later hardening) | Redaction, trace eligibility, evaluation policy, public privacy boundary. |
-| Object storage | S3-compatible (later phase) | Media/evidence provenance, content hashes, licensing and access policy. |
+| LLM observability | Langfuse | Redaction, trace eligibility, evaluation policy, public privacy boundary. |
+| Object storage | S3-compatible | Media/evidence provenance, content hashes, licensing and access policy. |
 
 ## Adapter guarantees
 
@@ -36,3 +36,5 @@ No external endpoints, credentials, image approval, or production network policy
 ## Verification
 
 `pnpm verify:capability-adapters` covers fail-closed configuration, URL validation, token placement, health, search/index calls, Directus reads, Crawl4AI normalization, and rejection of non-HTTP acquisition targets. Standard typecheck and build verify that ports remain consumable from the worker.
+
+Phase 20 adds production Langfuse v4 OTLP, Valkey/Redis, and S3-compatible adapters plus privacy and bounds verification; see `18_SYSTEM_HARDENING.md`.

@@ -13,6 +13,7 @@
     "@deeptechly/aperture": "workspace:*",
     "@deeptechly/kernel": "workspace:*",
     "@deeptechly/research": "workspace:*",
+    "@deeptechly/shared": "workspace:*",
     "@deeptechly/ui": "workspace:*",
     "@supabase/ssr": "0.10.3",
     "@supabase/supabase-js": "2.105.4",

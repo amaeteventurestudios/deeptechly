@@ -3,6 +3,7 @@ import {
   analyzeGovernmentDemand,
   type ApertureAnalysisInput
 } from "@deeptechly/aperture";
+import { traceWorkflow } from "../observability";
 
 export const apertureDemandIntelligenceTask = task({
   id: "aperture-demand-intelligence",
@@ -17,7 +18,14 @@ export const apertureDemandIntelligenceTask = task({
   },
   run: async (payload: ApertureAnalysisInput) => {
     validatePayload(payload);
-    return analyzeGovernmentDemand(payload);
+    const traceId = `aperture:${payload.methodologyVersion}:${payload.documents.map((document) => document.id).join(":")}`;
+    return traceWorkflow({
+      id: traceId,
+      traceId,
+      name: "aperture-demand-intelligence",
+      input: { documentCount: payload.documents.length, targetCount: payload.targets?.length ?? 0 },
+      metadata: { workflow: "aperture", methodologyVersion: payload.methodologyVersion }
+    }, async () => analyzeGovernmentDemand(payload));
   }
 });
 

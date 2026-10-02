@@ -210,6 +210,18 @@ test.describe("public visual QA", () => {
     }
   });
 
+  test("public responses include security headers and minimal health data", async ({ request }) => {
+    const homepage = await request.get("/");
+    expect(homepage.headers()["x-content-type-options"]).toBe("nosniff");
+    expect(homepage.headers()["x-frame-options"]).toBe("DENY");
+    expect(homepage.headers()["content-security-policy"]).toContain("frame-ancestors 'none'");
+    const health = await request.get("/api/health");
+    expect(health.ok()).toBeTruthy();
+    expect(health.headers()["cache-control"]).toContain("no-store");
+    expect(await health.json()).toMatchObject({ status: "ok", service: "deeptechly-web" });
+    expect(await health.text().catch(() => "")).not.toContain("secret");
+  });
+
   test("patent archive links to bounded HTML and markdown briefs", async ({ page }) => {
     await openPublicPage(page, "/patents", viewports.mobile390);
     const patentHref = await page.locator('a[href^="/patent/"]:not([href$=".md"])').first().getAttribute("href");

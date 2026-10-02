@@ -35,3 +35,7 @@ The Aperture intelligence kernel, evidence policy, PostgreSQL schema, Trigger.de
 ## Lago and Stripe activation
 
 The billing/checkout ports, adapters, entitlement policy, and additive ledgers are implemented. Live activation requires approved Lago and Stripe accounts, plans/prices, server and webhook signing secrets, tax/invoice/refund policy, webhook ingress, signature verification, replay tests, customer reconciliation, and an authorized application of migration `0005`. The existing verified-institutional profile flag remains authoritative until a reconciled access-grant cutover; payment state never unlocks content directly.
+
+## Observability, cache, and object-store activation
+
+Langfuse v4 OTLP tracing, Valkey/Redis caching, and S3-compatible object storage have production adapter implementations and deterministic tests. Live activation requires approved endpoints and credentials, network/egress policy, trace sampling and content-retention review, object lifecycle/CORS/encryption policy, cache memory/eviction policy, backup expectations, least-privilege identities, and incident ownership. They remain disabled when unconfigured.

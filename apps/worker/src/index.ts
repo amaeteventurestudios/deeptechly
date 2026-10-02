@@ -1,9 +1,12 @@
 import type {
-  NewsroomRepository,
   BillingMeter,
+  CacheStore,
+  NewsroomRepository,
+  ObjectStore,
   PaymentCheckout,
   SearchIndex,
   SourceAcquisitionProvider,
+  TraceSink,
   WorkflowDispatcher
 } from "@deeptechly/kernel";
 import { loadCapabilityConfig } from "./providers/config";
@@ -12,6 +15,9 @@ import { DirectusAdapter } from "./providers/directus";
 import { MeilisearchAdapter } from "./providers/meilisearch";
 import { LagoBillingAdapter } from "./providers/lago";
 import { StripeCheckoutAdapter } from "./providers/stripe";
+import { LangfuseTraceAdapter } from "./providers/langfuse";
+import { ValkeyCacheAdapter } from "./providers/valkey";
+import { S3ObjectStoreAdapter } from "./providers/s3";
 
 export type WorkerRuntime = {
   workflows: WorkflowDispatcher;
@@ -20,6 +26,9 @@ export type WorkerRuntime = {
   search?: SearchIndex;
   billing?: BillingMeter;
   checkout?: PaymentCheckout;
+  tracing?: TraceSink;
+  cache?: CacheStore;
+  objects?: ObjectStore;
 };
 
 export function createWorkerRuntime(
@@ -46,6 +55,9 @@ export function createConfiguredCapabilities(
       ? new MeilisearchAdapter(config.meilisearch, fetchImplementation)
       : undefined,
     billing: config.lago ? new LagoBillingAdapter(config.lago, fetchImplementation) : undefined,
-    checkout: config.stripe ? new StripeCheckoutAdapter(config.stripe, fetchImplementation) : undefined
+    checkout: config.stripe ? new StripeCheckoutAdapter(config.stripe, fetchImplementation) : undefined,
+    tracing: config.langfuse ? new LangfuseTraceAdapter(config.langfuse, fetchImplementation) : undefined,
+    cache: config.valkey ? new ValkeyCacheAdapter(config.valkey) : undefined,
+    objects: config.s3 ? new S3ObjectStoreAdapter(config.s3) : undefined
   };
 }
