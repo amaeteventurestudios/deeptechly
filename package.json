@@ -3,13 +3,20 @@
   "version": "0.2.0",
   "private": true,
   "packageManager": "pnpm@10.34.5",
-  "engines": { "node": ">=20.17.0" },
+  "engines": {
+    "node": ">=20.17.0"
+  },
+  "pnpm": {
+    "overrides": {
+      "ws": "8.21.0"
+    }
+  },
   "scripts": {
     "dev": "pnpm --filter @deeptechly/web dev",
     "workflow:dev": "pnpm --filter @deeptechly/worker trigger:dev",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit -p tsconfig.json && pnpm -r --if-present typecheck",
-    "test": "pnpm run verify:research-kernel && pnpm run verify:research-quality && pnpm run verify:research-orchestration && pnpm run verify:durable-workflow && pnpm run verify:research-queue-ui && pnpm run verify:admin-review && pnpm run verify:newsroom-integration && pnpm run verify:search-discovery && pnpm run verify:aperture-ui && pnpm run verify:aperture-intelligence && pnpm run verify:public-discovery && pnpm run verify:billing-entitlements && pnpm run verify:system-hardening && pnpm run verify:research-load && pnpm run verify:admin-access && pnpm run verify:auth-adapters && pnpm run verify:database-migrations && pnpm run verify:capability-adapters",
+    "test": "pnpm run verify:research-kernel && pnpm run verify:research-quality && pnpm run verify:research-orchestration && pnpm run verify:durable-workflow && pnpm run verify:research-queue-ui && pnpm run verify:admin-review && pnpm run verify:newsroom-integration && pnpm run verify:search-discovery && pnpm run verify:aperture-ui && pnpm run verify:aperture-intelligence && pnpm run verify:public-discovery && pnpm run verify:billing-entitlements && pnpm run verify:system-hardening && pnpm run verify:golden-path && pnpm run verify:research-load && pnpm run verify:admin-access && pnpm run verify:auth-adapters && pnpm run verify:database-migrations && pnpm run verify:capability-adapters",
     "build": "pnpm -r --if-present build",
     "test:visual": "pnpm --filter @deeptechly/web test:visual",
     "test:visual:headed": "pnpm --filter @deeptechly/web test:visual:headed",
@@ -27,6 +34,7 @@
     "verify:public-discovery": "tsx scripts/verify-public-discovery.ts",
     "verify:billing-entitlements": "tsx scripts/verify-billing-entitlements.ts",
     "verify:system-hardening": "tsx scripts/verify-system-hardening.ts",
+    "verify:golden-path": "tsx scripts/verify-golden-path.ts",
     "verify:research-load": "tsx scripts/verify-research-load.ts",
     "verify:admin-access": "tsx scripts/verify-admin-access-management.ts",
     "verify:auth-adapters": "tsx scripts/verify-auth-provider-abstraction.ts",
@@ -37,7 +45,7 @@
   "devDependencies": {
     "@types/node": "20.19.40",
     "eslint": "9.39.4",
-    "eslint-config-next": "16.2.6",
+    "eslint-config-next": "16.3.8",
     "tsx": "4.23.15",
     "typescript": "5.9.3"
   }

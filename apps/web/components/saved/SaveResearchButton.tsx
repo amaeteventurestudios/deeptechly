@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Check, LoaderCircle, Star } from "lucide-react";
 
 export type SaveResearchButtonProps = {
@@ -26,6 +27,7 @@ export function SaveResearchButton({
   compact = false,
   source = "deeptechly"
 }: SaveResearchButtonProps) {
+  const router = useRouter();
   const [state, setState] = useState<"idle" | "saving" | "saved" | "error">(
     "idle"
   );
@@ -89,7 +91,7 @@ export function SaveResearchButton({
         const redirectTo = encodeURIComponent(
           `${window.location.pathname}${window.location.search}`
         );
-        window.location.href = `/sign-in?redirectTo=${redirectTo}`;
+        router.push(`/sign-in?redirectTo=${redirectTo}`);
         return;
       }
 

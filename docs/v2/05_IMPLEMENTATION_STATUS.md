@@ -300,3 +300,14 @@ Status: complete for repository-owned controls; external service activation rema
 - Implemented lazy Valkey/Redis cache and S3-compatible private object-store adapters behind existing kernel ports.
 - Added cache key/TTL constraints, object-key validation, server-side encryption, and one-hour signed-read limits.
 - Added deterministic hardening checks and live browser assertions for headers and health-data minimization.
+
+## Phase 21 — Golden-path validation
+
+Status: repository-owned V2 scope complete; live external cutovers are explicitly blocked on credentials, infrastructure, and authorized data migration.
+
+- Added a seven-case golden-path matrix covering established and early-stage companies, NASA technology identity, patents, obscure entities, government demand, and the verification-to-discovery chain.
+- Proved identity anchoring, official-domain normalization, confidence degradation, publication withholding, patent/government claim boundaries, source provenance, workflow ordering, search, and public Markdown policy.
+- Re-ran all deterministic, migration, load, security, adapter, production-build, and responsive Playwright checks.
+- Upgraded the vulnerable Next.js/PostCSS/WebSocket graph to patched compatible releases and finished with a clean production dependency audit.
+- Preserved the no-credential compatibility path and documented the inherited demonstration corpus as non-production data pending reconciled PostgreSQL cutover.
+- Consolidated architecture, operations, environment, deployment, limitations, blockers, and test evidence in `FINAL_BUILD_REPORT.md`.
