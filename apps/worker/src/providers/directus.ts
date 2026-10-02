@@ -34,4 +34,31 @@ export class DirectusAdapter implements NewsroomRepository {
     );
     return response.data ?? null;
   }
+
+  async create<Item extends Record<string, unknown>>(
+    collection: string,
+    item: Partial<Item>
+  ) {
+    const response = await requestJson<{ data: Item }>(
+      this.config,
+      this.fetchImplementation,
+      `/items/${encodeURIComponent(collection)}`,
+      { method: "POST", body: JSON.stringify(item) }
+    );
+    return response.data;
+  }
+
+  async update<Item extends Record<string, unknown>>(
+    collection: string,
+    id: string,
+    patch: Partial<Item>
+  ) {
+    const response = await requestJson<{ data: Item }>(
+      this.config,
+      this.fetchImplementation,
+      `/items/${encodeURIComponent(collection)}/${encodeURIComponent(id)}`,
+      { method: "PATCH", body: JSON.stringify(patch) }
+    );
+    return response.data;
+  }
 }

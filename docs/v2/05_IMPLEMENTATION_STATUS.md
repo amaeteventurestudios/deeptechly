@@ -218,3 +218,14 @@ Status: implemented as a user-facing single stack with existing persistence and 
 - Removed capacity diagnostics and developer-oriented copy from the public experience while retaining cancellation, bounded retry, saved research, polling, and notifications.
 - Clarified that research continues after navigation and persisted queue state refreshes when the user returns.
 - Added a deterministic queue UI verification to the standard test suite.
+
+## Phase 14 — Directus newsroom/admin integration
+
+Status: provider boundary and schema are implemented; live activation is externally blocked and remains opt-in.
+
+- Expanded the provider-neutral newsroom contract and Directus REST adapter from read-only access to bounded create/update CRUD.
+- Preserved the custom DeepTechly content console for source quality, claim audit, confidence, publication eligibility, and recovery decisions.
+- Added additive PostgreSQL editorial metadata and review tables suitable for Directus collection registration.
+- Added a fail-closed `compatibility` / `directus` newsroom selector and an admin-only Data Studio link that never exposes the server token.
+- Documented collection ownership, least-privilege requirements, staged cutover, and why Directus does not own research truth.
+- Kept compatibility persistence as the default, so current production behavior is unchanged.

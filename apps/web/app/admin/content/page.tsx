@@ -17,6 +17,7 @@ import { PageShell } from "@/components/layout/PageShell";
 import { getAuthSession } from "@/lib/auth/session";
 import { isAdminEmail } from "@/lib/admin/invite-codes";
 import { listAllContent, type AdminContentRow } from "@/lib/admin/content";
+import { getNewsroomConfiguration } from "@/lib/admin/newsroom";
 import {
   featureContentAction,
   publishContentAction,
@@ -56,6 +57,7 @@ export default async function AdminContentPage({ searchParams }: ContentPageProp
   }
 
   const [params, rows] = await Promise.all([searchParams, listAllContent()]);
+  const newsroom = getNewsroomConfiguration();
   const filter = params.filter ?? "all";
   const filtered = applyFilter(rows, filter);
 
@@ -84,6 +86,29 @@ export default async function AdminContentPage({ searchParams }: ContentPageProp
       <section className="w-full bg-paper">
         <div className="mx-auto max-w-[1280px] px-4 py-8 sm:px-6 lg:px-8">
           <StatusMessage params={params} />
+
+          {newsroom.provider === "directus" ? (
+            <div className="mb-6 flex flex-col gap-3 border border-black bg-white p-4 shadow-hard sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-[0.18em] text-deepOrange">
+                  Newsroom capability
+                </p>
+                <p className="mt-1 text-sm font-bold leading-6 text-charcoal">
+                  {newsroom.detail}
+                </p>
+              </div>
+              {newsroom.configured && newsroom.studioUrl ? (
+                <Link
+                  href={newsroom.studioUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 border border-black bg-ink px-4 py-2 text-[10px] font-black uppercase tracking-[0.14em] text-white"
+                >
+                  Open Directus <ArrowUpRight size={12} />
+                </Link>
+              ) : null}
+            </div>
+          ) : null}
 
           <div className="mb-6 flex flex-wrap gap-2">
             {(["all", "published", "draft", "active"] as const).map((f) => (

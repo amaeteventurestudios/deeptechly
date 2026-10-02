@@ -46,7 +46,7 @@ const prohibitedStatements = [
 
 assert.deepEqual(
   databaseMigrations.map((migration) => migration.id),
-  ["0001", "0002", "0003"],
+  ["0001", "0002", "0003", "0004"],
   "Migration ledger must remain ordered"
 );
 
@@ -94,6 +94,14 @@ for (const table of [
   );
 }
 
+for (const table of ["editorial_metadata", "editorial_reviews"]) {
+  assert.match(
+    migrationSql.get("0004")!,
+    new RegExp(`create table if not exists deeptechly\\.${table}\\b`, "i"),
+    `Newsroom migration is missing ${table}`
+  );
+}
+
 console.log(
-  `Verified ${databaseMigrations.length} additive database migrations and ${requiredCoreTables.length + requiredApertureTables.length} required domain tables.`
+  `Verified ${databaseMigrations.length} additive database migrations and ${requiredCoreTables.length + requiredApertureTables.length + 2} required domain tables.`
 );

@@ -28,9 +28,15 @@ const mockFetch = (async (input: string | URL | Request, init?: RequestInit) => 
     });
   }
   if (url.includes("/items/entities/entity_1")) {
+    if (init?.method === "PATCH") {
+      return Response.json({ data: { id: "entity_1", name: "Acme Updated" } });
+    }
     return Response.json({ data: { id: "entity_1", name: "Acme" } });
   }
   if (url.includes("/items/entities")) {
+    if (init?.method === "POST") {
+      return Response.json({ data: { id: "entity_2", name: "New Entity" } });
+    }
     return Response.json({ data: [{ id: "entity_1", name: "Acme" }] });
   }
   if (url.endsWith("/crawl")) {
@@ -74,6 +80,16 @@ const directus = new DirectusAdapter(
 );
 assert.equal((await directus.list<{ id: string }>("entities")).length, 1);
 assert.equal((await directus.read<{ id: string }>("entities", "entity_1"))?.id, "entity_1");
+assert.equal(
+  (await directus.create<{ id: string; name: string }>("entities", { name: "New Entity" })).id,
+  "entity_2"
+);
+assert.equal(
+  (await directus.update<{ id: string; name: string }>("entities", "entity_1", {
+    name: "Acme Updated"
+  })).name,
+  "Acme Updated"
+);
 
 const crawl4ai = new Crawl4AIAdapter(
   {

@@ -27,6 +27,12 @@ export const databaseMigrations = [
     description: "Create legacy import and reconciliation ledger",
     file: "migrations/0003_legacy_import_ledger.sql",
     destructive: false
+  },
+  {
+    id: "0004",
+    description: "Add Directus-ready newsroom metadata and editorial review records",
+    file: "migrations/0004_newsroom_metadata.sql",
+    destructive: false
   }
 ] as const satisfies readonly DatabaseMigration[];
 

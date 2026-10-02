@@ -116,6 +116,15 @@ export interface NewsroomRepository extends HealthCheck {
     query?: Readonly<Record<string, string>>
   ): Promise<Item[]>;
   read<Item extends Record<string, unknown>>(collection: string, id: string): Promise<Item | null>;
+  create<Item extends Record<string, unknown>>(
+    collection: string,
+    item: Partial<Item>
+  ): Promise<Item>;
+  update<Item extends Record<string, unknown>>(
+    collection: string,
+    id: string,
+    patch: Partial<Item>
+  ): Promise<Item>;
 }
 
 export type TraceEvent = {

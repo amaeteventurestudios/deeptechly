@@ -9,6 +9,7 @@ The ordered migrations are:
 1. `packages/database/migrations/0001_v2_core.sql` — stable accounts, research execution, evidence, entities, publishing, taxonomy, and transactional outbox.
 2. `packages/database/migrations/0002_v2_aperture.sql` — agencies, government documents, signals, problems, repeated-demand clusters, requirements, evidence packs, matches, and opportunity maps.
 3. `packages/database/migrations/0003_legacy_import_ledger.sql` — immutable legacy payloads, identity maps, findings, and reconciliation reports.
+4. `packages/database/migrations/0004_newsroom_metadata.sql` — provider-neutral editorial metadata and review records for the Directus newsroom surface.
 
 All tables use the `deeptechly` schema, preserve legacy-compatible text identifiers, and are created additively. SQL is never applied merely by starting or importing the application.
 
