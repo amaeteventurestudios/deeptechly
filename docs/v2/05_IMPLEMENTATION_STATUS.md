@@ -252,3 +252,15 @@ Status: complete as an evidence-safe public product surface; Phase 17 will conne
 - Enforced public publication/source thresholds and 404 behavior for missing or unpublished HTML and Markdown artifacts.
 - Deliberately published no fake government findings; archive empty states explain the evidence threshold until Phase 17 supplies reviewed records.
 - Connected eligible Aperture records to the unified Explore document builder and added deterministic/unit plus responsive browser coverage.
+
+## Phase 17 — Aperture intelligence and workflows
+
+Status: proprietary analysis kernel, durable task, and first evidence-backed public artifact family implemented; live automated ingestion/persistence remains externally blocked.
+
+- Added deterministic agency-ask, problem, requirement, repeated-demand, evidence-pack, capability-match, confidence, and publication-eligibility modules to `@deeptechly/aperture`.
+- Preserved provenance on extracted statements and required supporting evidence before any company/patent/lab/technology match can be emitted.
+- Added a bounded Trigger.dev Aperture task with concurrency, retry, duration, document-size, source-count, target-count, and HTTPS controls.
+- Kept workflow output in candidate state; publication still requires review and does not happen automatically.
+- Published one curated DoD Replicator intelligence family from five official DoD/DIU/DIB sources, with explicit limits on vendor and procurement inference.
+- Added a public evidence pack, agency page, problem statement, opportunity map, signal brief, Markdown, and unified Explore indexing.
+- Added deterministic intelligence verification and expanded browser coverage to the evidence-backed artifacts.

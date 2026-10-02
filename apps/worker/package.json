@@ -8,6 +8,7 @@
     "trigger:dev": "pnpm dlx trigger.dev@4.7.0 dev --config trigger.config.ts"
   },
   "dependencies": {
+    "@deeptechly/aperture": "workspace:*",
     "@deeptechly/kernel": "workspace:*",
     "@trigger.dev/sdk": "4.7.0"
   },

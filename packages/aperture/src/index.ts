@@ -90,6 +90,21 @@ export type ApertureOpportunity = {
 
 export type AperturePublication = ApertureSignal | ApertureProblem | ApertureOpportunity;
 
+export type ApertureEvidencePack = {
+  slug: string;
+  title: string;
+  summary: string;
+  subjectType: AperturePublication["kind"];
+  subjectSlug: string;
+  confidenceLabel: ApertureConfidenceLabel;
+  sources: ApertureSource[];
+  methodologyVersion: string;
+  published: boolean;
+};
+
 export function publicApertureItems<T extends AperturePublication>(items: readonly T[]) {
   return items.filter((item) => item.published && item.sources.length > 0);
 }
+
+export * from "./intelligence";
+export * from "./workflow";

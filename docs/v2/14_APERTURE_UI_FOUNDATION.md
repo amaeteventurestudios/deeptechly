@@ -39,7 +39,7 @@ The signal brief supports the agency ask, underlying problem, evidence base, fra
 
 The public selector requires both `published: true` and at least one source. Dynamic routes and Markdown return 404 for unpublished or missing records. Markdown is assembled only from the public contract and omits the optional institutional-read field.
 
-Phase 16 intentionally ships an empty repository adapter because no evidence-backed Aperture findings exist in the current production store. This is preferable to presenting synthetic solicitations, agencies, or demand patterns as intelligence. Phase 17 connects acquisition, extraction, detection, matching, persistence, and review workflows to this surface.
+Phase 16 intentionally shipped an empty repository adapter because no evidence-backed Aperture findings existed in the current production store. This was preferable to presenting synthetic solicitations, agencies, or demand patterns as intelligence. Phase 17 subsequently added the reviewed official-source launch family and the analysis workflow described in `15_APERTURE_INTELLIGENCE_WORKFLOW.md`.
 
 ## Methodology
 

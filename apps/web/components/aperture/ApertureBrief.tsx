@@ -99,7 +99,7 @@ function BriefFrame({
   const visibleSections = sections.filter(([, items]) => items.length > 0);
   return (
     <article className="bg-paper">
-      <header className="border-b border-black bg-deepOrange deeptech-texture">
+      <section className="border-b border-black bg-deepOrange deeptech-texture">
         <div className="mx-auto max-w-[1180px] px-4 py-12 sm:px-6 lg:px-8">
           <p className="text-[11px] font-black uppercase tracking-[0.22em]">{eyebrow}</p>
           <h1 className="mt-4 max-w-4xl font-serif text-5xl font-black leading-[0.96] tracking-[-0.035em] sm:text-6xl">
@@ -114,7 +114,7 @@ function BriefFrame({
             </Link>
           </div>
         </div>
-      </header>
+      </section>
 
       <div className="mx-auto grid max-w-[1180px] gap-8 px-4 py-10 sm:px-6 lg:grid-cols-[minmax(0,1fr)_280px] lg:px-8">
         <div className="space-y-10">

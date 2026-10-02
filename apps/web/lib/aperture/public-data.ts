@@ -7,13 +7,19 @@ import type {
   ApertureSignal
 } from "@deeptechly/aperture";
 import { publicApertureItems } from "@deeptechly/aperture";
+import {
+  curatedApertureAgencies,
+  curatedApertureEvidencePacks,
+  curatedApertureOpportunities,
+  curatedApertureProblems,
+  curatedApertureSignals
+} from "./curated-publications";
 
-// Phase 16 intentionally ships no synthetic government findings. Phase 17 will
-// connect the evidence-backed repository/workflow to these public selectors.
-const signals: ApertureSignal[] = [];
-const problems: ApertureProblem[] = [];
-const opportunities: ApertureOpportunity[] = [];
-const agencies: ApertureAgency[] = [];
+const signals: ApertureSignal[] = curatedApertureSignals;
+const problems: ApertureProblem[] = curatedApertureProblems;
+const opportunities: ApertureOpportunity[] = curatedApertureOpportunities;
+const agencies: ApertureAgency[] = curatedApertureAgencies;
+const evidencePacks = curatedApertureEvidencePacks;
 
 export async function listPublicSignals() {
   return publicApertureItems(signals);
@@ -33,6 +39,10 @@ export async function listPublicAgencies() {
       .filter((item) => item.published && item.sources.length > 0)
       .some((item) => item.agency?.slug === agency.slug)
   );
+}
+
+export async function listPublicEvidencePacks() {
+  return evidencePacks.filter((pack) => pack.published && pack.sources.length > 0);
 }
 
 export async function getPublicSignal(slug: string) {

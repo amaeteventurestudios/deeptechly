@@ -27,3 +27,7 @@ The newsroom CRUD port, Directus adapter, editorial schema, runtime selector, an
 ## Meilisearch activation
 
 The public document policy, server query adapter, index settings, worker synchronization utility, local fallback, and public-ID reconciliation are implemented. Live activation requires an approved Meilisearch endpoint and scoped keys, initial indexing from reconciled PostgreSQL, durable outbox consumption, and index reconciliation/rollback. `DEEPTECHLY_SEARCH_PROVIDER=local` remains complete and production-safe.
+
+## Automated Aperture ingestion and persistence
+
+The Aperture intelligence kernel, evidence policy, PostgreSQL schema, Trigger.dev task, public UI, search integration, and a curated official-source artifact family are implemented. Continuous ingestion requires approved Crawl4AI/Trigger.dev endpoints, a reconciled V2 PostgreSQL database, reviewed government-source schedules, and newsroom review roles. Automated workflow output remains candidate-only until those controls exist.

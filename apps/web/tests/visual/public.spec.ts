@@ -129,7 +129,7 @@ test.describe("public visual QA", () => {
     expect(body.documents.every((document) => document.kind === "entity" && document.published)).toBe(true);
   });
 
-  test("Aperture product routes share navigation and evidence-safe empty states", async ({ page }) => {
+  test("Aperture product routes share navigation and evidence-safe publication", async ({ page }) => {
     for (const viewport of [viewports.mobile320, viewports.tablet, viewports.desktop]) {
       for (const path of [
         "/aperture",
@@ -144,6 +144,21 @@ test.describe("public visual QA", () => {
         await expect(page.getByRole("navigation", { name: "Aperture navigation" })).toBeVisible();
       }
     }
+
+    for (const path of [
+      "/aperture/signals/scalable-attritable-autonomy",
+      "/aperture/problems/autonomy-at-operational-scale",
+      "/aperture/opportunities/attritable-autonomy-enablers",
+      "/aperture/agencies/department-of-defense"
+    ]) {
+      await openPublicPage(page, path, viewports.desktop);
+    }
+    const signalMarkdown = await page.request.get("/aperture/signals/scalable-attritable-autonomy.md");
+    expect(signalMarkdown.ok()).toBeTruthy();
+    const signalMarkdownBody = await signalMarkdown.text();
+    expect(signalMarkdownBody).toContain("## Sources");
+    expect(signalMarkdownBody).toContain("defense.gov");
+    expect(signalMarkdownBody).not.toContain("Private institutional analysis");
 
     for (const path of [
       "/aperture/signals/not-published",
