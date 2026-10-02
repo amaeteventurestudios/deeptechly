@@ -240,3 +240,15 @@ Status: complete with deterministic local search; Meilisearch acceleration is im
 - Added a server-side Meilisearch query path that reconciles every hit against current public artifacts and degrades to local search when unavailable.
 - Extended the search-index port and Meilisearch adapter with settings configuration, plus a worker synchronization utility that rejects non-public documents.
 - Added unit/integration and responsive browser coverage while leaving local search as the production-safe default.
+
+## Phase 16 — Aperture UI foundation
+
+Status: complete as an evidence-safe public product surface; Phase 17 will connect intelligence workflows and persistence.
+
+- Added the complete Aperture landing, signals, problems, opportunities, agencies, evidence, methodology, detail, and Markdown route family.
+- Added a dedicated Aperture sub-navigation and an institutional editorial visual system consistent with DeepTechly.
+- Added provider-neutral agency, signal, problem, opportunity, source, confidence, and publication contracts in `@deeptechly/aperture`.
+- Built evidence-first detail templates with source bibliography, confidence, requirement maps, repeated demand, matches, and omission of unknown optional sections.
+- Enforced public publication/source thresholds and 404 behavior for missing or unpublished HTML and Markdown artifacts.
+- Deliberately published no fake government findings; archive empty states explain the evidence threshold until Phase 17 supplies reviewed records.
+- Connected eligible Aperture records to the unified Explore document builder and added deterministic/unit plus responsive browser coverage.

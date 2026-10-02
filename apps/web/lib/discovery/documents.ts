@@ -6,9 +6,19 @@ import {
   getPublishedEntities
 } from "@/lib/research/public-data";
 import type { DiscoveryDocument } from "./types";
+import {
+  listPublicOpportunities,
+  listPublicProblems,
+  listPublicSignals
+} from "@/lib/aperture/public-data";
 
 export async function buildPublishedDiscoveryDocuments(): Promise<DiscoveryDocument[]> {
-  const entities = await getPublishedEntities();
+  const [entities, signals, problems, opportunities] = await Promise.all([
+    getPublishedEntities(),
+    listPublicSignals(),
+    listPublicProblems(),
+    listPublicOpportunities()
+  ]);
   const availability = await getPublishedArtifactAvailabilityForSlugs(
     entities.map((entity) => entity.slug)
   );
@@ -70,6 +80,23 @@ export async function buildPublishedDiscoveryDocuments(): Promise<DiscoveryDocum
         published: true
       });
     }
+  }
+
+  for (const item of [...signals, ...problems, ...opportunities]) {
+    const path = item.kind === "opportunity" ? "opportunities" : `${item.kind}s`;
+    documents.push({
+      id: `${item.kind}:${item.slug}`,
+      kind: item.kind,
+      title: item.title,
+      slug: item.slug,
+      summary: item.summary,
+      href: `/aperture/${path}/${item.slug}`,
+      entityName: item.kind === "signal" ? item.agency.name : item.kind === "problem" ? item.agency?.name : undefined,
+      confidenceLabel: item.confidenceLabel,
+      sourceCount: item.sourceCount,
+      publishedAt: null,
+      published: true
+    });
   }
 
   return documents;

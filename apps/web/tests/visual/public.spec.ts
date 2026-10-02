@@ -129,6 +129,35 @@ test.describe("public visual QA", () => {
     expect(body.documents.every((document) => document.kind === "entity" && document.published)).toBe(true);
   });
 
+  test("Aperture product routes share navigation and evidence-safe empty states", async ({ page }) => {
+    for (const viewport of [viewports.mobile320, viewports.tablet, viewports.desktop]) {
+      for (const path of [
+        "/aperture",
+        "/aperture/signals",
+        "/aperture/problems",
+        "/aperture/opportunities",
+        "/aperture/agencies",
+        "/aperture/evidence",
+        "/aperture/methodology"
+      ]) {
+        await openPublicPage(page, path, viewport);
+        await expect(page.getByRole("navigation", { name: "Aperture navigation" })).toBeVisible();
+      }
+    }
+
+    for (const path of [
+      "/aperture/signals/not-published",
+      "/aperture/problems/not-published",
+      "/aperture/opportunities/not-published",
+      "/aperture/agencies/not-published",
+      "/aperture/signals/not-published.md"
+    ]) {
+      const response = await page.goto(path, { waitUntil: "domcontentloaded" });
+      expect(response?.status()).toBe(404);
+      await expect(page.locator("body")).not.toContainText(internalDiagnosticPattern);
+    }
+  });
+
   test("published article, profile, and dossier meet the rendered matrix", async ({ page }, testInfo) => {
     const artifacts = await discoverArtifactPaths(page);
     for (const [name, path] of Object.entries(artifacts)) {

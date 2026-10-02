@@ -10,6 +10,7 @@
     "test:visual:headed": "playwright test --headed"
   },
   "dependencies": {
+    "@deeptechly/aperture": "workspace:*",
     "@deeptechly/kernel": "workspace:*",
     "@deeptechly/research": "workspace:*",
     "@deeptechly/ui": "workspace:*",
