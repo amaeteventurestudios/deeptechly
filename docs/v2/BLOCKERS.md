@@ -10,7 +10,7 @@ An Appwrite endpoint, project ID, allowed-origin configuration, email templates,
 
 ## PostgreSQL migration activation
 
-Repository migrations and reconciliation controls are ready, but production import/cutover requires an isolated target PostgreSQL database, encrypted exports from the deployed Supabase/Redis configuration, backup retention, and an authorized operator. No production database was accessed or changed during Phase 9.
+The recovered August 19, 2026 legacy dump was imported twice into clean isolated PostgreSQL 17.11 clusters with equivalent results, zero reconciliation mismatches, and migrated-data application rendering. Production import/cutover still requires a final write-frozen export, an approved managed target with backup/restore operations, a transactional V2 write adapter and dual-write soak, encrypted custody, and an authorized operator. The current adapter is deliberately read-only. No production database was accessed or changed during Phases 9 or 22.
 
 ## Commodity capability activation
 

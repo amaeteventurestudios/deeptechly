@@ -35,6 +35,10 @@ import {
   MAX_RESEARCH_JOB_ATTEMPTS
 } from "./orchestration";
 import { buildTargetEntityAnchor } from "./entity-anchor";
+import {
+  isV2PostgresStoreSelected,
+  readV2PostgresStore
+} from "./postgres-store";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.replace(/\/$/, "") ?? null;
 const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY ?? null;
@@ -600,6 +604,12 @@ export function stageMessage(stage: ResearchStage, domain?: string | null) {
 }
 
 export async function readStore(): Promise<ResearchStoreData> {
+  if (isV2PostgresStoreSelected()) {
+    const data = await readV2PostgresStore();
+    globalThis.__deeptechlyResearchStore = data;
+    return data;
+  }
+
   if (hasSupabaseStore()) {
     try {
       const data = await readSupabaseStore();
@@ -625,6 +635,12 @@ export async function readStore(): Promise<ResearchStoreData> {
 
 export async function writeStore(data: ResearchStoreData) {
   const normalizedData = normalizeStoreData(data);
+
+  if (isV2PostgresStoreSelected()) {
+    throw new Error(
+      "The V2 PostgreSQL migration-rehearsal store is read-only; writes remain on the compatibility provider until cutover approval"
+    );
+  }
 
   if (hasSupabaseStore()) {
     try {

@@ -1,5 +1,5 @@
 import type { ResearchEntity, Source } from "@/lib/types";
-import { isPublishableSourceUrl } from "./source-quality";
+import { isPublishableSourceUrl } from "@deeptechly/research";
 
 const emptyCopy = "Not confirmed in public sources.";
 const limitedCopy = "Limited public data found.";

@@ -12,3 +12,9 @@ data/research-store.json
 playwright-report/
 test-results/
 artifacts/visual-qa/
+
+# Local Supabase database exports
+migration/supabase-export/
+
+# Legacy Supabase backups
+migration/legacy-supabase/

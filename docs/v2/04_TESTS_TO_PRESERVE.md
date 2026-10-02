@@ -14,6 +14,15 @@
 | `npm run verify:research-load` | PASS | 204-job simulation, duplicate input handling, source dedupe, review projections. |
 | `BASE_URL=http://localhost:3017 npm run test:visual` | PASS (9/9) | Signed-out public UX, publication, machine routes, error handling, gating, responsive/accessibility smoke. |
 
+## Phase 22 migration coverage
+
+- `pnpm verify:legacy-migration-tooling` uses synthetic-only data to preserve COPY decoding, required table detection, JSON validation, relationship/orphan checks, source normalization/deduplication, and secret redaction.
+- `pnpm migration:rehearse` requires the ignored real backup and PostgreSQL 17 binaries. It initializes, imports, validates, destroys, and repeats two isolated clusters, then compares aggregate inventory, reconciliation, application-model, and HTTP reports.
+- `scripts/migration/verify-rehearsal.sql` preserves row-count, identity-map, constraint, polymorphic-link, publication, timestamp, and route-backing invariants.
+- `scripts/validate-migrated-application.ts` protects compatibility model and Markdown rendering from real migrated snapshots without logging record values.
+- `scripts/validate-migrated-http.ts` protects homepage, artifact, archive, queue shell, Markdown, and search delivery against the migrated database.
+- Final Phase 22 regression: lint, typecheck, deterministic tests, build, production audit, two real-data rehearsals, and production Playwright 20/20 all passed.
+
 The load verifier skipped its live Supabase smoke because `DEEPTECHLY_ALLOW_LIVE_LOAD_TEST` was not `true`; this is correct for a non-destructive audit. The first default Playwright attempt attached to an unrelated application already listening on port 3000. It was rerun successfully against a dedicated DeepTechly server and should not be recorded as a DeepTechly failure.
 
 `package.json` has no explicit `typecheck` or general `test` script. V2 should add stable root commands for both and run all characterization suites in CI.

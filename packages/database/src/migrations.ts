@@ -39,6 +39,12 @@ export const databaseMigrations = [
     description: "Add billing, usage, credit, and entitlement ledgers",
     file: "migrations/0005_billing_entitlements.sql",
     destructive: false
+  },
+  {
+    id: "0006",
+    description: "Preserve research output and artifact source relationships",
+    file: "migrations/0006_legacy_relationships.sql",
+    destructive: false
   }
 ] as const satisfies readonly DatabaseMigration[];
 

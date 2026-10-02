@@ -2,6 +2,18 @@
 
 This file records stable implementation milestones after the architecture audit. It is updated as phases land; `FINAL_BUILD_REPORT.md` will supersede it at completion.
 
+## Phase 22 — Isolated PostgreSQL migration rehearsal
+
+Status: complete against the recovered August 19, 2026 legacy Supabase cluster dump; no production cutover performed.
+
+- Inventoried all eight DeepTechly application tables plus the minimum auth identity linkage from the real plain-text cluster dump.
+- Added privacy-preserving dump parsing, redacted staging, transformation, identity mapping, reconciliation, reset, and two-run rehearsal tooling.
+- Added migration `0006` to normalize research-job outputs and artifact-source relationships exposed by the real schema.
+- Imported and reconciled 126 application rows plus 24 auth-planning rows into two fresh PostgreSQL 17.11 clusters with zero mismatches or orphans.
+- Added an opt-in read-only V2 PostgreSQL store and validated real migrated data through 14 Markdown renders and 11 HTTP surfaces on both runs.
+- Preserved Supabase/local as the default and documented the missing transactional write adapter as a production cutover blocker.
+- Documented the complete map, rehearsal evidence, Appwrite identity choices, production prerequisites, sequencing, and rollback in `22_POSTGRESQL_MIGRATION_MAP.md` through `24_PRODUCTION_CUTOVER_RUNBOOK.md`.
+
 ## Phase 0 — Architecture audit
 
 Status: complete in commit `f7411eb`.

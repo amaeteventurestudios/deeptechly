@@ -159,6 +159,9 @@ The verified production build uses Node.js 20.17 or newer, pnpm 10.34.5, Next.js
 | `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN` | Existing research-store fallback. |
 | `KV_REST_API_URL`, `KV_REST_API_TOKEN` | Compatibility aliases for that fallback. |
 | `DEEPTECHLY_RESEARCH_STORE_KEY` | Existing aggregate store key; inventory before migration. |
+| `DEEPTECHLY_RESEARCH_STORE_PROVIDER` | Compatibility default; `v2-postgres` enables the explicit read-only Phase 22 rehearsal adapter. |
+| `DEEPTECHLY_V2_DATABASE_URL` | Optional server-only PostgreSQL connection supplied at deployment, never committed. |
+| `DEEPTECHLY_V2_DATABASE_HOST`, `DEEPTECHLY_V2_DATABASE_PORT`, `DEEPTECHLY_V2_DATABASE_NAME`, `DEEPTECHLY_V2_DATABASE_USER`, `DEEPTECHLY_V2_DATABASE_PASSWORD` | Component form of the V2 connection for secret-managed deployments and isolated rehearsal. |
 | `RESEARCH_STAGE_DELAY_MS` | Compatibility pipeline pacing. |
 | `OPENAI_API_KEY`, `OPENAI_MODEL`, `OPENAI_ENABLE_WEB_SEARCH` | Model and optional OpenAI web-search path. Missing key enables the documented demo path. |
 | `SEARCH_PROVIDER`, `TAVILY_API_KEY` | Existing research acquisition search selection. |
@@ -235,6 +238,7 @@ Available profiles are `core`, `coordination`, `discovery`, and `newsroom`. Repl
 - External providers were verified with deterministic adapters, not live production calls.
 - Appwrite lacks an approved endpoint, credentials, allowed origins, email templates, and final server-session cookie design.
 - PostgreSQL schemas exist, but the application remains on compatibility persistence until an authorized import and reconciliation.
+- The real legacy dataset now passes two isolated PostgreSQL rehearsals and migrated-data rendering; production remains blocked on the transactional write adapter, final freeze export, and operator-approved cutover.
 - OpenAI credentials were absent during final verification, so generation tests used deterministic/demo behavior rather than a live model call.
 - Automated Aperture ingestion remains candidate-only until acquisition, workflow, database, schedule, and editorial-review services are activated.
 - Demonstration fixtures remain visible in credential-free development; they are not the production publication corpus.
