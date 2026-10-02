@@ -7,9 +7,9 @@ const footerColumns = [
     links: [
       ["News", "/news"],
       ["Explore", "/explore"],
+      ["Aperture", "/aperture"],
       ["Research", "/research"],
-      ["Methodology", "/methodology"],
-      ["Pricing", "/pricing"]
+      ["Methodology", "/methodology"]
     ]
   },
   {
@@ -43,9 +43,16 @@ const aiReadableLinks = [
 export function SiteFooter() {
   return (
     <footer className="w-full border-t border-black bg-ink text-white">
-        <div className="mx-auto grid max-w-[1840px] gap-8 px-4 py-8 text-center sm:px-5 md:grid-cols-2 md:text-left lg:grid-cols-[1.3fr_0.8fr_0.8fr_0.8fr_1.1fr] lg:px-6 xl:px-8 2xl:px-10">
+        <div className="border-b border-white/15 bg-deepOrange text-ink">
+          <div className="mx-auto max-w-[1840px] px-4 py-10 sm:px-5 lg:px-6 lg:py-14 xl:px-8 2xl:px-10">
+            <p className="max-w-5xl font-serif text-4xl font-black leading-[0.98] tracking-[-0.04em] sm:text-5xl lg:text-7xl">
+              Researched by agents.<br />Grounded in evidence.<br />Built for judgment.
+            </p>
+          </div>
+        </div>
+        <div className="mx-auto grid max-w-[1840px] gap-8 px-4 py-10 text-left sm:px-5 md:grid-cols-2 lg:grid-cols-[1.3fr_0.8fr_0.8fr_0.8fr_1.1fr] lg:px-6 xl:px-8 2xl:px-10">
           <div className="mx-auto flex max-w-sm flex-col items-center md:mx-0 md:items-start">
-            <Link href="/" className="mb-4 flex items-center justify-center gap-2 md:justify-start">
+            <Link href="/" className="mb-4 flex min-h-11 items-center gap-2">
               <span className="flex h-6 w-6 items-center justify-center border border-deepOrange bg-deepOrange text-ink">
                 <Cpu size={15} strokeWidth={2.6} aria-hidden="true" />
               </span>
@@ -83,12 +90,12 @@ export function SiteFooter() {
               Every public research page is also available as raw markdown by
               appending .md to the URL.
             </p>
-            <div className="mt-4 flex flex-wrap justify-center gap-2 md:justify-start">
+            <div className="mt-4 flex flex-wrap gap-2">
               {aiReadableLinks.map(([label, href]) => (
                 <Link
                   key={label}
                   href={href}
-                  className="inline-flex min-h-9 items-center justify-center border border-white/30 px-3 py-2 text-center text-[10px] font-black uppercase tracking-[0.14em] text-white hover:border-deepOrange hover:text-deepOrange"
+                  className="inline-flex min-h-11 items-center justify-center border border-white/30 px-3 py-2 text-center text-[10px] font-black uppercase tracking-[0.14em] text-white hover:border-deepOrange hover:text-deepOrange"
                 >
                   {label}
                 </Link>

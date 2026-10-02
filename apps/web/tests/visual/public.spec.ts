@@ -97,7 +97,7 @@ async function discoverArtifactPaths(page: Page) {
 test.describe("public visual QA", () => {
   test("shared public surfaces fit every required viewport", async ({ page }) => {
     for (const viewport of Object.values(viewports)) {
-      for (const path of ["/", "/research", "/pricing", "/methodology"]) {
+      for (const path of ["/", "/aperture", "/research", "/pricing", "/methodology"]) {
         await openPublicPage(page, path, viewport);
       }
     }
@@ -179,8 +179,20 @@ test.describe("public visual QA", () => {
     await openPublicPage(page, "/", viewports.mobile390);
     await page.keyboard.press("Tab");
     await expect(page.locator(":focus")).toHaveCount(1);
+    await expect(page.locator(":focus")).toHaveAttribute("href", "#main-content");
+    await page.keyboard.press("Tab");
     await expect(page.locator(":focus")).toHaveAttribute("href", "/");
     await page.keyboard.press("Tab");
     await expect(page.locator(":focus")).toBeVisible();
+  });
+
+  test("mobile navigation exposes every primary destination", async ({ page }) => {
+    await openPublicPage(page, "/", viewports.mobile320);
+    await page.getByLabel("Open navigation menu").click();
+    const navigation = page.getByRole("navigation", { name: "Mobile navigation" });
+    await expect(navigation).toBeVisible();
+    for (const label of ["News", "Explore", "Aperture", "Research", "Sign in", "Join"]) {
+      await expect(navigation.getByRole("link", { name: label, exact: true })).toBeVisible();
+    }
   });
 });

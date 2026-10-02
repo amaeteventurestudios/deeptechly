@@ -44,3 +44,22 @@ Validation:
 - `pnpm test`
 - `pnpm build`
 - `BASE_URL=http://127.0.0.1:3017 pnpm test:visual` — 9/9 passed across the existing required viewport matrix.
+
+## Phase 3 — Global shell, navigation, and footer
+
+Status: implemented and validated; commit recorded in Git history after this document lands.
+
+- Rebuilt the primary shell around the target `NEWS / EXPLORE / APERTURE / RESEARCH / SIGN IN / JOIN` information architecture.
+- Added a no-JavaScript mobile disclosure menu, consistent authenticated account controls, semantic navigation labels, and a keyboard-visible skip link.
+- Reduced the sector row to major sectors with a deliberate `MORE +` route instead of overcrowding the header.
+- Added the DeepTechly brand statement and improved AI-readable discovery links in the footer.
+- Added a stable Aperture entry route so the primary navigation does not point to an unfinished 404; deeper Aperture surfaces remain scheduled for Phases 16–17.
+- Added Playwright coverage for the Aperture shell route, skip navigation, mobile menu, and all primary destinations.
+
+Validation:
+
+- `pnpm lint`
+- `pnpm typecheck`
+- `pnpm test`
+- `pnpm build`
+- Responsive Playwright matrix at 320, 375, 390, 430, 768, 1024, 1440, 1728, and 1920 pixels.
