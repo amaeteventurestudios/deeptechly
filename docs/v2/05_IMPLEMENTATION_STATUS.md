@@ -207,3 +207,14 @@ Status: Trigger.dev task and dispatch cutover implemented behind an explicit pro
 - Added an authenticated internal execution callback that revalidates persisted job/query/fingerprint state and converts transient pipeline failures into bounded durable retries.
 - Connected user cancellation to persisted cancellation and external Trigger run cancellation.
 - Added direct durable-workflow verification and documented activation, security, and incremental-migration limitations.
+
+## Phase 13 — Research queue
+
+Status: implemented as a user-facing single stack with existing persistence and workflow behavior preserved.
+
+- Replaced separate status panels and the full internal-looking workflow checklist with one ordered queue and a compact completed/current/next summary.
+- Kept active work first, waiting work in submission order, completed work below it, and unsuccessful requests last.
+- Added clear elapsed and completion timing, source/confidence context, readiness icons, progress, and direct article/profile/dossier actions.
+- Removed capacity diagnostics and developer-oriented copy from the public experience while retaining cancellation, bounded retry, saved research, polling, and notifications.
+- Clarified that research continues after navigation and persisted queue state refreshes when the user returns.
+- Added a deterministic queue UI verification to the standard test suite.

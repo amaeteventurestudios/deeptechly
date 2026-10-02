@@ -6,9 +6,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertTriangle,
   Bell,
-  Check,
   CheckCircle2,
-  Circle,
   Clock3,
   ExternalLink,
   LoaderCircle,
@@ -28,15 +26,6 @@ import type { ResearchJob, ResearchStage } from "@/lib/research/types";
 
 type JobsResponse = {
   jobs: ResearchJob[];
-  queueStats?: {
-    activeCount: number;
-    queuedCount?: number;
-    completedCount?: number;
-    failedCount?: number;
-    maxActive?: number;
-    globalActiveCount?: number;
-    globalQueuedCount?: number;
-  };
 };
 
 export function ResearchQueueClient({
@@ -47,7 +36,6 @@ export function ResearchQueueClient({
   focused?: boolean;
 }) {
   const [jobs, setJobs] = useState<ResearchJob[]>([]);
-  const [queueStats, setQueueStats] = useState<JobsResponse["queueStats"]>();
   const [isLoading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [hasInteracted, setHasInteracted] = useState(false);
@@ -94,7 +82,6 @@ export function ResearchQueueClient({
         throw new Error("Research queue could not be loaded.");
       }
 
-      setQueueStats(body.queueStats);
       setServerJobs(body.jobs ?? []);
     } catch (loadError) {
       setError(
@@ -246,7 +233,7 @@ export function ResearchQueueClient({
           setSoundAlerts={setSoundAlerts}
         />
 
-        <BusyQueueMessage queuedCount={queuedCount} queueStats={queueStats} />
+        <BusyQueueMessage queuedCount={queuedCount} />
 
         {error ? <QueueError message={error} /> : null}
 
@@ -373,33 +360,21 @@ function HeadsUpBar() {
         HEADS UP
       </p>
       <p className="mt-1 text-sm font-bold leading-6">
-        Research can take several minutes per entity. Keep this tab open and we
-        will update the queue as each profile is prepared.
+        Research can take several minutes per entity. You can safely leave this
+        page; the queue will keep working and refresh when you return.
       </p>
     </div>
   );
 }
 
-function BusyQueueMessage({
-  queuedCount,
-  queueStats
-}: {
-  queuedCount: number;
-  queueStats?: JobsResponse["queueStats"];
-}) {
-  const scopedQueuedCount = queueStats?.queuedCount ?? queuedCount;
-  const activeCount = queueStats?.globalActiveCount ?? queueStats?.activeCount ?? 0;
-  const maxActive = queueStats?.maxActive ?? 3;
-
-  if (scopedQueuedCount <= 0 && activeCount < maxActive) {
-    return null;
-  }
+function BusyQueueMessage({ queuedCount }: { queuedCount: number }) {
+  if (queuedCount <= 0) return null;
 
   return (
     <div className="mb-4 border border-black bg-offWhite p-3 text-center text-xs font-black uppercase leading-5 tracking-[0.14em] shadow-[3px_3px_0_#0f0f0f] sm:text-left">
-      {scopedQueuedCount > 0
-        ? `QUEUE CAPACITY: ${activeCount}/${maxActive} active slots used · ${scopedQueuedCount} queued.`
-        : "BUSY QUEUE: research is taking longer than usual."}
+      {queuedCount === 1
+        ? "One request is waiting. It will begin automatically."
+        : `${queuedCount} requests are waiting. They will begin automatically in order.`}
     </div>
   );
 }
@@ -411,7 +386,7 @@ function QueueError({ message }: { message: string }) {
         <AlertTriangle className="mt-0.5 shrink-0 text-darkOrange" size={18} />
         <div>
           <p className="text-[10px] font-black uppercase tracking-[0.18em] text-darkOrange">
-            Queue Error
+            Research Unavailable
           </p>
           <p className="mt-1 text-sm font-bold leading-6">{cleanError(message)}</p>
         </div>
@@ -458,79 +433,24 @@ function ResearchQueueList({
   onCancel: (jobId: string) => void;
   onRetry: (jobId: string) => void;
 }) {
-  const activeJobs = jobs.filter((job) => isActiveQueueStage(job.stage));
-  const queuedJobs = jobs.filter((job) => job.stage === "queued");
-  const completedJobs = jobs.filter((job) => job.stage === "done");
-  const failedJobs = jobs.filter((job) => job.stage === "failed" || job.stage === "cancelled");
-
-  return (
-    <div className="space-y-5">
-      <QueueSection
-        jobs={activeJobs}
-        now={now}
-        onCancel={onCancel}
-        onRetry={onRetry}
-        title="In Progress"
-      />
-      <QueueSection
-        jobs={queuedJobs}
-        now={now}
-        onCancel={onCancel}
-        onRetry={onRetry}
-        queued
-        title="Queued"
-      />
-      <QueueSection
-        jobs={completedJobs}
-        now={now}
-        onCancel={onCancel}
-        onRetry={onRetry}
-        title="Completed"
-      />
-      <QueueSection
-        jobs={failedJobs}
-        now={now}
-        onCancel={onCancel}
-        onRetry={onRetry}
-        title="Failed"
-      />
-    </div>
-  );
-}
-
-function QueueSection({
-  jobs,
-  now,
-  onCancel,
-  onRetry,
-  queued = false,
-  title
-}: {
-  jobs: ResearchJob[];
-  now: number;
-  onCancel: (jobId: string) => void;
-  onRetry: (jobId: string) => void;
-  queued?: boolean;
-  title: string;
-}) {
-  if (jobs.length === 0) return null;
+  let queuedPosition = 0;
 
   return (
     <section className="border border-black bg-white shadow-hard">
       <div className="border-b border-black bg-offWhite px-4 py-3">
         <h3 className="text-[10px] font-black uppercase tracking-[0.18em] text-ink">
-          {title} · {jobs.length}
+          Research queue · {jobs.length}
         </h3>
       </div>
       {jobs.map((job, index) => (
-          <QueueCard
+        <QueueCard
           key={job.id}
           job={job}
           now={now}
           onCancel={onCancel}
           onRetry={onRetry}
           priority={index === 0 && isActiveQueueStage(job.stage)}
-          queuePosition={queued ? index + 1 : undefined}
+          queuePosition={job.stage === "queued" ? ++queuedPosition : undefined}
         />
       ))}
     </section>
@@ -564,7 +484,9 @@ function QueueCard({
   const entityType = job.feed?.entityTypeTag ?? job.mode;
   const visualState = queueVisualState(job);
   const Icon =
-    visualState === "failed"
+    active
+      ? LoaderCircle
+      : visualState === "failed"
       ? AlertTriangle
       : visualState === "done"
         ? CheckCircle2
@@ -640,7 +562,7 @@ function QueueCard({
                         : "Current Stage"}
                 </p>
                 <p className="mt-1 text-sm font-black leading-5">
-                  {queued ? "Waiting for an active research slot." : stageLabel}
+                  {queued ? "Waiting to begin research." : stageLabel}
                 </p>
               </div>
               {!failed && !queued ? (
@@ -652,8 +574,8 @@ function QueueCard({
             {queued ? (
               <div className="mt-2 border border-black bg-offWhite p-3 text-xs font-black uppercase leading-5 tracking-[0.12em] text-charcoal">
                 {queuePosition && queuePosition > 1
-                  ? `${queuePosition - 1} jobs ahead. Waiting for active research capacity.`
-                  : "Next in line. Waiting for active research capacity."}
+                  ? `${queuePosition - 1} requests ahead. Research will begin automatically.`
+                  : "Next in line. Research will begin automatically."}
               </div>
             ) : (
               <div
@@ -674,7 +596,7 @@ function QueueCard({
             )}
           </div>
 
-          {active || queued ? <ResearchWorkflowChecklist stage={job.stage} /> : null}
+          {active || queued ? <CompactWorkflowStatus stage={job.stage} /> : null}
 
           {done || visualState === "caution" ? <CompletedJobSummary job={job} sourceCount={sourceCount} /> : null}
 
@@ -783,71 +705,42 @@ function QueueTag({
   );
 }
 
-function ResearchWorkflowChecklist({ stage }: { stage: ResearchStage }) {
+function CompactWorkflowStatus({ stage }: { stage: ResearchStage }) {
   const currentIndex = getResearchWorkflowStepIndex(stage);
+  const currentStep = researchWorkflowSteps[Math.max(0, currentIndex)];
+  const nextStep = researchWorkflowSteps[Math.max(0, currentIndex) + 1];
+  const completedCount = stage === "done"
+    ? researchWorkflowSteps.length
+    : Math.max(0, currentIndex);
 
   return (
     <div className="mt-5 border border-black bg-offWhite p-3 text-left">
       <p className="text-[10px] font-black uppercase tracking-[0.18em] text-deepOrange">
-        Research Workflow
+        Research progress
       </p>
-      <ol className="mt-3 grid gap-2 md:grid-cols-2">
-        {researchWorkflowSteps.map((step, index) => {
-          const state =
-            stage === "done"
-              ? "complete"
-              : index < currentIndex
-                ? "complete"
-                : index === currentIndex
-                  ? "current"
-                  : "pending";
-
-          return (
-            <li
-              key={step.id}
-              className={`flex min-w-0 items-start gap-2 border border-black bg-white px-2.5 py-2 text-xs font-black leading-5 ${
-                state === "current"
-                  ? "border-deepOrange bg-paleOrange text-ink"
-                  : state === "complete"
-                    ? "text-ink"
-                    : "text-muted"
-              }`}
-            >
-              <WorkflowIndicator state={state} />
-              <span className="min-w-0 break-words">{step.label}</span>
-            </li>
-          );
-        })}
-      </ol>
+      <dl className="mt-3 grid gap-px border border-black bg-black sm:grid-cols-3">
+        <WorkflowDatum label="Completed" value={`${completedCount} stages`} />
+        <WorkflowDatum label="Current" value={currentStep?.label ?? getQueueStageLabel(stage)} current />
+        <WorkflowDatum label="Next" value={nextStep?.label ?? "Ready to open"} />
+      </dl>
     </div>
   );
 }
 
-function WorkflowIndicator({
-  state
+function WorkflowDatum({
+  label,
+  value,
+  current = false
 }: {
-  state: "complete" | "current" | "pending";
+  label: string;
+  value: string;
+  current?: boolean;
 }) {
-  if (state === "complete") {
-    return (
-      <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center border border-black bg-white text-ink">
-        <Check size={11} strokeWidth={3} aria-hidden="true" />
-      </span>
-    );
-  }
-
-  if (state === "current") {
-    return (
-      <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center border border-black bg-deepOrange text-ink">
-        <Circle size={7} fill="currentColor" strokeWidth={0} aria-hidden="true" />
-      </span>
-    );
-  }
-
   return (
-    <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center border border-black bg-white text-muted">
-      <Circle size={7} aria-hidden="true" />
-    </span>
+    <div className={current ? "bg-paleOrange p-3" : "bg-white p-3"}>
+      <dt className="text-[9px] font-black uppercase tracking-[0.15em] text-muted">{label}</dt>
+      <dd className="mt-1 text-xs font-black leading-5 text-ink">{value}</dd>
+    </div>
   );
 }
 
@@ -947,21 +840,19 @@ function entityTypeLabel(value: string) {
 }
 
 function formatJobTimes(job: ResearchJob, now: number) {
-  if (isActiveQueueStage(job.stage) || job.stage === "queued") {
-    if (isActiveQueueStage(job.stage)) {
-      return [
-        `Submitted ${formatAgo(job.createdAt, now)}`,
-        job.active_started_at ? `Active ${formatDurationSince(job.active_started_at, now)}` : null,
-        (job.stage_started_at ?? job.stageStartedAt)
-          ? `Current stage ${formatDurationSince(job.stage_started_at ?? job.stageStartedAt!, now)}`
-          : null
-      ].filter((label): label is string => Boolean(label));
-    }
-    return [`Submitted ${formatAgo(job.createdAt, now)}`];
+  if (isActiveQueueStage(job.stage)) {
+    return [`Elapsed ${formatDurationSince(job.active_started_at ?? job.createdAt, now)}`];
+  }
+
+  if (job.stage === "queued") {
+    return [`Waiting ${formatDurationSince(job.createdAt, now)}`];
   }
 
   if (job.stage === "done" && job.completedAt) {
-    return [`Completed ${formatShortDateTime(job.completedAt)}`];
+    return [
+      `Completed in ${formatDurationBetween(job.active_started_at ?? job.createdAt, job.completedAt)}`,
+      `Ready ${formatShortDateTime(job.completedAt)}`
+    ];
   }
 
   if ((job.stage === "failed" || job.stage === "cancelled") && job.completedAt) {
@@ -971,14 +862,27 @@ function formatJobTimes(job: ResearchJob, now: number) {
   return [`Submitted ${formatShortDateTime(job.createdAt)}`];
 }
 
-function formatAgo(value: string, now: number) {
-  return `${formatDurationSince(value, now)} ago`;
-}
-
 function formatDurationSince(value: string, now: number) {
   const started = new Date(value).getTime();
   if (!Number.isFinite(started)) return "Elapsed time unavailable";
   const seconds = Math.max(0, Math.floor((now - started) / 1000));
+  if (seconds < 60) return `${seconds}s`;
+  const minutes = Math.floor(seconds / 60);
+  const remainingSeconds = seconds % 60;
+  if (minutes < 60) return `${minutes}m ${remainingSeconds}s`;
+  const hours = Math.floor(minutes / 60);
+  return `${hours}h ${minutes % 60}m`;
+}
+
+function formatDurationBetween(startValue: string, endValue: string) {
+  const start = new Date(startValue).getTime();
+  const end = new Date(endValue).getTime();
+  if (!Number.isFinite(start) || !Number.isFinite(end)) return "time unavailable";
+  return formatDurationMs(Math.max(0, end - start));
+}
+
+function formatDurationMs(milliseconds: number) {
+  const seconds = Math.max(0, Math.floor(milliseconds / 1000));
   if (seconds < 60) return `${seconds}s`;
   const minutes = Math.floor(seconds / 60);
   const remainingSeconds = seconds % 60;
