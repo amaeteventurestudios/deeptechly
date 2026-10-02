@@ -39,7 +39,7 @@ export function TechnologySignals({ stories = [] }: { stories?: HomepageStory[] 
       </div>
       <Link
         href="/explore"
-        className="mt-3 inline-flex min-h-9 items-center justify-center gap-2 text-center text-[10px] font-black uppercase tracking-[0.14em] text-ink hover:text-deepOrange"
+        className="mt-3 inline-flex min-h-11 items-center justify-center gap-2 text-center text-[10px] font-black uppercase tracking-[0.14em] text-ink hover:text-deepOrange"
       >
         View All Signals
         <ArrowRight size={14} aria-hidden="true" />

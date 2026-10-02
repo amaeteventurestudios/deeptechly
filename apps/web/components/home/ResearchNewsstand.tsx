@@ -30,7 +30,7 @@ export function ResearchNewsstand({ items }: { items?: NewsstandItem[] }) {
           </h2>
           <Link
             href="/news"
-            className="inline-flex min-h-10 items-center justify-center gap-2 border border-black bg-white px-3 py-2 text-center text-[10px] font-black uppercase tracking-[0.14em] hover:bg-deepOrange"
+            className="inline-flex min-h-11 items-center justify-center gap-2 border border-black bg-white px-3 py-2 text-center text-[10px] font-black uppercase tracking-[0.14em] hover:bg-deepOrange"
           >
             View All
             <ArrowRight size={13} aria-hidden="true" />
@@ -79,14 +79,14 @@ export function ResearchNewsstand({ items }: { items?: NewsstandItem[] }) {
 
               <Link
                 href={item.href}
-                className="mt-3 inline-flex min-h-8 items-center justify-center gap-1 text-center text-[10px] font-black uppercase tracking-[0.14em] hover:text-deepOrange"
+                className="mt-3 inline-flex min-h-11 items-center justify-center gap-1 text-center text-[10px] font-black uppercase tracking-[0.14em] hover:text-deepOrange"
               >
                 {item.cta}
                 <ArrowRight size={11} aria-hidden="true" />
               </Link>
               <SaveResearchButton
                 compact
-                className="mt-2 inline-flex min-h-8 items-center justify-center gap-1 border border-black bg-white px-2 py-1 text-center text-[10px] font-black uppercase tracking-[0.14em] hover:bg-deepOrange"
+                className="mt-2 inline-flex min-h-11 items-center justify-center gap-1 border border-black bg-white px-2 py-1 text-center text-[10px] font-black uppercase tracking-[0.14em] hover:bg-deepOrange"
                 entityName={item.entity}
                 href={item.href}
                 itemId={item.id}

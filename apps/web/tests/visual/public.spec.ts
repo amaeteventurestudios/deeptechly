@@ -195,4 +195,21 @@ test.describe("public visual QA", () => {
       await expect(navigation.getByRole("link", { name: label, exact: true })).toBeVisible();
     }
   });
+
+  test("homepage exposes the complete editorial hierarchy and evidence context", async ({ page }) => {
+    await openPublicPage(page, "/", viewports.desktop);
+    for (const heading of [
+      "Top Stories",
+      "Also Reading",
+      "Recent Research",
+      "Your Research",
+      "Intelligence",
+      "Research Newsstand",
+      "Browse by Sector"
+    ]) {
+      await expect(page.getByRole("heading", { name: heading, exact: true })).toBeVisible();
+    }
+    await expect(page.getByText(/public sources/i).first()).toBeVisible();
+    await expect(page.getByText(/confidence/i).first()).toBeVisible();
+  });
 });

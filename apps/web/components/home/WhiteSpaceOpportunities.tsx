@@ -25,7 +25,7 @@ export function WhiteSpaceOpportunities({ stories = [] }: { stories?: HomepageSt
               </h4>
               <Link
                 href={opportunity.href}
-                className="inline-flex min-h-8 items-center justify-center gap-1 text-center text-[9px] font-black uppercase tracking-[0.12em] hover:text-deepOrange"
+                className="inline-flex min-h-11 items-center justify-center gap-1 text-center text-[9px] font-black uppercase tracking-[0.12em] hover:text-deepOrange"
               >
                 Related Research
                 <ArrowRight size={11} aria-hidden="true" />
@@ -41,7 +41,7 @@ export function WhiteSpaceOpportunities({ stories = [] }: { stories?: HomepageSt
       </div>
       <Link
         href="/explore"
-        className="mt-3 inline-flex min-h-9 items-center justify-center gap-2 text-center text-[10px] font-black uppercase tracking-[0.14em] text-ink hover:text-deepOrange"
+        className="mt-3 inline-flex min-h-11 items-center justify-center gap-2 text-center text-[10px] font-black uppercase tracking-[0.14em] text-ink hover:text-deepOrange"
       >
         View All Opportunities
         <ArrowRight size={13} aria-hidden="true" />

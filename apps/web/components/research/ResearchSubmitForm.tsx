@@ -97,7 +97,7 @@ export function ResearchSubmitForm({
         {isSubmitting ? "QUEUING" : submitLabel}
       </button>
       {error ? (
-        <p className="px-3 pb-2 text-xs font-bold text-darkOrange sm:basis-full">
+        <p className="px-3 pb-2 text-xs font-bold text-darkOrange sm:basis-full" role="alert" aria-live="polite">
           {error}
         </p>
       ) : null}

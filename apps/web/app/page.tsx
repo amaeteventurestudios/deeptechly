@@ -3,6 +3,7 @@ import { PageShell } from "@/components/layout/PageShell";
 import { HomeResearchFeed } from "@/components/home/HomeResearchFeed";
 import { HomeWideContainer } from "@/components/home/HomeWideContainer";
 import { ResearchSubmitForm } from "@/components/research/ResearchSubmitForm";
+import { Badge } from "@deeptechly/ui";
 
 export const dynamic = "force-dynamic";
 
@@ -22,16 +23,16 @@ export default function HomePage() {
     <PageShell>
       <section className="w-full border-b border-black bg-deepOrange deeptech-home-hero">
         <HomeWideContainer className="flex flex-col items-center py-14 text-center sm:py-16 lg:py-20">
-          <p className="text-[12px] font-black uppercase tracking-[0.28em] text-white">
-            Deep-Tech Research
-          </p>
+          <Badge variant="outline" className="border-white bg-white/10 text-white">
+            Deep-Tech Research / Evidence First
+          </Badge>
           <h1 className="mx-auto mt-4 max-w-5xl text-[44px] font-black leading-[0.9] text-white min-[390px]:text-5xl sm:text-6xl md:text-7xl lg:text-[76px]">
             Search any deep-tech entity. We will research it.
           </h1>
           <p className="mx-auto mt-5 max-w-3xl text-base font-black leading-6 text-white sm:text-lg">
             DeepTechly pairs agentic research with newsroom-quality writing.
-            Type a name. Get a researched profile, a feature article, and
-            investor-ready analysis.
+            Type a name. Get a researched profile, a feature article, and an
+            institutional dossier.
           </p>
           <div className="mx-auto w-full max-w-[860px] [&>form]:mx-auto [&>form]:w-full [&>form]:max-w-none [&>form]:border-2 [&>form]:shadow-[6px_6px_0_#111111] [&>form]:lg:flex-row [&_button]:min-h-14 [&_button]:bg-black [&_button]:px-7 [&_button]:text-deepOrange [&_input]:h-12">
             <ResearchSubmitForm
@@ -47,7 +48,7 @@ export default function HomePage() {
 
       <section className="w-full border-b border-black bg-ink text-white">
         <HomeWideContainer className="flex flex-col items-center justify-center gap-2 py-3 text-center text-[11px] font-black uppercase tracking-[0.18em] md:flex-row md:justify-between md:text-left">
-          <span>&#8599; Today&apos;s Edition · {formatEditionDate()}</span>
+          <span>&#8599; Today&apos;s Edition · <time>{formatEditionDate()}</time></span>
           <Link className="text-deepOrange hover:text-white" href="/news">
             Full Archive &rarr;
           </Link>

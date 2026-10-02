@@ -31,7 +31,7 @@ export function GovernmentSignals({ stories = [] }: { stories?: HomepageStory[] 
               </div>
               <Link
                 href={signal.href}
-                className="inline-flex min-h-8 items-center justify-center gap-1 text-center text-[9px] font-black uppercase tracking-[0.12em] hover:text-deepOrange"
+                className="inline-flex min-h-11 items-center justify-center gap-1 text-center text-[9px] font-black uppercase tracking-[0.12em] hover:text-deepOrange"
               >
                 View Signal
                 <ArrowRight size={11} aria-hidden="true" />

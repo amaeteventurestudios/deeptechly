@@ -66,7 +66,7 @@ export async function MyResearch() {
   if (!session) {
     return (
       <section className={researchPanelClass}>
-        <SectionHeader />
+        <SectionHeader title="Your Research" />
         <StarterResearchGrid />
       </section>
     );
@@ -91,7 +91,7 @@ export async function MyResearch() {
 
   return (
     <section className={researchPanelClass}>
-      <SectionHeader />
+      <SectionHeader title="My Research" />
 
       {cards.length === 0 ? (
         <StarterResearchGrid />
@@ -139,7 +139,7 @@ function ResearchCard({
       <div className="mt-3 grid grid-cols-2 gap-1.5">
         <Link
           href={item.profileHref}
-          className="inline-flex h-8 items-center justify-center gap-1 border border-black bg-ink px-2 text-[8px] font-black uppercase tracking-[0.1em] text-white hover:bg-deepOrange hover:text-ink"
+          className="inline-flex min-h-11 items-center justify-center gap-1 border border-black bg-ink px-2 text-[8px] font-black uppercase tracking-[0.1em] text-white hover:bg-deepOrange hover:text-ink"
         >
           Profile
           <ArrowRight size={10} aria-hidden="true" />
@@ -147,7 +147,7 @@ function ResearchCard({
         {item.dossierHref ?? item.articleHref ? (
           <Link
             href={item.dossierHref ?? item.articleHref ?? item.profileHref}
-            className="inline-flex h-8 items-center justify-center gap-1 border border-black bg-white px-2 text-[8px] font-black uppercase tracking-[0.1em] hover:bg-paleOrange"
+            className="inline-flex min-h-11 items-center justify-center gap-1 border border-black bg-white px-2 text-[8px] font-black uppercase tracking-[0.1em] hover:bg-paleOrange"
           >
             {item.dossierHref ? "Dossier" : "Article"}
             <ArrowRight size={10} aria-hidden="true" />
@@ -193,7 +193,7 @@ function StarterResearchGrid() {
                 itemId={item.id}
                 itemType="STARTER_RESEARCH"
                 label={item.entityName}
-                className="h-7 w-7 shrink-0 shadow-none"
+                className="shrink-0 shadow-none"
                 sector={item.sector}
               />
             </div>
@@ -205,14 +205,14 @@ function StarterResearchGrid() {
             <div className="mt-3 grid grid-cols-2 gap-1.5">
               <Link
                 href={item.profileHref}
-                className="inline-flex h-8 items-center justify-center gap-1 border border-black bg-ink px-1.5 text-[7px] font-black uppercase tracking-[0.1em] text-white hover:bg-deepOrange hover:text-ink"
+                className="inline-flex min-h-11 items-center justify-center gap-1 border border-black bg-ink px-1.5 text-[7px] font-black uppercase tracking-[0.1em] text-white hover:bg-deepOrange hover:text-ink"
               >
                 Profile
                 <ArrowRight size={9} aria-hidden="true" />
               </Link>
               <Link
                 href={item.dossierHref}
-                className="inline-flex h-8 items-center justify-center gap-1 border border-black bg-white px-1.5 text-[7px] font-black uppercase tracking-[0.1em] hover:bg-paleOrange"
+                className="inline-flex min-h-11 items-center justify-center gap-1 border border-black bg-white px-1.5 text-[7px] font-black uppercase tracking-[0.1em] hover:bg-paleOrange"
               >
                 Dossier
                 <ArrowRight size={9} aria-hidden="true" />
@@ -225,15 +225,15 @@ function StarterResearchGrid() {
   );
 }
 
-function SectionHeader() {
+function SectionHeader({ title }: { title: string }) {
   return (
     <div className="mb-4 flex items-center justify-between border-b border-black pb-3">
       <h2 className="text-[12px] font-black uppercase tracking-[0.2em] text-ink">
-        My Research
+        {title}
       </h2>
       <Link
         href="/research"
-        className="inline-flex h-8 items-center justify-center gap-1.5 border border-black bg-white px-3 text-[9px] font-black uppercase tracking-[0.16em] hover:bg-deepOrange"
+        className="inline-flex min-h-11 items-center justify-center gap-1.5 border border-black bg-white px-3 text-[9px] font-black uppercase tracking-[0.16em] hover:bg-deepOrange"
       >
         View All
         <ArrowRight size={10} aria-hidden="true" />

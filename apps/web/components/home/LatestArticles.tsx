@@ -39,30 +39,30 @@ export function LatestArticles({ articles }: { articles?: LatestArticle[] }) {
       {/* Section header */}
       <div className="mb-4 flex items-center justify-between border-b border-black pb-3">
         <h2 className="text-[12px] font-black uppercase tracking-[0.2em] text-ink">
-          Latest Articles
+          Recent Research
         </h2>
         <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1" aria-label="Latest articles scroll controls">
+          <div className="flex items-center gap-1" aria-label="Recent research scroll controls">
             <button
               type="button"
-              aria-label="Scroll latest articles left"
+              aria-label="Scroll recent research left"
               onClick={() => scrollRail("left")}
-              className="inline-flex h-8 w-8 items-center justify-center border border-black bg-white text-ink hover:bg-deepOrange focus:outline-none focus:ring-2 focus:ring-deepOrange focus:ring-offset-1"
+              className="inline-flex h-11 w-11 items-center justify-center border border-black bg-white text-ink hover:bg-deepOrange focus:outline-none focus:ring-2 focus:ring-deepOrange focus:ring-offset-1"
             >
               <ArrowLeft size={12} aria-hidden="true" />
             </button>
             <button
               type="button"
-              aria-label="Scroll latest articles right"
+              aria-label="Scroll recent research right"
               onClick={() => scrollRail("right")}
-              className="inline-flex h-8 w-8 items-center justify-center border border-black bg-white text-ink hover:bg-deepOrange focus:outline-none focus:ring-2 focus:ring-deepOrange focus:ring-offset-1"
+              className="inline-flex h-11 w-11 items-center justify-center border border-black bg-white text-ink hover:bg-deepOrange focus:outline-none focus:ring-2 focus:ring-deepOrange focus:ring-offset-1"
             >
               <ArrowRight size={12} aria-hidden="true" />
             </button>
           </div>
           <Link
             href="/articles"
-            className="inline-flex h-8 items-center justify-center gap-1.5 border border-black bg-white px-3 text-[9px] font-black uppercase tracking-[0.16em] hover:bg-deepOrange"
+            className="inline-flex h-11 items-center justify-center gap-1.5 border border-black bg-white px-3 text-[9px] font-black uppercase tracking-[0.16em] hover:bg-deepOrange"
           >
             View All
             <ArrowRight size={10} aria-hidden="true" />
@@ -73,7 +73,7 @@ export function LatestArticles({ articles }: { articles?: LatestArticle[] }) {
       {/* Single horizontal scrollable rail — all articles */}
       <div
         ref={railRef}
-        aria-label="Latest articles"
+        aria-label="Recent research"
         className="flex snap-x snap-mandatory gap-3 overflow-x-auto pb-1 scroll-smooth [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       >
         {visibleArticles.map((article) => (
@@ -90,7 +90,7 @@ export function LatestArticles({ articles }: { articles?: LatestArticle[] }) {
                 itemId={article.id}
                 itemType="ARTICLE"
                 label={article.headline}
-                className="absolute right-1.5 top-1.5 h-7 w-7 shadow-none"
+                className="absolute right-1.5 top-1.5 shadow-none"
                 sector={article.sector}
               />
             </div>
@@ -128,14 +128,14 @@ export function LatestArticles({ articles }: { articles?: LatestArticle[] }) {
               <div className="mt-2 grid grid-cols-2 gap-1.5">
                 <Link
                   href={article.href}
-                  className="inline-flex h-8 items-center justify-center gap-1 border border-black bg-ink px-2 text-[8px] font-black uppercase tracking-[0.12em] text-white hover:bg-deepOrange hover:text-ink"
+                  className="inline-flex min-h-11 items-center justify-center gap-1 border border-black bg-ink px-2 text-[8px] font-black uppercase tracking-[0.12em] text-white hover:bg-deepOrange hover:text-ink"
                 >
                   Read
                   <ArrowRight size={10} aria-hidden="true" />
                 </Link>
                 <Link
                   href={article.dossierHref ?? article.profileHref ?? "/research"}
-                  className="inline-flex h-8 items-center justify-center gap-1 border border-black bg-white px-2 text-[8px] font-black uppercase tracking-[0.12em] hover:bg-paleOrange"
+                  className="inline-flex min-h-11 items-center justify-center gap-1 border border-black bg-white px-2 text-[8px] font-black uppercase tracking-[0.12em] hover:bg-paleOrange"
                 >
                   {article.dossierHref ? "Dossier" : "Profile"}
                   <ArrowRight size={10} aria-hidden="true" />
@@ -173,7 +173,7 @@ function SecondaryArticleCard({ article }: { article: LatestArticle }) {
           itemId={`secondary-${article.id}`}
           itemType="ARTICLE"
           label={article.headline}
-          className="h-7 w-7 shrink-0 shadow-none"
+          className="shrink-0 shadow-none"
           sector={article.sector}
         />
       </div>
@@ -182,7 +182,7 @@ function SecondaryArticleCard({ article }: { article: LatestArticle }) {
       </p>
       <Link
         href={article.href}
-        className="mt-auto inline-flex h-8 items-center justify-center gap-1 border border-black bg-white px-2 text-[8px] font-black uppercase tracking-[0.12em] hover:bg-paleOrange"
+        className="mt-auto inline-flex min-h-11 items-center justify-center gap-1 border border-black bg-white px-2 text-[8px] font-black uppercase tracking-[0.12em] hover:bg-paleOrange"
       >
         Read Article
         <ArrowRight size={10} aria-hidden="true" />

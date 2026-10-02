@@ -77,6 +77,19 @@ export async function HomeResearchFeed() {
 
       <section className="w-full border-t border-black bg-paper">
         <HomeWideContainer className="py-7">
+          <div className="mb-6 grid gap-3 border-b-4 border-ink pb-5 md:grid-cols-[1fr_auto] md:items-end">
+            <div>
+              <p className="font-mono text-[0.6875rem] font-black uppercase tracking-[0.18em] text-darkOrange">
+                Evidence-derived monitoring
+              </p>
+              <h2 className="mt-2 font-serif text-4xl font-black leading-none tracking-[-0.035em] sm:text-5xl">
+                Intelligence
+              </h2>
+            </div>
+            <p className="max-w-xl text-sm font-semibold leading-6 text-charcoal md:text-right">
+              Technical, government, patent, and white-space signals derived from published research and labeled by evidence quality.
+            </p>
+          </div>
           <div className="grid grid-cols-1 gap-px border border-black bg-black md:grid-cols-2 xl:grid-cols-4">
             <TechnologySignals stories={generatedStories} />
             <GovernmentSignals stories={generatedStories} />
@@ -352,7 +365,7 @@ function AlsoReading({ stories }: { stories: HomepageStory[] }) {
                 </p>
                 <Link
                   href={story.href}
-                  className="mt-2 inline-flex min-h-8 items-center justify-center gap-1 text-[9px] font-black uppercase tracking-[0.12em] hover:text-deepOrange"
+                  className="mt-2 inline-flex min-h-11 items-center justify-center gap-1 text-[9px] font-black uppercase tracking-[0.12em] hover:text-deepOrange"
                 >
                   Open
                   <ArrowRight size={10} aria-hidden="true" />
@@ -437,7 +450,7 @@ function CompactSectionHeader({
       {actionHref && actionLabel ? (
         <Link
           href={actionHref}
-          className="inline-flex min-h-10 items-center justify-center gap-2 border border-black bg-white px-3 py-2 text-center text-[10px] font-black uppercase tracking-[0.14em] hover:bg-deepOrange"
+          className="inline-flex min-h-11 items-center justify-center gap-2 border border-black bg-white px-3 py-2 text-center text-[10px] font-black uppercase tracking-[0.14em] hover:bg-deepOrange"
         >
           {actionLabel}
           <ArrowRight size={13} aria-hidden="true" />

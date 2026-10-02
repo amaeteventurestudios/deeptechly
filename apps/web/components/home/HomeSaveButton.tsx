@@ -20,7 +20,7 @@ export function HomeSaveButton({
   return (
     <SaveResearchButton
       compact
-      className={`inline-flex h-10 w-10 shrink-0 items-center justify-center border border-black bg-white text-ink shadow-[3px_3px_0_#0f0f0f] hover:bg-deepOrange focus:outline-none focus:ring-2 focus:ring-deepOrange focus:ring-offset-2 ${className}`}
+      className={`inline-flex h-11 w-11 shrink-0 items-center justify-center border border-black bg-white text-ink shadow-[3px_3px_0_#0f0f0f] hover:bg-deepOrange focus:outline-none focus:ring-2 focus:ring-deepOrange focus:ring-offset-2 ${className}`}
       entityName={entityName}
       href={href}
       itemId={itemId}

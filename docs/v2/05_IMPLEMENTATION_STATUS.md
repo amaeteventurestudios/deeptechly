@@ -63,3 +63,23 @@ Validation:
 - `pnpm test`
 - `pnpm build`
 - Responsive Playwright matrix at 320, 375, 390, 430, 768, 1024, 1440, 1728, and 1920 pixels.
+
+## Phase 4 — Homepage rebuild
+
+Status: implemented and validated; commit recorded in Git history after this document lands.
+
+- Preserved and refined the working editorial homepage instead of replacing its production-aware feed assembly.
+- Completed the required hierarchy: research hero, Today’s Edition, Top Stories, Also Reading, Recent Research, Your/My Research, Intelligence, Research Newsstand, Browse by Sector, and the global brand statement.
+- Added a formal Intelligence introduction spanning technology, government, patent, and white-space signals.
+- Clarified the hero output promise as profile, article, and institutional dossier without implying unsupported investor conclusions.
+- Integrated the shared V2 UI package on the public homepage and improved evidence-first labeling.
+- Raised all interactive homepage controls to at least 44px and added an announced form-error state.
+- Added browser assertions for the complete editorial hierarchy, source counts, and confidence context.
+
+Validation:
+
+- `pnpm lint`
+- `pnpm typecheck`
+- `pnpm test`
+- `pnpm build`
+- Responsive Playwright matrix including homepage screenshots at mobile and desktop sizes.
