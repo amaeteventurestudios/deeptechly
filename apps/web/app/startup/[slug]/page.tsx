@@ -98,7 +98,7 @@ function ProfileHero({ entity, articleAvailable, dossierAvailable }: { entity: R
     <section className="w-full border-b border-black bg-deepOrange deeptech-texture">
       <div className="mx-auto grid max-w-[1200px] gap-9 px-4 py-12 text-center sm:px-6 lg:grid-cols-[minmax(0,1fr)_420px] lg:items-center lg:px-8 lg:text-left">
         <div>
-          <p className="font-mono text-[11px] font-black uppercase tracking-[0.22em]">
+          <p className="break-all font-mono text-[11px] font-black uppercase tracking-[0.22em]">
             Public Research Profile / DT-{entity.slug.toUpperCase()}
           </p>
           <h1 className="mx-auto mt-4 max-w-3xl font-serif text-5xl font-black leading-[0.92] tracking-[-0.04em] sm:text-6xl md:text-7xl lg:mx-0">

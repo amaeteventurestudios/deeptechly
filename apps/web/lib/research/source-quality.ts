@@ -57,6 +57,28 @@ const qualityRank: Record<SourceQualityTier, number> = {
   weak: 1
 };
 
+const placeholderSourceHosts = new Set([
+  "example.com",
+  "example.org",
+  "example.net",
+  "localhost"
+]);
+
+export function isPublishableSourceUrl(value: string) {
+  try {
+    const url = new URL(value);
+    const hostname = url.hostname.toLowerCase().replace(/^www\./, "");
+    return (
+      /^https?:$/.test(url.protocol) &&
+      !placeholderSourceHosts.has(hostname) &&
+      !hostname.endsWith(".invalid") &&
+      !hostname.endsWith(".test")
+    );
+  } catch {
+    return false;
+  }
+}
+
 export function normalizeSourceUrl(url: string) {
   try {
     const parsed = new URL(url.trim());

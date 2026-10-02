@@ -4,10 +4,12 @@ import {
   BarChart3,
   Lock,
   FileText,
-  Star,
+  FileType2,
   ExternalLink as ExternalLinkIcon
 } from "lucide-react";
+import { SaveResearchButton } from "@/components/saved/SaveResearchButton";
 import type { ResearchEntity, RevenuePath, Source } from "@/lib/types";
+import { isPublishableSourceUrl } from "@/lib/research/source-quality";
 
 const panelClass = "border border-black bg-white shadow-hard";
 const labelClass =
@@ -30,12 +32,16 @@ function SectionFrame({
   children: React.ReactNode;
 }) {
   return (
-    <section className="border-t border-black/20 py-8">
+    <section id={dossierSectionId(title)} className="scroll-mt-6 border-t border-black/20 py-8">
       {eyebrow ? <p className={labelClass}>{eyebrow}</p> : null}
       <h2 className="mt-1 font-serif text-3xl font-black leading-tight tracking-[-0.02em]">{title}</h2>
       <div className="mt-5">{children}</div>
     </section>
   );
+}
+
+function dossierSectionId(title: string) {
+  return title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 }
 
 function TextList({ items }: { items: string[] }) {
@@ -69,10 +75,12 @@ function BulletList({ items }: { items: string[] }) {
 
 export function DossierHero({
   entity,
-  articleAvailable
+  articleAvailable,
+  profileAvailable
 }: {
   entity: ResearchEntity;
   articleAvailable: boolean;
+  profileAvailable: boolean;
 }) {
   const headerStats = [
     ["Sector", entity.sector],
@@ -88,19 +96,23 @@ export function DossierHero({
       <div className="mx-auto max-w-[1120px] px-4 py-12 text-center sm:px-6 lg:px-8 lg:text-left">
         <div className="mx-auto max-w-5xl">
           <div className="mb-5 flex flex-col items-center justify-between gap-3 sm:flex-row">
-            <span className="text-[11px] font-black uppercase tracking-[0.28em]">
-              DeepTechly Research
+            <span className="break-all font-mono text-[11px] font-black uppercase tracking-[0.22em]">
+              Institutional Dossier / DT-{entity.slug.toUpperCase()}
             </span>
-            <button
-              aria-label={`Save ${entity.name}`}
-              className="flex h-8 w-8 items-center justify-center border border-black bg-white shadow-hard"
-            >
-              <Star size={16} />
-            </button>
+            <SaveResearchButton
+              compact
+              className="flex h-11 w-11 items-center justify-center border border-black bg-white shadow-hard"
+              entityName={entity.name}
+              href={`/dossier/${entity.slug}`}
+              itemId={`dossier-${entity.slug}`}
+              itemType="DOSSIER"
+              sector={entity.sector}
+              title={`${entity.name} institutional dossier`}
+            />
           </div>
           <div className="grid gap-6 md:grid-cols-[1fr_auto] md:items-end">
             <div>
-              <h1 className="mx-auto max-w-4xl text-5xl font-black leading-[0.92] sm:text-6xl md:text-7xl lg:mx-0">
+              <h1 className="mx-auto max-w-4xl font-serif text-5xl font-black leading-[0.92] tracking-[-0.04em] sm:text-6xl md:text-7xl lg:mx-0">
                 {entity.name}
               </h1>
               <p className="mx-auto mt-4 max-w-2xl text-base font-semibold leading-7 text-ink/82 md:text-lg lg:mx-0">
@@ -129,17 +141,24 @@ export function DossierHero({
                 ))}
                 {articleAvailable ? <Link
                   href={`/article/${entity.slug}`}
-                  className="inline-flex items-center justify-center gap-2 border border-black bg-ink px-3 py-2 text-[10px] font-black uppercase tracking-[0.14em] text-white"
+                  className="inline-flex min-h-11 items-center justify-center gap-2 border border-black bg-ink px-3 py-2 text-[10px] font-black uppercase tracking-[0.14em] text-white"
                 >
                   Read Article
                   <ArrowRight size={13} />
                 </Link> : null}
-                <Link
+                {profileAvailable ? <Link
                   href={`/startup/${entity.slug}`}
-                  className="inline-flex items-center justify-center gap-2 border border-black bg-white px-3 py-2 text-[10px] font-black uppercase tracking-[0.14em] text-ink"
+                  className="inline-flex min-h-11 items-center justify-center gap-2 border border-black bg-white px-3 py-2 text-[10px] font-black uppercase tracking-[0.14em] text-ink"
                 >
                   Public Profile
                   <ArrowRight size={13} />
+                </Link> : null}
+                <Link
+                  href={`/dossier/${entity.slug}.md`}
+                  className="inline-flex min-h-11 items-center justify-center gap-2 border border-black bg-white px-3 py-2 text-[10px] font-black uppercase tracking-[0.14em] text-ink"
+                >
+                  Public Markdown
+                  <FileType2 size={13} aria-hidden="true" />
                 </Link>
               </div>
             </div>
@@ -151,17 +170,20 @@ export function DossierHero({
 }
 
 export function ExternalLinksRow({ entity }: { entity: ResearchEntity }) {
+  const links = entity.externalLinks.filter((link) => isPublishableSourceUrl(link.href));
+  if (!links.length) return null;
+
   return (
     <section className="w-full border-b border-black bg-offWhite">
       <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
         <div className="scrollbar-thin flex gap-2 overflow-x-auto py-4">
-          {entity.externalLinks.map((link) => (
+          {links.map((link) => (
             <a
               key={link.label}
               href={link.href}
               target="_blank"
               rel="noreferrer"
-              className="inline-flex shrink-0 items-center gap-2 border border-black bg-white px-3 py-2 text-[10px] font-black uppercase tracking-[0.14em] hover:bg-deepOrange"
+              className="inline-flex min-h-11 shrink-0 items-center gap-2 border border-black bg-white px-3 py-2 text-[10px] font-black uppercase tracking-[0.14em] hover:bg-deepOrange"
             >
               {link.label}
               <ExternalLinkIcon size={12} />
@@ -758,7 +780,7 @@ export function MembersOnlyBlock({
                     ? "/join?access=institutional"
                     : "/sign-in?redirectTo=/join?access=institutional"
               }
-              className="mt-5 inline-flex items-center justify-center gap-2 border border-black bg-deepOrange px-4 py-3 text-[11px] font-black uppercase tracking-[0.14em] shadow-hard"
+              className="mt-5 inline-flex min-h-11 items-center justify-center gap-2 border border-black bg-deepOrange px-4 py-3 text-[11px] font-black uppercase tracking-[0.14em] shadow-hard"
             >
               {isPending
                 ? "Institutional access pending review"
@@ -817,24 +839,33 @@ export function InstitutionalDossierSections({
   entity: ResearchEntity;
   accessState: InstitutionalAccessState;
 }) {
-  const sections = institutionalSectionsForEntity(entity);
+  const hasAccess = isInstitutionalAccess(accessState);
+  const sections = hasAccess ? institutionalSectionsForEntity(entity) : [];
 
   return (
-    <section className="border-t border-black/20 py-8">
+    <section id="institutional-layer" className="scroll-mt-6 border-t border-black/20 py-8">
       <div className="mb-5 flex items-center gap-3">
         <span className="flex h-9 w-9 items-center justify-center border border-black bg-deepOrange">
           <FileText size={17} />
         </span>
         <div>
           <p className={labelClass}>Institutional Layer</p>
-          <h2 className="text-3xl font-black leading-tight">Locked diligence sections</h2>
+          <h2 className="font-serif text-3xl font-black leading-tight tracking-[-0.02em]">
+            {hasAccess ? "Institutional analysis" : "Institutional diligence layer"}
+          </h2>
         </div>
       </div>
       <div className="space-y-5">
-        {sections.map((section, index) => (
+        {!hasAccess ? (
           <MembersOnlyBlock
-            key={isInstitutionalAccess(accessState) ? section.title : `locked-${index}`}
-            title={isInstitutionalAccess(accessState) ? section.title : "Institutional section locked"}
+            title="Institutional section locked"
+            items={safeLockedPreviewItems}
+            accessState={accessState}
+          />
+        ) : sections.map((section) => (
+          <MembersOnlyBlock
+            key={section.title}
+            title={section.title}
             items={section.items}
             accessState={accessState}
           />
@@ -1156,7 +1187,7 @@ function publicSources(sources: Source[]) {
   return sources.filter((source) => {
     try {
       const url = new URL(source.url);
-      if (!/^https?:$/.test(url.protocol) || seen.has(url.href)) return false;
+      if (!isPublishableSourceUrl(url.href) || seen.has(url.href)) return false;
       seen.add(url.href);
       return Boolean(source.title?.trim());
     } catch {

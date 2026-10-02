@@ -256,4 +256,36 @@ test.describe("public visual QA", () => {
     expect(markdown.ok()).toBeTruthy();
     expect(await markdown.text()).toContain("# ");
   });
+
+  test("dossier provides a public research layer without serializing institutional analysis", async ({ page }) => {
+    const { dossierPath } = await discoverArtifactPaths(page);
+    await openPublicPage(page, dossierPath, viewports.desktop);
+    await expect(page.getByRole("navigation", { name: "Dossier index" })).toBeVisible();
+    for (const heading of [
+      "Executive summary",
+      "Taxonomy snapshot",
+      "Overview",
+      "Technical summary",
+      "Market position",
+      "Competitive landscape",
+      "Company positioning",
+      "Opportunity",
+      "Evidence and readiness cards",
+      "Sources",
+      "Accuracy and confidence",
+      "Institutional diligence layer"
+    ]) {
+      await expect(page.getByRole("heading", { name: heading, exact: true })).toBeVisible();
+    }
+    await expect(page.getByRole("heading", { name: "Institutional section locked", exact: true })).toHaveCount(1);
+    await expect(page.locator('a[href^="https://example.com"]')).toHaveCount(0);
+    const markdownPath = `${dossierPath}.md`;
+    await expect(page.locator(`a[href="${markdownPath}"]`)).toBeVisible();
+    const markdown = await page.request.get(markdownPath);
+    expect(markdown.ok()).toBeTruthy();
+    const markdownBody = await markdown.text();
+    expect(markdownBody).toContain("# ");
+    expect(markdownBody).not.toContain("The revenue model remains gated");
+    expect(markdownBody).not.toContain("example.com");
+  });
 });

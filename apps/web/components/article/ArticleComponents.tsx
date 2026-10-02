@@ -13,6 +13,7 @@ import {
   storyTags
 } from "@/lib/story-metadata";
 import type { ArticleSection as ArticleSectionType, ResearchEntity, Source } from "@/lib/types";
+import { isPublishableSourceUrl } from "@/lib/research/source-quality";
 
 const emptyCopy = "Not confirmed in public sources.";
 const tagClass =
@@ -340,7 +341,7 @@ function publicSources(sources: Source[]) {
   return sources.filter((source) => {
     try {
       const url = new URL(source.url);
-      if (!/^https?:$/.test(url.protocol) || seen.has(url.href)) return false;
+      if (!isPublishableSourceUrl(url.href) || seen.has(url.href)) return false;
       seen.add(url.href);
       return Boolean(source.title?.trim());
     } catch {

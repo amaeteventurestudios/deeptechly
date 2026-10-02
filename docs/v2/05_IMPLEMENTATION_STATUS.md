@@ -122,3 +122,24 @@ Validation:
 - `pnpm test`
 - `pnpm build`
 - Responsive Playwright rendering for the profile at 320, 390, 768, 1440, and 1920 pixels.
+
+## Phase 7 — Institutional dossier experience
+
+Status: implemented and validated; commit recorded in Git history after this document lands.
+
+- Added a sticky desktop dossier index and stable anchors across the public research layer.
+- Added existing taxonomy, positioning, and opportunity modules to the public dossier without synthesizing new facts.
+- Replaced the non-functional save icon with the working saved-research control.
+- Added availability-aware profile/article actions and an explicit public markdown action in the masthead.
+- Consolidated fifteen repetitive signed-out lock panels into one server-rendered institutional gate; verified accounts still receive the complete institutional section set.
+- Preserved server-side entitlement evaluation and verified that locked analysis is absent from public HTML and public markdown.
+- Filtered placeholder `example.com` links from the public external-link rail while retaining verified HTTP(S) links.
+- Added browser coverage for dossier hierarchy, the index, single-gate behavior, placeholder-link filtering, and public markdown safety.
+
+Validation:
+
+- `pnpm lint`
+- `pnpm typecheck`
+- `pnpm test`
+- `pnpm build`
+- Responsive Playwright rendering and signed-out gating checks for the dossier at 320, 390, 768, 1440, and 1920 pixels.

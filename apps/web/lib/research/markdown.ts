@@ -1,4 +1,5 @@
 import type { ResearchEntity, Source } from "@/lib/types";
+import { isPublishableSourceUrl } from "./source-quality";
 
 const emptyCopy = "Not confirmed in public sources.";
 const limitedCopy = "Limited public data found.";
@@ -34,7 +35,13 @@ function sourceTitle(source: Source) {
 }
 
 function sourceList(sources: Source[]) {
-  const visibleSources = sources.filter((source) => cleanText(source.url));
+  const seen = new Set<string>();
+  const visibleSources = sources.filter((source) => {
+    const url = cleanText(source.url);
+    if (!url || !isPublishableSourceUrl(url) || seen.has(url)) return false;
+    seen.add(url);
+    return true;
+  });
   if (visibleSources.length === 0) return `- ${limitedCopy}`;
 
   return visibleSources
