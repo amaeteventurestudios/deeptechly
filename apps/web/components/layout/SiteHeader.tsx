@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { Cpu, LogOut, Menu, UserRound } from "lucide-react";
 import { getAuthSession } from "@/lib/auth/session";
-import { isAdminEmail } from "@/lib/admin/invite-codes";
 
 const primaryLinks = [
   ["News", "/news"],
@@ -86,7 +85,7 @@ function AccountControls({
 
 export async function SiteHeader() {
   const session = await getAuthSession();
-  const isAdmin = isAdminEmail(session?.email);
+  const isAdmin = Boolean(session?.isAdmin);
   const accountLabel = isAdmin ? "Dashboard" : session?.name || session?.email;
 
   return (

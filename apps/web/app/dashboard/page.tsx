@@ -12,7 +12,6 @@ import {
 } from "lucide-react";
 import { AdminToolsPanel } from "@/components/admin/AdminToolsPanel";
 import { PageShell } from "@/components/layout/PageShell";
-import { isAdminEmail } from "@/lib/admin/invite-codes";
 import { getAuthSession } from "@/lib/auth/session";
 import { listSavedResearchItems } from "@/lib/saved-research";
 
@@ -33,7 +32,7 @@ export default async function DashboardPage() {
   const savedResearch = await listSavedResearchItems(session.userId, 6);
   const profile = session.profile;
   const displayName = session.name ?? session.email;
-  const isAdmin = isAdminEmail(session.email);
+  const isAdmin = session.isAdmin;
   const institutionalStatus = getInstitutionalStatus(session);
   const nextAction = getNextAction(session);
 
@@ -101,9 +100,7 @@ export default async function DashboardPage() {
 
               {savedResearch.unavailable ? (
                 <p className="mt-5 border border-black bg-paleOrange p-4 text-sm font-bold leading-6">
-                  Saved research storage is not available yet. Apply
-                  `supabase/saved-research.sql` in Supabase to enable
-                  persistent saved queues.
+                  Saved research storage is not configured for this environment.
                 </p>
               ) : savedResearch.items.length === 0 ? (
                 <div className="mt-5 border border-black bg-offWhite p-5 text-center sm:text-left">

@@ -251,15 +251,15 @@ function ErrorNotice({ dark = false, error }: { dark?: boolean; error: string })
 
 function getErrorMessage(error: string) {
   if (error === "config") {
-    return "Supabase authentication or profile persistence is not configured in this environment.";
+    return "Account services are not configured for this environment.";
   }
 
   if (error === "signup") {
-    return "Supabase could not create that account. Try signing in if you already joined.";
+    return "The account could not be created. Try signing in if you already joined.";
   }
 
   if (error === "profile") {
-    return "The account was not completed because the profile row could not be saved.";
+    return "The account was not completed because the profile could not be saved.";
   }
 
   if (error === "invite") {

@@ -15,7 +15,6 @@ import { AdminNavigation } from "@/components/admin/AdminNavigation";
 import { AuthSubmitButton } from "@/components/auth/AuthSubmitButton";
 import { PageShell } from "@/components/layout/PageShell";
 import { getAuthSession } from "@/lib/auth/session";
-import { isAdminEmail } from "@/lib/admin/invite-codes";
 import { listAllContent, type AdminContentRow } from "@/lib/admin/content";
 import { getNewsroomConfiguration } from "@/lib/admin/newsroom";
 import {
@@ -52,7 +51,7 @@ export default async function AdminContentPage({ searchParams }: ContentPageProp
     redirect("/sign-in?redirectTo=/admin/content");
   }
 
-  if (!isAdminEmail(session.email)) {
+  if (!session.isAdmin) {
     forbidden();
   }
 

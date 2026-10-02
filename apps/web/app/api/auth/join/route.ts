@@ -7,7 +7,7 @@ import {
   type AccessPath
 } from "@/lib/auth/profiles";
 import { createRouteIdentityProvider } from "@/lib/auth/providers";
-import { getSiteUrl, getSupabaseServiceRoleKey } from "@/lib/supabase/env";
+import { getSiteUrl } from "@/lib/appwrite/config";
 
 export async function POST(request: NextRequest) {
   const formData = await request.formData();
@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
 
   const authClient = createRouteIdentityProvider(request);
 
-  if (!authClient || !getSupabaseServiceRoleKey()) {
+  if (!authClient) {
     return NextResponse.redirect(
       new URL(`/join?error=config&access=${accessPath}`, request.url),
       { status: 303 }

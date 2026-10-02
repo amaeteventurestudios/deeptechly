@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { getSiteUrl } from "@/lib/supabase/env";
+import { getSiteUrl } from "@/lib/appwrite/config";
 import { createRouteIdentityProvider } from "@/lib/auth/providers";
 
 export async function POST(request: NextRequest) {

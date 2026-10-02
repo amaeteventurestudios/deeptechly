@@ -1,6 +1,4 @@
-import "server-only";
-
-import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { getPostgres } from "@/lib/database/postgres";
 
 export type AdminUserRow = {
   id: string;
@@ -16,123 +14,95 @@ export type AdminUserRow = {
   inviteCodeUsed: string | null;
 };
 
-type UserProfileRecord = {
+type UserRow = {
   id: string;
-  auth_user_id: string;
-  full_name: string | null;
-  email: string;
+  fullName: string | null;
+  email: string | null;
   organization: string | null;
-  access_tier: string;
-  is_institutional_verified: boolean;
-  institutional_request_pending: boolean;
-  created_at: string;
-  updated_at: string | null;
+  isInstitutionalVerified: boolean;
+  institutionalRequestPending: boolean;
+  createdAt: Date | string;
+  updatedAt: Date | string | null;
+  inviteCodeUsed: string | null;
 };
 
 export async function listAllUsers(): Promise<
   { ok: true; users: AdminUserRow[] } | { ok: false; reason: string }
 > {
-  const admin = createSupabaseAdminClient();
-
-  if (!admin) {
-    return { ok: false, reason: "configuration" };
-  }
-
-  const { data, error } = await admin
-    .from("users_profile")
-    .select(
-      "id, auth_user_id, full_name, email, organization, access_tier, is_institutional_verified, institutional_request_pending, created_at, updated_at"
-    )
-    .order("created_at", { ascending: false })
-    .returns<UserProfileRecord[]>();
-
-  if (error) {
-    console.error("Admin user list failed", { code: error.code, message: error.message });
-    return { ok: false, reason: "read_failed" };
-  }
-
-  const users: AdminUserRow[] = (data ?? []).map((row) => ({
-    id: row.id,
-    authUserId: row.auth_user_id,
-    fullName: row.full_name ?? null,
-    email: row.email,
-    organization: row.organization ?? null,
-    accessTier: row.access_tier,
-    isInstitutionalVerified: Boolean(row.is_institutional_verified),
-    institutionalRequestPending: Boolean(row.institutional_request_pending),
-    createdAt: row.created_at,
-    updatedAt: row.updated_at ?? null,
-    inviteCodeUsed: null
-  }));
-
-  return { ok: true, users };
+  const sql = getPostgres();
+  if (!sql) return { ok: false, reason: "configuration" };
+  const rows = await sql<UserRow[]>`
+    select accounts.id, accounts.display_name as "fullName",
+      accounts.primary_email as email, accounts.organization,
+      bool_or(grants.capability = 'institutional' and grants.status = 'active') as "isInstitutionalVerified",
+      bool_or(grants.capability = 'institutional' and grants.status = 'pending') as "institutionalRequestPending",
+      accounts.created_at as "createdAt", accounts.updated_at as "updatedAt",
+      max(invites.code_hint) as "inviteCodeUsed"
+    from deeptechly.accounts accounts
+    left join deeptechly.access_grants grants on grants.account_id = accounts.id
+    left join deeptechly.invite_redemptions redemptions on redemptions.account_id = accounts.id
+    left join deeptechly.invite_codes invites on invites.id = redemptions.invite_code_id
+    group by accounts.id
+    order by accounts.created_at desc
+  `;
+  return {
+    ok: true,
+    users: rows.map((row) => ({
+      id: row.id, authUserId: row.id, fullName: row.fullName, email: row.email || "",
+      organization: row.organization,
+      accessTier: row.isInstitutionalVerified ? "institutional" : "free",
+      isInstitutionalVerified: Boolean(row.isInstitutionalVerified),
+      institutionalRequestPending: Boolean(row.institutionalRequestPending),
+      createdAt: new Date(row.createdAt).toISOString(),
+      updatedAt: row.updatedAt ? new Date(row.updatedAt).toISOString() : null,
+      inviteCodeUsed: row.inviteCodeUsed
+    }))
+  };
 }
 
-export async function verifyInstitutionalAccess(authUserId: string) {
-  const admin = createSupabaseAdminClient();
+export async function verifyInstitutionalAccess(accountId: string) {
+  return setInstitutionalAccess(accountId, "active");
+}
 
-  if (!admin) {
-    return { ok: false as const, reason: "configuration" };
-  }
+export async function revokeInstitutionalAccess(accountId: string) {
+  return setInstitutionalAccess(accountId, "revoked");
+}
 
-  const { error } = await admin
-    .from("users_profile")
-    .update({
-      is_institutional_verified: true,
-      institutional_request_pending: false,
-      access_tier: "institutional"
-    })
-    .eq("auth_user_id", authUserId);
-
-  if (error) {
-    console.error("Admin verify user failed", { code: error.code, message: error.message });
-    return { ok: false as const, reason: "write_failed" };
-  }
-
+async function setInstitutionalAccess(accountId: string, status: "active" | "revoked") {
+  const sql = getPostgres();
+  if (!sql) return { ok: false as const, reason: "configuration" };
+  const accounts = await sql<{ id: string }[]>`
+    select id from deeptechly.accounts where id = ${accountId}
+  `;
+  if (!accounts[0]) return { ok: false as const, reason: "not_found" };
+  await sql.begin(async (transaction) => {
+    await transaction`
+      update deeptechly.access_grants set status = 'revoked', updated_at = now()
+      where account_id = ${accountId} and capability = 'institutional'
+    `;
+    if (status === "active") {
+      await transaction`
+        insert into deeptechly.access_grants (
+          id, account_id, capability, source, status, metadata, created_at, updated_at
+        ) values (
+          ${`grant:admin:${accountId}`}, ${accountId}, 'institutional',
+          'admin_review', 'active', '{}'::jsonb, now(), now()
+        ) on conflict (account_id, capability, source) do update set
+          status = 'active', updated_at = now()
+      `;
+    }
+  });
   return { ok: true as const };
 }
 
 export function getAdminUserInstitutionalStatus(
-  user: Pick<
-    AdminUserRow,
-    "isInstitutionalVerified" | "institutionalRequestPending"
-  >
+  user: Pick<AdminUserRow, "isInstitutionalVerified" | "institutionalRequestPending">
 ) {
-  if (user.isInstitutionalVerified) {
-    return "Verified";
-  }
-
-  if (user.institutionalRequestPending) {
-    return "Pending review";
-  }
-
+  if (user.isInstitutionalVerified) return "Verified";
+  if (user.institutionalRequestPending) return "Pending review";
   return "Not verified";
 }
 
 export function displayAdminStoredValue(value?: string | null) {
   return value?.trim() ? value : "Not stored";
-}
-
-export async function revokeInstitutionalAccess(authUserId: string) {
-  const admin = createSupabaseAdminClient();
-
-  if (!admin) {
-    return { ok: false as const, reason: "configuration" };
-  }
-
-  const { error } = await admin
-    .from("users_profile")
-    .update({
-      is_institutional_verified: false,
-      institutional_request_pending: false,
-      access_tier: "free"
-    })
-    .eq("auth_user_id", authUserId);
-
-  if (error) {
-    console.error("Admin revoke user failed", { code: error.code, message: error.message });
-    return { ok: false as const, reason: "write_failed" };
-  }
-
-  return { ok: true as const };
 }

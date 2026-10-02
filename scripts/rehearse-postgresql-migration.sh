@@ -98,15 +98,24 @@ run_once() {
   DEEPTECHLY_V2_DATABASE_HOST=127.0.0.1 \
   DEEPTECHLY_V2_DATABASE_PORT="$PORT" \
   DEEPTECHLY_V2_DATABASE_NAME=deeptechly_rehearsal \
+  DEEPTECHLY_V2_DATABASE_SSL=disable \
     pnpm exec tsx scripts/validate-migrated-application.ts \
       --output "$run_root/application-validation.json"
 
-  DEEPTECHLY_RESEARCH_STORE_PROVIDER=v2-postgres \
+  DEEPTECHLY_NEXT_DIST_DIR=.next-rehearsal \
   DEEPTECHLY_V2_DATABASE_HOST=127.0.0.1 \
   DEEPTECHLY_V2_DATABASE_PORT="$PORT" \
   DEEPTECHLY_V2_DATABASE_NAME=deeptechly_rehearsal \
+  DEEPTECHLY_V2_DATABASE_SSL=disable \
+    pnpm --filter @deeptechly/web build >/dev/null
+  DEEPTECHLY_RESEARCH_STORE_PROVIDER=v2-postgres \
+  DEEPTECHLY_NEXT_DIST_DIR=.next-rehearsal \
+  DEEPTECHLY_V2_DATABASE_HOST=127.0.0.1 \
+  DEEPTECHLY_V2_DATABASE_PORT="$PORT" \
+  DEEPTECHLY_V2_DATABASE_NAME=deeptechly_rehearsal \
+  DEEPTECHLY_V2_DATABASE_SSL=disable \
   NEXT_PUBLIC_SITE_URL="http://127.0.0.1:$WEB_PORT" \
-    pnpm --filter @deeptechly/web dev --hostname 127.0.0.1 --port "$WEB_PORT" \
+    pnpm --filter @deeptechly/web start --hostname 127.0.0.1 --port "$WEB_PORT" \
       >"$run_root/web.log" 2>&1 &
   CURRENT_WEB_PID="$!"
   for attempt in {1..60}; do
@@ -122,6 +131,7 @@ run_once() {
   DEEPTECHLY_V2_DATABASE_HOST=127.0.0.1 \
   DEEPTECHLY_V2_DATABASE_PORT="$PORT" \
   DEEPTECHLY_V2_DATABASE_NAME=deeptechly_rehearsal \
+  DEEPTECHLY_V2_DATABASE_SSL=disable \
   DEEPTECHLY_REHEARSAL_WEB_URL="http://127.0.0.1:$WEB_PORT" \
     pnpm exec tsx scripts/validate-migrated-http.ts \
       --output "$run_root/http-validation.json"
@@ -133,6 +143,13 @@ run_once() {
     --output="$reconciliation_json" \
     --file="$REPOSITORY_ROOT/scripts/migration/verify-rehearsal.sql"
 
+  DEEPTECHLY_V2_DATABASE_HOST=127.0.0.1 \
+  DEEPTECHLY_V2_DATABASE_PORT="$PORT" \
+  DEEPTECHLY_V2_DATABASE_NAME=deeptechly_rehearsal \
+  DEEPTECHLY_V2_DATABASE_SSL=disable \
+    pnpm exec tsx scripts/validate-postgres-runtime.ts \
+      --output "$run_root/runtime-validation.json"
+
   cleanup_active_server
   CURRENT_DATA_DIR=""
 
@@ -142,6 +159,7 @@ run_once() {
     "$run_root"/postgres-data) rm -rf "$data_dir" "$socket_dir" ;;
     *) echo "Refusing to remove unexpected PostgreSQL data directory" >&2; exit 1 ;;
   esac
+  rm -rf "$REPOSITORY_ROOT/apps/web/.next-rehearsal"
   echo "Completed isolated rehearsal $label"
 }
 
@@ -157,7 +175,7 @@ if ! cmp -s \
   exit 1
 fi
 
-for report in application-validation.json http-validation.json; do
+for report in application-validation.json http-validation.json runtime-validation.json; do
   if ! cmp -s "$REHEARSAL_ROOT/run-1/$report" "$REHEARSAL_ROOT/run-2/$report"; then
     echo "$report changed between clean rehearsals" >&2
     exit 1

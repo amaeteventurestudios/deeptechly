@@ -4,7 +4,6 @@ import { ArrowRight, LogOut } from "lucide-react";
 import { AdminToolsPanel } from "@/components/admin/AdminToolsPanel";
 import { ProfileSettings } from "@/components/account/ProfileSettings";
 import { PageShell } from "@/components/layout/PageShell";
-import { isAdminEmail } from "@/lib/admin/invite-codes";
 import { getAuthSession } from "@/lib/auth/session";
 
 export const dynamic = "force-dynamic";
@@ -23,7 +22,7 @@ export default async function AccountPage() {
 
   const profile = session.profile;
   const accessAction = getAccessAction(session);
-  const isAdmin = isAdminEmail(session.email);
+  const isAdmin = session.isAdmin;
   const verification = session.isInstitutionalVerified
     ? "Verified"
     : session.institutionalRequestPending

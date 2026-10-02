@@ -8,13 +8,13 @@ export const metadata = {
 };
 
 type ResetPasswordPageProps = {
-  searchParams: Promise<{ code?: string }>;
+  searchParams: Promise<{ userId?: string; secret?: string }>;
 };
 
 export default async function ResetPasswordPage({
   searchParams
 }: ResetPasswordPageProps) {
-  const { code } = await searchParams;
+  const { userId, secret } = await searchParams;
 
   return (
     <PageShell>
@@ -32,7 +32,7 @@ export default async function ResetPasswordPage({
       <section className="w-full bg-paper">
         <div className="mx-auto max-w-md px-4 py-16 sm:px-6 lg:px-8">
           <Suspense fallback={null}>
-            <ResetPasswordForm code={code} />
+            <ResetPasswordForm userId={userId} secret={secret} />
           </Suspense>
         </div>
       </section>

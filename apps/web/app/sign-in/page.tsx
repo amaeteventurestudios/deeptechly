@@ -43,7 +43,7 @@ export default async function SignInPage({ searchParams }: SignInPageProps) {
               Authentication
             </p>
             <p className="mt-2 text-sm leading-6 text-charcoal">
-              Sign in with your email-only DeepTechly account. Public research
+              Sign in with your DeepTechly account. Public research
               remains available without an account.
             </p>
 
@@ -125,7 +125,7 @@ export default async function SignInPage({ searchParams }: SignInPageProps) {
 
 function getErrorMessage(error: string) {
   if (error === "config") {
-    return "Supabase authentication is not configured for this environment.";
+    return "Account services are not configured for this environment.";
   }
 
   if (error === "invalid") {

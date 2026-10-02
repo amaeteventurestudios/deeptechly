@@ -1,5 +1,7 @@
 # V2 PostgreSQL and Legacy Data Migration Plan
 
+> Historical planning document. Phase 22 completed the real-data rehearsal and Phase 23 made PostgreSQL the only runtime persistence authority. See documents 22–25 for current operations.
+
 ## Status and safety boundary
 
 Phase 9 defines the target PostgreSQL model and an import/reconciliation path. It does **not** connect to a database, apply SQL, alter Supabase, or change production reads and writes. Supabase remains the compatibility source until a separately approved cutover proves backup, import, reconciliation, shadow reads, rollback, and authorization behavior.

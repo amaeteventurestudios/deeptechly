@@ -1,6 +1,7 @@
 import { getServerIdentity } from "./providers/server";
 import { resolveAccountEntitlements } from "@deeptechly/kernel";
 import {
+  ensureAccountForIdentity,
   getUserProfile,
   syncUserProfileEmail,
   type UserProfile
@@ -20,6 +21,7 @@ export type DeeptechlyAuthSession = {
   accessTier: string;
   isInstitutionalVerified: boolean;
   institutionalRequestPending: boolean;
+  isAdmin: boolean;
 };
 
 export async function getAuthSession(): Promise<DeeptechlyAuthSession | null> {
@@ -28,14 +30,17 @@ export async function getAuthSession(): Promise<DeeptechlyAuthSession | null> {
     return null;
   }
 
-  const profile = await getUserProfile(identity.providerUserId);
+  const profile =
+    (await getUserProfile(identity.providerUserId)) ??
+    (await ensureAccountForIdentity(identity));
+  if (!profile) return null;
   if (profile && profile.email !== identity.email) {
     await syncUserProfileEmail(identity.providerUserId, identity.email);
     profile.email = identity.email;
   }
 
   return {
-    userId: identity.providerUserId,
+    userId: profile.id,
     email: identity.email,
     name: profile?.full_name ?? identity.displayName ?? undefined,
     profile,
@@ -43,8 +48,17 @@ export async function getAuthSession(): Promise<DeeptechlyAuthSession | null> {
     isInstitutionalVerified: Boolean(profile?.is_institutional_verified),
     institutionalRequestPending: Boolean(
       profile?.institutional_request_pending
-    )
+    ),
+    isAdmin: Boolean(profile.is_admin) || isConfiguredBootstrapAdmin(identity.email)
   };
+}
+
+function isConfiguredBootstrapAdmin(email: string) {
+  return (process.env.ADMIN_EMAILS ?? "")
+    .split(",")
+    .map((value) => value.trim().toLowerCase())
+    .filter(Boolean)
+    .includes(email.trim().toLowerCase());
 }
 
 export function getInstitutionalAccessState(

@@ -8,7 +8,7 @@ Implementation head before this report: `f45546b` (`Validate DeepTechly V2 golde
 
 ## Executive summary
 
-DeepTechly V2 now has the requested modular workspace, a rebuilt evidence-first product experience, extracted proprietary research policy, first-class Aperture product and intelligence domains, additive PostgreSQL schemas, and tested adapter boundaries for the planned commodity services. The working application remains deployable without those services: Supabase, local workflow execution, compatibility persistence, and local discovery remain the defaults until each cutover is explicitly authorized.
+DeepTechly V2 now has the requested modular workspace, a rebuilt evidence-first product experience, extracted proprietary research policy, first-class Aperture product and intelligence domains, Appwrite authentication architecture, and authoritative transactional PostgreSQL persistence. Public development fixtures remain available without external credentials, but authenticated and persistent operations fail closed; the runtime has no Supabase fallback.
 
 No production database was accessed or migrated. No external capability was represented as live without credentials. The final verified checkout passed lint, type checking, the complete deterministic verification suite, a production build, a production dependency audit, and 20 production-rendered Playwright scenarios.
 
@@ -37,7 +37,7 @@ No production database was accessed or migrated. No external capability was repr
 
 ### Commodity capability boundaries
 
-- Supabase/Appwrite identity provider boundary.
+- Appwrite server-session identity boundary with PostgreSQL account mapping.
 - Local/Trigger.dev workflow provider boundary.
 - Compatibility/Directus newsroom provider boundary.
 - Local/Meilisearch discovery provider boundary.
@@ -66,7 +66,7 @@ infrastructure
   opt-in local PostgreSQL / Directus / Meilisearch / Valkey profiles
 ```
 
-PostgreSQL is the intended V2 authority after an approved import. Directus and Meilisearch are projections; Valkey is ephemeral coordination; object storage owns binary objects only. Appwrite owns identity capability, Trigger.dev owns durable execution, Crawl4AI owns acquisition mechanics, and Langfuse owns trace telemetry. DeepTechly code retains every decision about identity resolution, evidence authority, claims, confidence, synthesis, publication, and Aperture interpretation.
+PostgreSQL is the V2 application authority. Directus and Meilisearch are projections; Valkey is ephemeral coordination; object storage owns binary objects only. Appwrite owns identity capability, Trigger.dev owns durable execution, Crawl4AI owns acquisition mechanics, and Langfuse owns trace telemetry. DeepTechly code retains every decision about identity resolution, evidence authority, claims, confidence, synthesis, publication, and Aperture interpretation.
 
 ## Services used and activation state
 
@@ -74,34 +74,35 @@ PostgreSQL is the intended V2 authority after an approved import. Directus and M
 |---|---|---|
 | Next.js web | Implemented and production-built | Public and account delivery |
 | Worker / Trigger.dev | Task and callback implemented; live project blocked | `local` workflow |
-| Supabase | Preserved and active when configured | Compatibility auth/data |
-| PostgreSQL | Schema ready; no production import or cutover | Future authoritative V2 store |
-| Appwrite | Adapter boundary only; credentials/session design blocked | Supabase |
+| Legacy Supabase artifacts | Migration/archive only | Never selected by runtime |
+| PostgreSQL | Transactional runtime adapter and real-data rehearsal complete | Authoritative application store |
+| Appwrite | Auth/session/recovery architecture complete; external credentials blocked | Sole identity provider |
 | Crawl4AI | Worker adapter only; endpoint/image contract blocked | Existing acquisition path |
 | Directus | CRUD adapter/schema ready; deployment and roles blocked | Compatibility admin store |
 | Meilisearch | Adapter/index policy ready; endpoint and initial index blocked | Complete local search |
 | Langfuse | OTLP adapter ready; endpoint and retention approval blocked | Disabled when unconfigured |
-| Valkey/Redis | Adapter ready; operational policy blocked | Existing compatibility persistence/cache |
+| Valkey/Redis | Adapter ready; operational policy blocked | Cache/coordination only |
 | S3-compatible storage | Adapter ready; bucket/security policy blocked | Existing image/object paths |
 | Lago + Stripe | Adapters and ledgers ready; commercial configuration blocked | Existing verified-institutional flag |
 
 ## Legacy code preserved
 
-- Supabase authentication, cookie/session behavior, profiles, invite codes, saved research, admin access, and service-role persistence.
+- Legacy identity IDs, ownership mappings, publication relationships, research history, timestamps, and provenance preserved through migration ledgers and normalized PostgreSQL records.
 - The current research pipeline, generation code, search-provider behavior, persistence snapshots, retry/watchdog semantics, and queue recovery behavior.
 - Existing article/profile/dossier data contracts, rich compatibility snapshots, source provenance, public Markdown, and visual/image fallback behavior.
 - The custom DeepTechly research-review console for source quality, claims, confidence, eligibility, and recovery decisions.
 - Existing demonstration fixtures as a credential-free visual-review fallback. Placeholder URLs are filtered from public bibliographies and Markdown.
 - The legacy npm lock is retained at `apps/web/package-lock.legacy.json` for dependency provenance.
 
-These compatibility islands are intentional. They prevent a flag day and must remain until identity and data reconciliation prove parity.
+Archived SQL and the legacy dependency lock remain for historical provenance only; they are not runtime inputs.
 
 ## Legacy behavior removed or replaced
 
 No source files or production records were destructively deleted. Replacement work was structural and behavior-preserving:
 
 - Direct queue-to-pipeline dispatch was replaced by a workflow port with the local implementation as default.
-- Direct auth calls in primary account flows were replaced by an auth provider boundary, still backed by Supabase by default.
+- Appwrite replaced the legacy auth client, middleware, browser recovery, service-role admin, and session paths.
+- PostgreSQL replaced legacy profile, invite, saved-research, admin, research-store, and Redis/KV authority fallbacks.
 - Discovery, newsroom, billing, caching, object storage, tracing, and acquisition now cross explicit adapter boundaries.
 - Repetitive dossier lock panels were consolidated into one server-rendered gate; protected content remains absent from public HTML and Markdown.
 - The public queue's internal workflow checklist and capacity diagnostics were replaced with user-facing status and recovery information.
@@ -118,6 +119,11 @@ All migrations are additive, ordered, idempotent, isolated under the `deeptechly
 |---|---|
 | `0001_v2_core.sql` | Accounts and external identities; access and invites; entities, research jobs/runs/events; sources, claims, evidence, contradictions; publication artifacts; patents, labs, technologies, taxonomy, saved research, provenance, and outbox records. |
 | `0002_v2_aperture.sql` | Agencies, government documents/signals, problem statements, requirements, opportunity maps, evidence packs, and their evidence-backed relationships. |
+| `0003_legacy_import_ledger.sql` | Immutable import, identity-map, finding, and reconciliation ledgers. |
+| `0004_newsroom_metadata.sql` | Directus-ready editorial metadata and reviews. |
+| `0005_billing_entitlements.sql` | Billing, subscription, usage, credit, and webhook ledgers. |
+| `0006_legacy_relationships.sql` | Research-output and artifact-source relationships. |
+| `0007_runtime_cutover.sql` | Appwrite identity and PostgreSQL runtime indexes plus non-secret invite hints. |
 | `0003_legacy_import_ledger.sql` | Immutable export/import batches, raw legacy records, identity maps, findings, and reconciliation results. |
 | `0004_newsroom_metadata.sql` | Directus-ready editorial metadata and review records without transferring research truth to the CMS. |
 | `0005_billing_entitlements.sql` | Billing customers/subscriptions, credit ledger, usage events, webhook receipts, and reconciliation-safe provider state. |
@@ -147,21 +153,19 @@ The verified production build uses Node.js 20.17 or newer, pnpm 10.34.5, Next.js
 
 ## Environment variables
 
-### Web and compatibility runtime
+### Web, identity, and PostgreSQL runtime
 
 | Variable | Purpose |
 |---|---|
 | `NEXT_PUBLIC_SITE_URL` | Canonical public origin and auth redirects. |
-| `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Current browser/server Supabase session endpoint and public key. |
-| `SUPABASE_SERVICE_ROLE_KEY` | Server-only compatibility admin/profile/research persistence. |
-| `ADMIN_EMAILS` | Compatibility admin allowlist. |
-| `DEEPTECHLY_BOOTSTRAP_ADMIN_EMAIL`, `DEEPTECHLY_BOOTSTRAP_ADMIN_TEMP_PASSWORD` | Explicit admin bootstrap command only. |
-| `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN` | Existing research-store fallback. |
-| `KV_REST_API_URL`, `KV_REST_API_TOKEN` | Compatibility aliases for that fallback. |
-| `DEEPTECHLY_RESEARCH_STORE_KEY` | Existing aggregate store key; inventory before migration. |
-| `DEEPTECHLY_RESEARCH_STORE_PROVIDER` | Compatibility default; `v2-postgres` enables the explicit read-only Phase 22 rehearsal adapter. |
-| `DEEPTECHLY_V2_DATABASE_URL` | Optional server-only PostgreSQL connection supplied at deployment, never committed. |
+| `APPWRITE_ENDPOINT`, `APPWRITE_PROJECT_ID`, `APPWRITE_API_KEY` | Server-only Appwrite identity and session configuration. |
+| `APPWRITE_SESSION_COOKIE_NAME` | Optional HTTP-only session-cookie override. |
+| `APPWRITE_DATABASE_ID` | Reserved; not required because PostgreSQL owns application data. |
+| `ADMIN_EMAILS` | Bootstrap admin allowlist; database grants are authoritative. |
+| `DEEPTECHLY_BOOTSTRAP_ADMIN_EMAIL`, `DEEPTECHLY_BOOTSTRAP_ADMIN_TEMP_PASSWORD` | Explicit Appwrite/PostgreSQL admin bootstrap command only. |
+| `DEEPTECHLY_V2_DATABASE_URL` | Server-only authoritative PostgreSQL connection, never committed. |
 | `DEEPTECHLY_V2_DATABASE_HOST`, `DEEPTECHLY_V2_DATABASE_PORT`, `DEEPTECHLY_V2_DATABASE_NAME`, `DEEPTECHLY_V2_DATABASE_USER`, `DEEPTECHLY_V2_DATABASE_PASSWORD` | Component form of the V2 connection for secret-managed deployments and isolated rehearsal. |
+| `DEEPTECHLY_V2_DATABASE_SSL`, `DEEPTECHLY_V2_DATABASE_POOL_SIZE` | PostgreSQL transport and pool controls. |
 | `RESEARCH_STAGE_DELAY_MS` | Compatibility pipeline pacing. |
 | `OPENAI_API_KEY`, `OPENAI_MODEL`, `OPENAI_ENABLE_WEB_SEARCH` | Model and optional OpenAI web-search path. Missing key enables the documented demo path. |
 | `SEARCH_PROVIDER`, `TAVILY_API_KEY` | Existing research acquisition search selection. |
@@ -170,8 +174,6 @@ The verified production build uses Node.js 20.17 or newer, pnpm 10.34.5, Next.js
 
 | Variable | Purpose |
 |---|---|
-| `DEEPTECHLY_AUTH_PROVIDER` | `supabase` default or staged `appwrite`. |
-| `APPWRITE_ENDPOINT`, `APPWRITE_PROJECT_ID` | Appwrite adapter readiness; no SDK/session activation is claimed. |
 | `DEEPTECHLY_WORKFLOW_PROVIDER` | `local` default or `trigger`. |
 | `TRIGGER_SECRET_KEY`, `TRIGGER_PROJECT_REF` | Trigger.dev project activation. |
 | `TRIGGER_API_URL` | Optional self-hosted Trigger.dev API selection. |
@@ -195,7 +197,7 @@ The verified production build uses Node.js 20.17 or newer, pnpm 10.34.5, Next.js
 
 ### Local infrastructure and test-only controls
 
-`infrastructure/.env.infrastructure.example` defines the local-only PostgreSQL, Valkey, Meilisearch, and Directus image, port, password, secret, and admin variables. `BASE_URL` selects the Playwright target; `CI` controls its retries/server reuse; `DEEPTECHLY_ALLOW_LIVE_LOAD_TEST=true` is the explicit guard for a live Supabase load smoke. `DATABASE_URL` is reserved for an operator-reviewed migration workflow; repository verification never connects to it.
+`infrastructure/.env.infrastructure.example` defines the local-only PostgreSQL, Valkey, Meilisearch, and Directus image, port, password, secret, and admin variables. `BASE_URL` selects the Playwright target and `CI` controls retries/server reuse. The Phase 23 PostgreSQL rehearsal uses only an isolated local cluster and the ignored recovered backup.
 
 Secrets must remain server-only. Do not prefix service-role, callback, model, search, Directus, billing, observability, storage, or provider credentials with `NEXT_PUBLIC_`.
 
@@ -207,7 +209,7 @@ pnpm install --frozen-lockfile
 pnpm dev
 ```
 
-The web application starts without optional capability services and uses its compatibility/local paths. To run durable tasks separately after Trigger.dev configuration:
+The web application starts public development surfaces without external credentials. Authentication and durable writes require Appwrite and PostgreSQL and fail closed when unconfigured. To run durable tasks separately after Trigger.dev configuration:
 
 ```sh
 pnpm workflow:dev
@@ -224,9 +226,9 @@ Available profiles are `core`, `coordination`, `discovery`, and `newsroom`. Repl
 
 ## Deployment notes
 
-1. Deploy the current web build with the existing Supabase and local compatibility defaults first; verify public pages, auth, queue recovery, admin access, and protected-content exclusion.
-2. Provision an isolated PostgreSQL target and backups. Export legacy sources without writes, apply the additive migrations through a reviewed operator process, import into the ledger, and reconcile counts, checksums, identities, publications, and entitlements before any read switch.
-3. Activate one provider at a time behind its selector. Each activation requires health checks, least privilege, timeout/retry review, reconciliation, monitoring, and a tested rollback to the compatibility implementation.
+1. Provision managed PostgreSQL and Appwrite with backups, least-privilege credentials, allowed origins, and recovery email delivery.
+2. Apply migrations `0001`–`0007`, import the final write-frozen export, and reconcile counts, checksums, identities, publications, and entitlements.
+3. Dry-run then operator-approve Appwrite account mapping; canary sessions, ownership, queue persistence, saved research, admin authorization, public artifacts, Markdown, and Aperture before traffic activation.
 4. Configure Trigger.dev and the authenticated callback only after the internal HTTPS route and shared secret exist. Keep local dispatch available during staged rollout.
 5. Build Directus and Meilisearch only from reconciled PostgreSQL state. Neither may become an authority for research facts or publication decisions.
 6. Review Langfuse sampling/retention before enabling it. Keep content capture off unless explicitly approved.
@@ -236,9 +238,9 @@ Available profiles are `core`, `coordination`, `discovery`, and `newsroom`. Repl
 ## Known limitations
 
 - External providers were verified with deterministic adapters, not live production calls.
-- Appwrite lacks an approved endpoint, credentials, allowed origins, email templates, and final server-session cookie design.
-- PostgreSQL schemas exist, but the application remains on compatibility persistence until an authorized import and reconciliation.
-- The real legacy dataset now passes two isolated PostgreSQL rehearsals and migrated-data rendering; production remains blocked on the transactional write adapter, final freeze export, and operator-approved cutover.
+- Appwrite lacks an approved external endpoint, credentials, allowed origins, and email templates; the server-session architecture itself is complete.
+- PostgreSQL is the runtime authority when configured, but production still requires a managed target, final freeze export, backup/restore proof, and operator-approved activation.
+- The real legacy dataset passes repeated PostgreSQL import, rendering, and transactional-write rehearsals.
 - OpenAI credentials were absent during final verification, so generation tests used deterministic/demo behavior rather than a live model call.
 - Automated Aperture ingestion remains candidate-only until acquisition, workflow, database, schedule, and editorial-review services are activated.
 - Demonstration fixtures remain visible in credential-free development; they are not the production publication corpus.
@@ -246,7 +248,7 @@ Available profiles are `core`, `coordination`, `discovery`, and `newsroom`. Repl
 
 ## External blockers
 
-Production activation requires user-authorized accounts, credentials, endpoints, network and backup policy, service ownership, and (where applicable) approved data migration. The exact requirements for Appwrite, PostgreSQL, Trigger.dev, Crawl4AI, Directus, Meilisearch, Langfuse, Valkey, S3, Lago, and Stripe are maintained in `BLOCKERS.md`. These blockers do not prevent the verified compatibility application from running.
+Production activation requires user-authorized accounts, credentials, endpoints, network and backup policy, service ownership, and (where applicable) approved data migration. The exact requirements for Appwrite, PostgreSQL, Trigger.dev, Crawl4AI, Directus, Meilisearch, Langfuse, Valkey, S3, Lago, and Stripe are maintained in `BLOCKERS.md`. These blockers do not prevent credential-free public development mode from running; authenticated production operations intentionally fail closed until Appwrite and PostgreSQL are configured.
 
 ## Final Git state
 
@@ -256,4 +258,4 @@ Production activation requires user-authorized accounts, credentials, endpoints,
 - Target branch: `rebuild/deeptechly-v2` tracking `origin/rebuild/deeptechly-v2`.
 - Expected handoff state after the report commit: clean worktree with zero commits ahead of or behind the remote.
 
-No implementation phase follows this report. The next action is an operationally reviewed PostgreSQL import rehearsal in an isolated environment, not additional application restructuring.
+Phase 23 completed the runtime cutover after the isolated import rehearsal. The next action is operator-managed external Appwrite/PostgreSQL provisioning and canary activation, not a return to the legacy provider.

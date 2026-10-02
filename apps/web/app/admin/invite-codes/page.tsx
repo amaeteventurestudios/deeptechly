@@ -7,7 +7,6 @@ import { PageShell } from "@/components/layout/PageShell";
 import { getAuthSession } from "@/lib/auth/session";
 import {
   getInviteCodeStatus,
-  isAdminEmail,
   listInviteCodes,
   type InviteCodeRecord
 } from "@/lib/admin/invite-codes";
@@ -38,7 +37,7 @@ export default async function InviteCodesPage({
     redirect("/sign-in?redirectTo=/admin/invite-codes");
   }
 
-  if (!isAdminEmail(session.email)) {
+  if (!session.isAdmin) {
     forbidden();
   }
 
@@ -380,7 +379,7 @@ function formatDate(value: string) {
 
 function getErrorMessage(error: string) {
   if (error === "configuration") {
-    return "Supabase admin configuration is missing for this environment.";
+    return "Application storage is not configured for this environment.";
   }
 
   if (error === "generation_failed") {

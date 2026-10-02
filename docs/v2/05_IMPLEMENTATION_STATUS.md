@@ -2,6 +2,17 @@
 
 This file records stable implementation milestones after the architecture audit. It is updated as phases land; `FINAL_BUILD_REPORT.md` will supersede it at completion.
 
+## Phase 23 — Supabase exit and Appwrite/PostgreSQL cutover
+
+Status: complete in code and isolated validation; external Appwrite/PostgreSQL credentials and operator activation remain.
+
+- Removed active Supabase SDKs, clients, environment variables, provider selection, UI messages, and persistence fallbacks.
+- Implemented Appwrite email/password registration, sign-in, HTTP-only sessions, server validation, sign-out, recovery, and account mapping.
+- Made normalized PostgreSQL repositories authoritative for accounts, profiles, grants, invites, saved research, admin state, and transactional research persistence.
+- Added operator-gated Appwrite account migration and Appwrite/PostgreSQL admin bootstrap tooling.
+- Passed two clean real-data rehearsals with equivalent read, HTTP, reconciliation, and transactional-write reports.
+- Documented the final runtime contract, external activation prerequisites, and provider-independent rollback in `25_SUPABASE_EXIT_AND_APPWRITE_POSTGRES_CUTOVER.md`.
+
 ## Phase 22 — Isolated PostgreSQL migration rehearsal
 
 Status: complete against the recovered August 19, 2026 legacy Supabase cluster dump; no production cutover performed.

@@ -3,7 +3,6 @@
 import { revalidatePath } from "next/cache";
 import { forbidden, redirect } from "next/navigation";
 import { getAuthSession } from "@/lib/auth/session";
-import { isAdminEmail } from "@/lib/admin/invite-codes";
 import { verifyInstitutionalAccess, revokeInstitutionalAccess } from "@/lib/admin/users";
 
 const ADMIN_ROUTE = "/admin/users";
@@ -35,7 +34,7 @@ export async function revokeUserAction(formData: FormData) {
 async function requireAdminAccess() {
   const session = await getAuthSession();
   if (!session) redirect(`/sign-in?redirectTo=${encodeURIComponent(ADMIN_ROUTE)}`);
-  if (!isAdminEmail(session.email)) forbidden();
+  if (!session.isAdmin) forbidden();
 }
 
 function redirectWithError(error: string): never {
@@ -48,5 +47,5 @@ function getField(formData: FormData, key: string) {
 }
 
 function isUuid(value: string) {
-  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+  return /^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/.test(value);
 }

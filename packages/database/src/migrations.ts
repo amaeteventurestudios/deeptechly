@@ -45,6 +45,12 @@ export const databaseMigrations = [
     description: "Preserve research output and artifact source relationships",
     file: "migrations/0006_legacy_relationships.sql",
     destructive: false
+  },
+  {
+    id: "0007",
+    description: "Finalize Appwrite identity and PostgreSQL runtime indexes",
+    file: "migrations/0007_runtime_cutover.sql",
+    destructive: false
   }
 ] as const satisfies readonly DatabaseMigration[];
 

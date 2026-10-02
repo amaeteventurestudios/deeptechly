@@ -1,36 +1,17 @@
-import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
-import { updateEditableUserProfile } from "@/lib/auth/profiles";
-import { getSiteUrl, getSupabaseServiceRoleKey } from "@/lib/supabase/env";
-import { createSupabaseRouteClient } from "@/lib/supabase/route";
+import { NextResponse, type NextRequest } from "next/server";
+import { createRouteIdentityProvider } from "@/lib/auth/providers";
+import { updateAppwriteUserEmail } from "@/lib/auth/providers/appwrite";
+import { syncUserProfileEmail, updateEditableUserProfile } from "@/lib/auth/profiles";
 
-type ProfilePayload = {
-  fullName?: unknown;
-  organization?: unknown;
-  email?: unknown;
-};
+type ProfilePayload = { fullName?: unknown; organization?: unknown; email?: unknown };
 
 export async function POST(request: NextRequest) {
-  const authClient = createSupabaseRouteClient(request);
-
-  if (!authClient || !getSupabaseServiceRoleKey()) {
+  const authClient = createRouteIdentityProvider(request);
+  const identity = await authClient?.getCurrentIdentity();
+  if (!authClient || !identity?.providerUserId || !identity.email) {
     return NextResponse.json(
-      { error: "We could not update your profile. Please try again." },
-      { status: 503 }
-    );
-  }
-
-  const {
-    data: { user },
-    error: userError
-  } = await authClient.supabase.auth.getUser();
-
-  if (userError || !user?.id || !user.email) {
-    return authClient.applyAuthCookies(
-      NextResponse.json(
-        { error: "You must be signed in to update your profile." },
-        { status: 401 }
-      )
+      { error: "You must be signed in to update your profile." },
+      { status: 401 }
     );
   }
 
@@ -38,83 +19,50 @@ export async function POST(request: NextRequest) {
   try {
     payload = (await request.json()) as ProfilePayload;
   } catch {
-    return NextResponse.json(
-      { error: "We could not update your profile. Please try again." },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: "We could not update your profile. Please try again." }, { status: 400 });
   }
 
   const fullName = cleanText(payload.fullName);
   const organization = cleanOptionalText(payload.organization);
   const email = cleanText(payload.email).toLowerCase();
-
   if (!fullName || fullName.length > 120) {
-    return NextResponse.json(
-      { error: "Full name is required." },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: "Full name is required." }, { status: 400 });
   }
-
   if (organization && organization.length > 160) {
-    return NextResponse.json(
-      { error: "Organization must be 160 characters or fewer." },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: "Organization must be 160 characters or fewer." }, { status: 400 });
   }
-
   if (!isValidEmail(email)) {
-    return NextResponse.json(
-      { error: "Enter a valid email address." },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: "Enter a valid email address." }, { status: 400 });
   }
 
-  const profileResult = await updateEditableUserProfile(user.id, {
+  const profileResult = await updateEditableUserProfile(identity.providerUserId, {
     full_name: fullName,
     organization
   });
-
   if (!profileResult.ok) {
-    return NextResponse.json(
-      { error: "We could not update your profile. Please try again." },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "We could not update your profile. Please try again." }, { status: 500 });
   }
 
-  let emailChangeRequested = false;
-  const normalizedCurrentEmail = user.email.toLowerCase();
-
-  if (email !== normalizedCurrentEmail) {
-    const { error } = await authClient.supabase.auth.updateUser(
-      { email },
-      { emailRedirectTo: `${getSiteUrl(request.url)}/account` }
-    );
-
-    if (error) {
-      return authClient.applyAuthCookies(
-        NextResponse.json(
-          { error: "Email changes must be confirmed through the account provider." },
-          { status: 400 }
-        )
+  if (email !== identity.email.toLowerCase()) {
+    const emailResult = await updateAppwriteUserEmail(identity.providerUserId, email);
+    if (!emailResult.ok) {
+      return NextResponse.json(
+        { error: "The account email could not be updated." },
+        { status: 400 }
       );
     }
-
-    emailChangeRequested = true;
+    await syncUserProfileEmail(identity.providerUserId, email);
   }
 
-  return authClient.applyAuthCookies(
-    NextResponse.json({
-      message: emailChangeRequested
-        ? "PROFILE UPDATED. Confirm the email change from your inbox."
-        : "PROFILE UPDATED",
-      profile: {
-        fullName: profileResult.profile.full_name,
-        organization: profileResult.profile.organization,
-        email: user.email
-      },
-      emailChangeRequested
-    })
-  );
+  return NextResponse.json({
+    message: "PROFILE UPDATED",
+    profile: {
+      fullName: profileResult.profile.full_name,
+      organization: profileResult.profile.organization,
+      email
+    },
+    emailChangeRequested: false
+  });
 }
 
 function cleanText(value: unknown) {
@@ -122,8 +70,7 @@ function cleanText(value: unknown) {
 }
 
 function cleanOptionalText(value: unknown) {
-  const cleaned = cleanText(value);
-  return cleaned || null;
+  return cleanText(value) || null;
 }
 
 function isValidEmail(email: string) {

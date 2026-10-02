@@ -1,7 +1,8 @@
 import "server-only";
 
-import { randomInt } from "crypto";
-import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { randomInt, randomUUID } from "node:crypto";
+import { getPostgres } from "@/lib/database/postgres";
+import { hashInviteCode } from "@/lib/auth/profiles";
 
 const CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 const CODE_PREFIX = "DTLY";
@@ -33,227 +34,144 @@ export type CreateInviteCodeInput = {
   expiresAt: string | null;
 };
 
-export type NormalizedInviteCodeRecord = InviteCodeRecord & {
-  redeemed_users: null;
+export type NormalizedInviteCodeRecord = InviteCodeRecord & { redeemed_users: null };
+
+type InviteRow = {
+  id: string;
+  code: string | null;
+  organization: string | null;
+  tier: string | null;
+  max_uses: number | null;
+  used_count: number;
+  expires_at: Date | string | null;
+  disabled_at: Date | string | null;
+  created_at: Date | string;
 };
 
 export function isAdminEmail(email?: string | null) {
-  if (!email) {
-    return false;
-  }
-
-  const normalizedEmail = normalizeEmail(email);
-  return getAdminEmails().includes(normalizedEmail);
+  if (!email) return false;
+  return (process.env.ADMIN_EMAILS ?? "")
+    .split(",")
+    .map((value) => value.trim().toLowerCase())
+    .filter(Boolean)
+    .includes(email.trim().toLowerCase());
 }
 
 export async function listInviteCodes() {
-  const admin = createSupabaseAdminClient();
-
-  if (!admin) {
-    return { ok: false as const, reason: "configuration" };
-  }
-
-  const { data, error } = await admin
-    .from("invite_codes")
-    .select(
-      "id, code, organization, tier, max_uses, used_count, expires_at, disabled_at, created_at"
-    )
-    .order("created_at", { ascending: false });
-
-  if (error) {
-    console.error("Supabase invite code read failed", {
-      code: error.code,
-      message: error.message
-    });
-    return { ok: false as const, reason: "read_failed" };
-  }
-
-  return {
-    ok: true as const,
-    inviteCodes: (data ?? []) as InviteCodeRecord[]
-  };
+  const sql = getPostgres();
+  if (!sql) return { ok: false as const, reason: "configuration" };
+  const rows = await sql<InviteRow[]>`
+    select id, code_hint as code, organization, capability as tier, max_uses,
+      used_count, expires_at, disabled_at, created_at
+    from deeptechly.invite_codes order by created_at desc
+  `;
+  return { ok: true as const, inviteCodes: rows.map(normalizeInviteRow) };
 }
 
 export async function createInviteCode(input: CreateInviteCodeInput) {
-  const admin = createSupabaseAdminClient();
-
-  if (!admin) {
-    return { ok: false as const, reason: "configuration" };
-  }
-
+  const sql = getPostgres();
+  if (!sql) return { ok: false as const, reason: "configuration" };
   for (let attempt = 0; attempt < MAX_CODE_GENERATION_ATTEMPTS; attempt += 1) {
-    const code = await generateUniqueInviteCode();
-
-    if (!code) {
-      return { ok: false as const, reason: "generation_failed" };
+    const code = generateInviteCode();
+    try {
+      const rows = await sql<InviteRow[]>`
+        insert into deeptechly.invite_codes (
+          id, code_hash, code_hint, organization, capability, max_uses, used_count,
+          expires_at, disabled_at, created_at
+        ) values (
+          ${randomUUID()}, ${hashInviteCode(code)}, ${maskInviteCode(code)},
+          ${input.label || null}, ${input.accessTier}, ${input.maxUses}, 0,
+          ${input.expiresAt}, null, now()
+        ) returning id, ${code}::text as code, organization, capability as tier,
+          max_uses, used_count, expires_at, disabled_at, created_at
+      `;
+      return { ok: true as const, inviteCode: normalizeInviteRow(rows[0]) };
+    } catch (error) {
+      if (isUniqueViolation(error)) continue;
+      console.error("PostgreSQL invite creation failed", safeDatabaseError(error));
+      return { ok: false as const, reason: "write_failed" };
     }
-
-    const { data, error } = await admin
-      .from("invite_codes")
-      .insert({
-        code,
-        organization: input.label,
-        tier: input.accessTier,
-        max_uses: input.maxUses,
-        expires_at: input.expiresAt,
-        disabled_at: null
-      })
-      .select(
-        "id, code, organization, tier, max_uses, used_count, expires_at, disabled_at, created_at"
-      )
-      .single<InviteCodeRecord>();
-
-    if (!error && data) {
-      return { ok: true as const, inviteCode: data };
-    }
-
-    if (error?.code === "23505") {
-      continue;
-    }
-
-    console.error("Supabase invite code create failed", {
-      code: error?.code,
-      message: error?.message
-    });
-    return { ok: false as const, reason: "write_failed" };
   }
-
   return { ok: false as const, reason: "generation_failed" };
 }
 
 export async function disableInviteCode(inviteCodeId: string) {
-  const admin = createSupabaseAdminClient();
-
-  if (!admin) {
-    return { ok: false as const, reason: "configuration" };
-  }
-
-  const { data, error } = await admin
-    .from("invite_codes")
-    .update({ disabled_at: new Date().toISOString() })
-    .eq("id", inviteCodeId)
-    .select("code")
-    .single<{ code: string }>();
-
-  if (error || !data) {
-    console.error("Supabase invite code disable failed", {
-      code: error?.code,
-      message: error?.message
-    });
-    return { ok: false as const, reason: "write_failed" };
-  }
-
-  return { ok: true as const, code: data.code };
+  const sql = getPostgres();
+  if (!sql) return { ok: false as const, reason: "configuration" };
+  const rows = await sql<{ code: string | null }[]>`
+    update deeptechly.invite_codes set disabled_at = now()
+    where id = ${inviteCodeId}
+    returning code_hint as code
+  `;
+  return rows[0]
+    ? { ok: true as const, code: rows[0].code ?? "Invite" }
+    : { ok: false as const, reason: "not_found" };
 }
 
-export function getInviteCodeStatus(
-  inviteCode: InviteCodeRecord,
-  now = new Date()
-): InviteCodeStatus {
-  if (inviteCode.disabled_at) {
-    return {
-      isActive: false,
-      label: "Disabled",
-      reason: "Disabled"
-    };
-  }
-
+export function getInviteCodeStatus(inviteCode: InviteCodeRecord, now = new Date()): InviteCodeStatus {
+  if (inviteCode.disabled_at) return { isActive: false, label: "Disabled", reason: "Disabled" };
   if (inviteCode.expires_at && new Date(inviteCode.expires_at) <= now) {
-    return {
-      isActive: false,
-      label: "Expired",
-      reason: "Expired"
-    };
+    return { isActive: false, label: "Expired", reason: "Expired" };
   }
-
-  if (
-    inviteCode.max_uses !== null &&
-    inviteCode.used_count >= inviteCode.max_uses
-  ) {
-    return {
-      isActive: false,
-      label: "Maxed out",
-      reason: "Max uses reached"
-    };
+  if (inviteCode.max_uses !== null && inviteCode.used_count >= inviteCode.max_uses) {
+    return { isActive: false, label: "Maxed out", reason: "Max uses reached" };
   }
-
-  return {
-    isActive: true,
-    label: "Active",
-    reason: "Redeemable"
-  };
+  return { isActive: true, label: "Active", reason: "Redeemable" };
 }
 
 export function generateInviteCode() {
   return `${CODE_PREFIX}-${randomBlock()}-${randomBlock()}-${randomBlock()}`;
 }
 
-export function normalizeInviteCodeRecord(
-  inviteCode: Partial<InviteCodeRecord>
-): NormalizedInviteCodeRecord {
+export function normalizeInviteCodeRecord(inviteCode: Partial<InviteCodeRecord>): NormalizedInviteCodeRecord {
   return {
-    id: inviteCode.id ?? "",
-    code: inviteCode.code ?? "",
-    organization: inviteCode.organization ?? null,
-    tier: inviteCode.tier ?? null,
-    max_uses: inviteCode.max_uses ?? null,
-    used_count: inviteCode.used_count ?? 0,
-    expires_at: inviteCode.expires_at ?? null,
-    disabled_at: inviteCode.disabled_at ?? null,
-    created_at: inviteCode.created_at ?? "",
-    updated_at: inviteCode.updated_at ?? null,
+    id: inviteCode.id ?? "", code: inviteCode.code ?? "",
+    organization: inviteCode.organization ?? null, tier: inviteCode.tier ?? null,
+    max_uses: inviteCode.max_uses ?? null, used_count: inviteCode.used_count ?? 0,
+    expires_at: inviteCode.expires_at ?? null, disabled_at: inviteCode.disabled_at ?? null,
+    created_at: inviteCode.created_at ?? "", updated_at: inviteCode.updated_at ?? null,
     redeemed_users: null
   };
 }
 
 export async function generateUniqueInviteCode() {
-  const admin = createSupabaseAdminClient();
-
-  if (!admin) {
-    return null;
-  }
-
+  const sql = getPostgres();
+  if (!sql) return null;
   for (let attempt = 0; attempt < MAX_CODE_GENERATION_ATTEMPTS; attempt += 1) {
     const code = generateInviteCode();
-    const { data, error } = await admin
-      .from("invite_codes")
-      .select("id")
-      .eq("code", code)
-      .maybeSingle<{ id: string }>();
-
-    if (error) {
-      console.error("Supabase invite code uniqueness check failed", {
-        code: error.code,
-        message: error.message
-      });
-      return null;
-    }
-
-    if (!data) {
-      return code;
-    }
+    const rows = await sql<{ exists: boolean }[]>`
+      select exists(select 1 from deeptechly.invite_codes where code_hash = ${hashInviteCode(code)}) as exists
+    `;
+    if (!rows[0]?.exists) return code;
   }
-
   return null;
+}
+
+function normalizeInviteRow(row: InviteRow): InviteCodeRecord {
+  return {
+    ...row, code: row.code ?? "Invite code",
+    created_at: new Date(row.created_at).toISOString(),
+    expires_at: row.expires_at ? new Date(row.expires_at).toISOString() : null,
+    disabled_at: row.disabled_at ? new Date(row.disabled_at).toISOString() : null
+  };
+}
+
+function maskInviteCode(code: string) {
+  return `${code.slice(0, 9)}-••••-••••`;
 }
 
 function randomBlock() {
   let block = "";
-
   for (let index = 0; index < 4; index += 1) {
     block += CODE_ALPHABET[randomInt(CODE_ALPHABET.length)];
   }
-
   return block;
 }
 
-function getAdminEmails() {
-  return (process.env.ADMIN_EMAILS ?? "")
-    .split(",")
-    .map(normalizeEmail)
-    .filter(Boolean);
+function isUniqueViolation(error: unknown) {
+  return Boolean(error && typeof error === "object" && "code" in error && error.code === "23505");
 }
 
-function normalizeEmail(email: string) {
-  return email.trim().toLowerCase();
+function safeDatabaseError(error: unknown) {
+  return error instanceof Error ? { name: error.name, message: error.message } : { message: "Unknown database error" };
 }

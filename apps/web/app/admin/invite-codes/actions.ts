@@ -5,8 +5,7 @@ import { forbidden, redirect } from "next/navigation";
 import { getAuthSession } from "@/lib/auth/session";
 import {
   createInviteCode,
-  disableInviteCode,
-  isAdminEmail
+  disableInviteCode
 } from "@/lib/admin/invite-codes";
 
 const ADMIN_ROUTE = "/admin/invite-codes";
@@ -65,7 +64,7 @@ async function requireAdminAccess() {
     redirect(`/sign-in?redirectTo=${encodeURIComponent(ADMIN_ROUTE)}`);
   }
 
-  if (!isAdminEmail(session.email)) {
+  if (!session.isAdmin) {
     forbidden();
   }
 }

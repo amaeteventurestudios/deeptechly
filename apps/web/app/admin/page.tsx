@@ -16,7 +16,6 @@ import {
 } from "@/components/admin/AdminOverviewCharts";
 import { PageShell } from "@/components/layout/PageShell";
 import { getAdminOverviewData, type AdminMetric } from "@/lib/admin/overview";
-import { isAdminEmail } from "@/lib/admin/invite-codes";
 import { displayAdminStoredValue } from "@/lib/admin/users";
 import { getAuthSession } from "@/lib/auth/session";
 
@@ -73,7 +72,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
     redirect("/sign-in?redirectTo=/admin");
   }
 
-  if (!isAdminEmail(session.email)) {
+  if (!session.isAdmin) {
     forbidden();
   }
 

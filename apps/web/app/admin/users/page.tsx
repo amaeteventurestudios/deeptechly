@@ -12,7 +12,6 @@ import { AdminNavigation } from "@/components/admin/AdminNavigation";
 import { AuthSubmitButton } from "@/components/auth/AuthSubmitButton";
 import { PageShell } from "@/components/layout/PageShell";
 import { getAuthSession } from "@/lib/auth/session";
-import { isAdminEmail } from "@/lib/admin/invite-codes";
 import {
   displayAdminStoredValue,
   getAdminUserInstitutionalStatus,
@@ -43,7 +42,7 @@ export default async function AdminUsersPage({ searchParams }: UsersPageProps) {
     redirect("/sign-in?redirectTo=/admin/users");
   }
 
-  if (!isAdminEmail(session.email)) {
+  if (!session.isAdmin) {
     forbidden();
   }
 
@@ -291,7 +290,7 @@ function formatDate(value: string) {
 }
 
 function getErrorMessage(error: string) {
-  if (error === "configuration") return "Supabase admin configuration is missing.";
+  if (error === "configuration") return "Application storage is not configured.";
   if (error === "read_failed") return "User profiles could not be loaded.";
   if (error === "write_failed") return "User verification could not be saved. Try again.";
   if (error === "invalid") return "Invalid user ID. The form submission was malformed.";

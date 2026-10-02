@@ -1,41 +1,76 @@
 import assert from "node:assert/strict";
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { createAppwriteIdentityProvider } from "../apps/web/lib/auth/providers/appwrite";
 import { configuredAuthProvider } from "../apps/web/lib/auth/providers/index";
 
 async function verify() {
-  const previousProvider = process.env.DEEPTECHLY_AUTH_PROVIDER;
-  const previousEndpoint = process.env.APPWRITE_ENDPOINT;
-  const previousProject = process.env.APPWRITE_PROJECT_ID;
-
+  const previous = {
+    endpoint: process.env.APPWRITE_ENDPOINT,
+    project: process.env.APPWRITE_PROJECT_ID,
+    apiKey: process.env.APPWRITE_API_KEY,
+    fetch: globalThis.fetch
+  };
   try {
-    delete process.env.DEEPTECHLY_AUTH_PROVIDER;
-    assert.equal(configuredAuthProvider(), "supabase", "Supabase must remain the compatibility default");
-
-    process.env.DEEPTECHLY_AUTH_PROVIDER = "appwrite";
-    assert.equal(configuredAuthProvider(), "appwrite", "Appwrite selection must be explicit");
-
+    assert.equal(configuredAuthProvider(), "appwrite", "Appwrite must be the only runtime identity provider");
     delete process.env.APPWRITE_ENDPOINT;
     delete process.env.APPWRITE_PROJECT_ID;
-    const request = new NextRequest("http://localhost/sign-in") as unknown as Parameters<
-      typeof createAppwriteIdentityProvider
-    >[0];
-    const appwrite = createAppwriteIdentityProvider(request);
-    assert.deepEqual(
-      await appwrite.signIn("test@example.test", "not-a-real-password"),
-      { ok: false, reason: "configuration" },
-      "Unconfigured Appwrite must fail closed"
+    delete process.env.APPWRITE_API_KEY;
+    const unconfigured = createAppwriteIdentityProvider(
+      new NextRequest("http://localhost/sign-in") as unknown as Parameters<typeof createAppwriteIdentityProvider>[0]
     );
-    assert.equal(await appwrite.getCurrentIdentity(), null, "Unconfigured Appwrite must not create an identity");
+    assert.deepEqual(await unconfigured.signIn("test@example.test", "not-a-real-password"), { ok: false, reason: "configuration" });
+    assert.equal(await unconfigured.getCurrentIdentity(), null);
 
-    process.env.DEEPTECHLY_AUTH_PROVIDER = "unsupported";
-    assert.equal(configuredAuthProvider(), "supabase", "Unknown providers must fall back to the working provider");
+    process.env.APPWRITE_ENDPOINT = "https://appwrite.example.test/v1";
+    process.env.APPWRITE_PROJECT_ID = "deeptechly-test";
+    process.env.APPWRITE_API_KEY = "test-only-api-key";
+    const calls: Array<{ path: string; method: string; session?: string }> = [];
+    globalThis.fetch = async (input, init) => {
+      const url = new URL(String(input));
+      const headers = new Headers(init?.headers);
+      calls.push({ path: url.pathname, method: init?.method ?? "GET", session: headers.get("X-Appwrite-Session") ?? undefined });
+      if (url.pathname.endsWith("/account/sessions/email")) {
+        return Response.json({ $id: "session-test", userId: "user-test", expire: "2030-01-01T00:00:00.000Z", secret: "session-secret" }, { status: 201 });
+      }
+      if (url.pathname.endsWith("/account") && (init?.method ?? "GET") === "GET") {
+        return Response.json({ $id: "user-test", $createdAt: "2026-01-01T00:00:00.000Z", $updatedAt: "2026-01-01T00:00:00.000Z", name: "Test User", email: "test@example.test", emailVerification: true, status: true });
+      }
+      if (url.pathname.endsWith("/account/sessions/current")) return new Response(null, { status: 204 });
+      if (url.pathname.endsWith("/account/recovery")) return Response.json({}, { status: 201 });
+      throw new Error(`Unexpected Appwrite test request: ${url.pathname}`);
+    };
 
-    console.log("Auth provider abstraction verification passed.");
+    const provider = createAppwriteIdentityProvider(
+      new NextRequest("http://localhost/sign-in") as unknown as Parameters<typeof createAppwriteIdentityProvider>[0]
+    );
+    const result = await provider.signIn("test@example.test", "correct-password");
+    assert.equal(result.ok, true);
+    assert.equal(result.ok && result.identity?.provider, "appwrite");
+    const response = provider.applyCookies(
+      NextResponse.json({ ok: true }) as unknown as Parameters<typeof provider.applyCookies>[0]
+    );
+    assert.equal(response.cookies.get("a_session_deeptechly-test")?.value, "session-secret");
+    assert.ok(response.cookies.get("a_session_deeptechly-test")?.httpOnly);
+    assert.equal(calls[0].path, "/v1/account/sessions/email");
+    assert.equal(calls[1].session, "session-secret");
+
+    const authenticated = createAppwriteIdentityProvider(
+      new NextRequest("http://localhost/account", { headers: { cookie: "a_session_deeptechly-test=session-secret" } }) as unknown as Parameters<typeof createAppwriteIdentityProvider>[0]
+    );
+    assert.equal((await authenticated.getCurrentIdentity())?.providerUserId, "user-test");
+    assert.deepEqual(await authenticated.requestPasswordReset("test@example.test", "http://localhost/reset-password"), { ok: true });
+    assert.deepEqual(await authenticated.signOut(), { ok: true });
+    const signedOut = authenticated.applyCookies(
+      NextResponse.json({ ok: true }) as unknown as Parameters<typeof authenticated.applyCookies>[0]
+    );
+    assert.equal(signedOut.cookies.get("a_session_deeptechly-test")?.value, "");
+
+    console.log("Appwrite auth and server-session verification passed.");
   } finally {
-    restore("DEEPTECHLY_AUTH_PROVIDER", previousProvider);
-    restore("APPWRITE_ENDPOINT", previousEndpoint);
-    restore("APPWRITE_PROJECT_ID", previousProject);
+    restore("APPWRITE_ENDPOINT", previous.endpoint);
+    restore("APPWRITE_PROJECT_ID", previous.project);
+    restore("APPWRITE_API_KEY", previous.apiKey);
+    globalThis.fetch = previous.fetch;
   }
 }
 
@@ -44,7 +79,4 @@ function restore(name: string, value: string | undefined) {
   else process.env[name] = value;
 }
 
-verify().catch((error) => {
-  console.error(error);
-  process.exitCode = 1;
-});
+verify().catch((error) => { console.error(error); process.exitCode = 1; });

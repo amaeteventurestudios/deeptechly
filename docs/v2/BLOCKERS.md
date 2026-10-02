@@ -4,13 +4,13 @@ This file records integrations that require user-authorized external accounts or
 
 ## Appwrite activation
 
-Status: isolated; not active.
+Status: active runtime architecture; external project not configured in the repository.
 
-An Appwrite endpoint, project ID, allowed-origin configuration, email templates, and an approved server-session cookie design are not available in the repository. The Appwrite identity adapter therefore fails closed, while Supabase remains the working compatibility provider. See `06_AUTH_MIGRATION.md` for the cutover requirements.
+Appwrite is the only runtime identity provider and its HTTP-only server-session design is implemented and deterministically tested. Production sign-in requires an endpoint, project ID, least-privilege API key, allowed production/recovery origins, and email/recovery templates. When those credentials are absent, authentication fails closed with provider-neutral messaging; no legacy provider fallback exists. See `25_SUPABASE_EXIT_AND_APPWRITE_POSTGRES_CUTOVER.md`.
 
 ## PostgreSQL migration activation
 
-The recovered August 19, 2026 legacy dump was imported twice into clean isolated PostgreSQL 17.11 clusters with equivalent results, zero reconciliation mismatches, and migrated-data application rendering. Production import/cutover still requires a final write-frozen export, an approved managed target with backup/restore operations, a transactional V2 write adapter and dual-write soak, encrypted custody, and an authorized operator. The current adapter is deliberately read-only. No production database was accessed or changed during Phases 9 or 22.
+The recovered August 19, 2026 legacy dump was imported twice into clean isolated PostgreSQL 17.11 clusters with equivalent results, zero reconciliation mismatches, migrated-data application rendering, and transactional runtime writes. PostgreSQL is now the only configured application-data authority. Production activation still requires a final write-frozen export, approved managed PostgreSQL with tested backup/restore, encrypted custody, account mapping, canary validation, and an authorized operator. No production database was accessed or changed during Phases 9, 22, or 23.
 
 ## Commodity capability activation
 
@@ -34,7 +34,7 @@ The Aperture intelligence kernel, evidence policy, PostgreSQL schema, Trigger.de
 
 ## Lago and Stripe activation
 
-The billing/checkout ports, adapters, entitlement policy, and additive ledgers are implemented. Live activation requires approved Lago and Stripe accounts, plans/prices, server and webhook signing secrets, tax/invoice/refund policy, webhook ingress, signature verification, replay tests, customer reconciliation, and an authorized application of migration `0005`. The existing verified-institutional profile flag remains authoritative until a reconciled access-grant cutover; payment state never unlocks content directly.
+The billing/checkout ports, adapters, entitlement policy, and additive ledgers are implemented. Live activation requires approved Lago and Stripe accounts, plans/prices, server and webhook signing secrets, tax/invoice/refund policy, webhook ingress, signature verification, replay tests, and customer reconciliation. PostgreSQL access grants are authoritative; payment state never unlocks content directly.
 
 ## Observability, cache, and object-store activation
 

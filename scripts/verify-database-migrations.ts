@@ -46,7 +46,7 @@ const prohibitedStatements = [
 
 assert.deepEqual(
   databaseMigrations.map((migration) => migration.id),
-  ["0001", "0002", "0003", "0004", "0005", "0006"],
+  ["0001", "0002", "0003", "0004", "0005", "0006", "0007"],
   "Migration ledger must remain ordered"
 );
 

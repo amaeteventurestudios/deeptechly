@@ -3,7 +3,6 @@
 import { revalidatePath } from "next/cache";
 import { forbidden, redirect } from "next/navigation";
 import { getAuthSession } from "@/lib/auth/session";
-import { isAdminEmail } from "@/lib/admin/invite-codes";
 import {
   publishContent,
   recoverResearchJob,
@@ -67,7 +66,7 @@ export async function recoverResearchJobAction(formData: FormData) {
 async function requireAdminAccess() {
   const session = await getAuthSession();
   if (!session) redirect(`/sign-in?redirectTo=${encodeURIComponent(ADMIN_ROUTE)}`);
-  if (!isAdminEmail(session.email)) forbidden();
+  if (!session.isAdmin) forbidden();
 }
 
 function redirectWithError(error: string): never {

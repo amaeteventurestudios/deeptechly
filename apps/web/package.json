@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "start": "next start",
     "typecheck": "tsc --noEmit",
     "build": "next build",
     "test:visual": "playwright test",
@@ -15,8 +16,6 @@
     "@deeptechly/research": "workspace:*",
     "@deeptechly/shared": "workspace:*",
     "@deeptechly/ui": "workspace:*",
-    "@supabase/ssr": "0.10.3",
-    "@supabase/supabase-js": "2.105.4",
     "@trigger.dev/sdk": "4.7.0",
     "framer-motion": "12.23.24",
     "lucide-react": "0.468.0",

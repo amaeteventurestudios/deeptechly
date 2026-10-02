@@ -31,4 +31,4 @@ The web app runs on port 3000 by default. If another project already uses that p
 
 ## Migration policy
 
-PostgreSQL is the long-term source of truth, but the current Supabase auth and data paths remain active compatibility adapters until reconciliation and rollback requirements are met. External services are added only when their adapter phase is implemented and tested.
+PostgreSQL is the application source of truth and Appwrite is the authentication architecture. Public development fixtures remain available when those services are unconfigured, but authenticated and persistent operations fail closed; no Supabase configuration is required or supported by the normal runtime.

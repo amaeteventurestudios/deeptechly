@@ -1,5 +1,7 @@
 # Authentication and Account Migration
 
+> Historical Phase 6 plan. Superseded by Phase 23 and `25_SUPABASE_EXIT_AND_APPWRITE_POSTGRES_CUTOVER.md`; the normal runtime now uses Appwrite only.
+
 ## Current production path
 
 `DEEPTECHLY_AUTH_PROVIDER` defaults to `supabase`. Join, sign in, sign out, password-reset requests, and server session reads now call the provider-neutral identity interfaces exported by `@deeptechly/kernel` and the web adapter factory in `apps/web/lib/auth/providers`.

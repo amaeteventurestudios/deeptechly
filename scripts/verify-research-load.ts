@@ -588,16 +588,6 @@ function verifyQueueSortingLoadBehavior() {
   assert.deepEqual(sorted.map((candidate) => candidate.id), ["active", "done", "ready", "failed"]);
 }
 
-async function verifyOptionalLiveSupabaseMode() {
-  if (process.env.DEEPTECHLY_ALLOW_LIVE_LOAD_TEST !== "true") {
-    return "Skipped live Supabase smoke test; DEEPTECHLY_ALLOW_LIVE_LOAD_TEST is not true.";
-  }
-
-  throw new Error(
-    "Live Supabase load mutation is intentionally not implemented for Phase 14G. Use deterministic mode only unless a cleanup-safe RPC is added."
-  );
-}
-
 async function main() {
   ({ buildAdminResearchReview } = await import("@/lib/admin/research-review"));
   ({ normalizeStoredSources } = await import("@/lib/research/source-quality"));
@@ -608,7 +598,6 @@ async function main() {
   verifySourceLoadBehavior();
   verifyAdminReviewLoadBehavior();
   verifyQueueSortingLoadBehavior();
-  const liveModeStatus = await verifyOptionalLiveSupabaseMode();
 
   const elapsedMs = Date.now() - startedAt;
   console.log("Research load verification passed.");
@@ -617,7 +606,6 @@ async function main() {
   console.log(`Deduped source variants: ${metrics.dedupedSources}`);
   console.log(`Admin review records: ${metrics.adminReviewRecords}`);
   console.log(`Runtime: ${elapsedMs}ms`);
-  console.log(liveModeStatus);
 }
 
 main().catch((error) => {

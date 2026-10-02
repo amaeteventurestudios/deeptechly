@@ -5,6 +5,9 @@ const projectRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  ...(process.env.DEEPTECHLY_NEXT_DIST_DIR
+    ? { distDir: process.env.DEEPTECHLY_NEXT_DIST_DIR }
+    : {}),
   reactStrictMode: true,
   poweredByHeader: false,
   experimental: {

@@ -103,7 +103,7 @@ export default async function ForgotPasswordPage({
 
 function getErrorMessage(error: string) {
   if (error === "config") {
-    return "Supabase authentication is not configured for this environment.";
+    return "Account services are not configured for this environment.";
   }
 
   if (error === "send") {

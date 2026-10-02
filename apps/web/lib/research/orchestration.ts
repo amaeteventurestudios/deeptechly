@@ -43,8 +43,7 @@ const transientFailurePatterns = [
   /rate limit/i,
   /temporar/i,
   /unavailable/i,
-  /server/i,
-  /supabase/i
+  /server/i
 ];
 
 const stageTimeoutsMs: Partial<Record<ResearchStage, number>> = {
@@ -441,7 +440,6 @@ function failureCodeForMessage(
   const text = String(message ?? "").toLowerCase();
   if (text.includes("openai")) return "openai_error";
   if (text.includes("tavily")) return "tavily_error";
-  if (text.includes("supabase")) return "supabase_error";
   if (text.includes("timeout") || text.includes("timed out")) return "research_timeout";
   if (text.includes("source")) return "insufficient_sources";
   return "research_pipeline_error";

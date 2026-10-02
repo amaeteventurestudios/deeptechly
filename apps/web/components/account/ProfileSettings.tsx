@@ -180,7 +180,7 @@ export function ProfileSettings({ initialProfile }: ProfileSettingsProps) {
             onChange={setEmail}
             autoComplete="email"
             required
-            helper="Email changes must be confirmed through Supabase Auth."
+            helper="Email changes update your DeepTechly account identity."
           />
 
           {message ? (

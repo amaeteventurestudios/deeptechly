@@ -12,7 +12,7 @@ const viewports = {
   fullHd: { width: 1920, height: 1080 }
 } as const;
 
-const internalDiagnosticPattern = /(?:supabase|postgres|stack trace|internal server error|error code)/i;
+const internalDiagnosticPattern = /(?:database provider|postgres|stack trace|internal server error|error code)/i;
 const uuidPattern = /\b[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\b/i;
 
 async function installRuntimeGuards(page: Page) {
