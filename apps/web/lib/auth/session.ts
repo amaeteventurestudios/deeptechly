@@ -1,4 +1,5 @@
 import { getServerIdentity } from "./providers/server";
+import { resolveAccountEntitlements } from "@deeptechly/kernel";
 import {
   getUserProfile,
   syncUserProfileEmail,
@@ -53,7 +54,14 @@ export function getInstitutionalAccessState(
     return "signed-out";
   }
 
-  if (session.isInstitutionalVerified) {
+  const entitlements = resolveAccountEntitlements({
+    signedIn: true,
+    accessTier: session.accessTier,
+    institutionalVerified: session.isInstitutionalVerified,
+    institutionalPending: session.institutionalRequestPending
+  });
+
+  if (entitlements["dossier.institutional"].granted) {
     return "institutional";
   }
 

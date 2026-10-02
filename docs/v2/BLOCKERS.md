@@ -31,3 +31,7 @@ The public document policy, server query adapter, index settings, worker synchro
 ## Automated Aperture ingestion and persistence
 
 The Aperture intelligence kernel, evidence policy, PostgreSQL schema, Trigger.dev task, public UI, search integration, and a curated official-source artifact family are implemented. Continuous ingestion requires approved Crawl4AI/Trigger.dev endpoints, a reconciled V2 PostgreSQL database, reviewed government-source schedules, and newsroom review roles. Automated workflow output remains candidate-only until those controls exist.
+
+## Lago and Stripe activation
+
+The billing/checkout ports, adapters, entitlement policy, and additive ledgers are implemented. Live activation requires approved Lago and Stripe accounts, plans/prices, server and webhook signing secrets, tax/invoice/refund policy, webhook ingress, signature verification, replay tests, customer reconciliation, and an authorized application of migration `0005`. The existing verified-institutional profile flag remains authoritative until a reconciled access-grant cutover; payment state never unlocks content directly.

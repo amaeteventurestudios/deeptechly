@@ -16,6 +16,8 @@ export type CapabilityConfig = {
   meilisearch?: HttpCapabilityConfig;
   trigger?: HttpCapabilityConfig;
   langfuse?: HttpCapabilityConfig;
+  lago?: HttpCapabilityConfig;
+  stripe?: HttpCapabilityConfig;
 };
 
 export function loadCapabilityConfig(environment: NodeJS.ProcessEnv): CapabilityConfig {
@@ -35,8 +37,38 @@ export function loadCapabilityConfig(environment: NodeJS.ProcessEnv): Capability
     }),
     langfuse: optionalConfig(environment, "LANGFUSE", {
       healthPath: environment.LANGFUSE_HEALTH_PATH ?? "/api/public/health"
-    })
+    }),
+    lago: optionalConfig(environment, "LAGO", {
+      healthPath: environment.LAGO_HEALTH_PATH ?? "/health"
+    }),
+    stripe: stripeConfig(environment)
   };
+}
+
+function stripeConfig(environment: NodeJS.ProcessEnv): HttpCapabilityConfig | undefined {
+  const token = environment.STRIPE_SECRET_KEY?.trim();
+  if (!token) return undefined;
+  if (!token.startsWith("sk_")) throw new Error("STRIPE_SECRET_KEY must be a server-side secret key");
+  const baseUrl = environment.STRIPE_BASE_URL?.trim() || "https://api.stripe.com";
+  const parsed = new URL(baseUrl);
+  if (parsed.protocol !== "https:" && parsed.hostname !== "127.0.0.1" && parsed.hostname !== "localhost") {
+    throw new Error("STRIPE_BASE_URL must use https outside local development");
+  }
+  return {
+    provider: "stripe",
+    baseUrl: parsed.toString().replace(/\/$/, ""),
+    token,
+    healthPath: "/v1/account",
+    timeoutMs: boundedTimeout(environment.STRIPE_TIMEOUT_MS)
+  };
+}
+
+function boundedTimeout(value?: string) {
+  const timeout = Number(value ?? 15_000);
+  if (!Number.isFinite(timeout) || timeout < 100 || timeout > 120_000) {
+    throw new Error("STRIPE_TIMEOUT_MS must be between 100 and 120000");
+  }
+  return timeout;
 }
 
 function optionalConfig(

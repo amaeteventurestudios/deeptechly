@@ -33,6 +33,12 @@ export const databaseMigrations = [
     description: "Add Directus-ready newsroom metadata and editorial review records",
     file: "migrations/0004_newsroom_metadata.sql",
     destructive: false
+  },
+  {
+    id: "0005",
+    description: "Add billing, usage, credit, and entitlement ledgers",
+    file: "migrations/0005_billing_entitlements.sql",
+    destructive: false
   }
 ] as const satisfies readonly DatabaseMigration[];
 

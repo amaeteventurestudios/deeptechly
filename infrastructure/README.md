@@ -30,6 +30,6 @@ The image references are explicit and overrideable so upgrades are reviewed. The
 
 - Trigger.dev and current Langfuse self-hosted deployments are multi-service upstream stacks. Use their maintained Compose distributions and connect via adapters instead of copying a stale subset into this repository.
 - Crawl4AI activation depends on selecting and pinning a supported server image/API contract. The worker adapter accepts a versioned base URL and path without owning truth evaluation.
-- Appwrite, S3-compatible storage, and Lago require their dedicated phases and security configuration.
+- Appwrite and S3-compatible storage require dedicated activation and security configuration. Lago and Stripe now have server adapters and ledger schema, but remain external managed capabilities until accounts, plans, webhooks, and reconciliation are approved.
 
 Relevant upstream documentation: [Directus Docker guide](https://docs.directus.io/self-hosted/docker-guide), [Meilisearch Docker integration](https://www.meilisearch.com/integrations/docker), [Crawl4AI documentation](https://docs.crawl4ai.com/), [Trigger.dev self-hosting](https://trigger.dev/docs/open-source-self-hosting), and [Langfuse self-hosting](https://langfuse.com/self-hosting).

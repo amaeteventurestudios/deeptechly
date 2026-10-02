@@ -276,3 +276,15 @@ Status: complete with publication-safe discovery and no gated-content leakage.
 - Added canonical metadata and citation-bearing JSON-LD to articles, profiles, dossiers, patent briefs, and Aperture briefs.
 - Preserved one publication-filtered data path for HTML, Markdown, local search, optional Meilisearch, and sitemap output.
 - Added deterministic public-discovery checks and end-to-end browser coverage for patent and Aperture machine-readable discovery.
+
+## Phase 19 — Billing and entitlements foundation
+
+Status: adapter and ledger foundation complete; commercial activation is externally blocked and current access behavior is unchanged.
+
+- Added one explicit capability resolver for public reading, account research/saving, and institutional DeepTechly/Aperture access.
+- Routed the existing server-side dossier gate through the resolver while retaining verified profile state as the compatibility authority.
+- Added provider-neutral billing-meter and hosted-checkout contracts plus bounded Lago and Stripe adapters.
+- Added additive customer, subscription, credit-ledger, usage-event, and webhook-inbox schema with idempotency and audit state.
+- Prevented provider state or a Checkout redirect from becoming authorization; only a verified PostgreSQL access grant may unlock gated research.
+- Kept adapters disabled by default, installed no billing infrastructure, selected no final pricing, and contacted no live service.
+- Added deterministic entitlement, adapter-payload, configuration, credential-isolation, and migration verification.

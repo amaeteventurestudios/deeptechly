@@ -161,3 +161,36 @@ export interface ObjectStore extends HealthCheck {
   get(key: string): Promise<Uint8Array | null>;
   signedReadUrl(key: string, expiresInSeconds: number): Promise<string>;
 }
+
+export type BillingCustomer = {
+  accountId: string;
+  email: string;
+  name?: string | null;
+  organization?: string | null;
+};
+
+export type UsageEvent = {
+  idempotencyKey: string;
+  accountId: string;
+  code: string;
+  quantity: number;
+  occurredAt: string;
+  properties?: Record<string, string | number | boolean>;
+};
+
+export interface BillingMeter extends HealthCheck {
+  ensureCustomer(customer: BillingCustomer): Promise<{ externalCustomerId: string }>;
+  reportUsage(event: UsageEvent): Promise<{ externalEventId: string }>;
+}
+
+export type CheckoutRequest = {
+  accountId: string;
+  email: string;
+  priceId: string;
+  successUrl: string;
+  cancelUrl: string;
+};
+
+export interface PaymentCheckout extends HealthCheck {
+  createSubscriptionCheckout(request: CheckoutRequest): Promise<{ sessionId: string; url: string }>;
+}
