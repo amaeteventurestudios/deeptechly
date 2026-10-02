@@ -9,7 +9,7 @@ type Props = { params: Promise<{ slug: string }> };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const signal = await getPublicSignal((await params).slug);
-  return signal ? { title: `${signal.title} | Aperture`, description: signal.summary } : {};
+  return signal ? { title: `${signal.title} | Aperture`, description: signal.summary, alternates: { canonical: `/aperture/signals/${signal.slug}` } } : {};
 }
 
 export default async function SignalPage({ params }: Props) {

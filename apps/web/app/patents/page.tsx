@@ -1,24 +1,19 @@
 import Link from "next/link";
 import { ArrowRight, ExternalLink } from "lucide-react";
 import { PageShell } from "@/components/layout/PageShell";
-import { getPublishedEntities } from "@/lib/research/public-data";
+import { listPublicPatentRecords } from "@/lib/patents/public-data";
 
 export const dynamic = "force-dynamic";
 
 export const metadata = {
   title: "Patent Intelligence | DeepTechly",
   description:
-    "DeepTechly patent intelligence surface for public patent signals and research-linked IP."
+    "DeepTechly patent intelligence surface for public patent signals and research-linked IP.",
+  alternates: { canonical: "/patents" }
 };
 
 export default async function PatentsPage() {
-  const entities = await getPublishedEntities();
-  const patentSources = entities.flatMap((entity) =>
-    [...entity.sources, ...entity.dossier.sources]
-      .filter((source) => source.type === "patent" || source.url.includes("patents"))
-      .map((source) => ({ ...source, entityName: entity.name, slug: entity.slug }))
-  );
-  const visibleSources = patentSources.slice(0, 12);
+  const visibleSources = (await listPublicPatentRecords()).slice(0, 24);
 
   return (
     <PageShell>
@@ -44,7 +39,7 @@ export default async function PatentsPage() {
             <div className="space-y-4">
               {visibleSources.map((source, index) => (
                 <article
-                  key={`${source.slug}-${source.url}-${index}`}
+                  key={`${source.slug}-${index}`}
                   className="border border-black bg-white p-5 shadow-hard"
                 >
                   <p className="text-[10px] font-black uppercase tracking-[0.18em] text-deepOrange">
@@ -54,17 +49,18 @@ export default async function PatentsPage() {
                     {source.title}
                   </h2>
                   <div className="mt-4 flex flex-wrap gap-3">
-                    <a
-                      href={source.url}
-                      target="_blank"
-                      rel="noreferrer"
+                    <Link
+                      href={`/patent/${source.slug}`}
                       className="inline-flex items-center gap-2 border border-black bg-deepOrange px-3 py-2 text-[10px] font-black uppercase tracking-[0.14em]"
                     >
-                      Open Source
-                      <ExternalLink size={13} />
+                      Open Patent Brief
+                      <ArrowRight size={13} />
+                    </Link>
+                    <a href={source.sourceUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 border border-black bg-white px-3 py-2 text-[10px] font-black uppercase tracking-[0.14em]">
+                      Original Source <ExternalLink size={13} />
                     </a>
                     <Link
-                      href={`/startup/${source.slug}`}
+                      href={`/startup/${source.entitySlug}`}
                       className="inline-flex items-center gap-2 border border-black bg-white px-3 py-2 text-[10px] font-black uppercase tracking-[0.14em]"
                     >
                       Related Profile

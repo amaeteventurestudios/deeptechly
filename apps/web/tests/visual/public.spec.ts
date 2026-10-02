@@ -210,6 +210,28 @@ test.describe("public visual QA", () => {
     }
   });
 
+  test("patent archive links to bounded HTML and markdown briefs", async ({ page }) => {
+    await openPublicPage(page, "/patents", viewports.mobile390);
+    const patentHref = await page.locator('a[href^="/patent/"]:not([href$=".md"])').first().getAttribute("href");
+    expect(patentHref).toBeTruthy();
+    await openPublicPage(page, patentHref!, viewports.desktop);
+    await expect(page.getByRole("heading", { name: "Evidence boundary", exact: true })).toBeVisible();
+    await expect(page.locator(`a[href="${patentHref}.md"]`)).toBeVisible();
+    const markdown = await page.request.get(`${patentHref}.md`);
+    expect(markdown.ok()).toBeTruthy();
+    expect(await markdown.text()).toContain("## Evidence boundary");
+  });
+
+  test("sitemap and LLM guides expose Aperture and patent discovery", async ({ request }) => {
+    const sitemap = await (await request.get("/sitemap.xml")).text();
+    expect(sitemap).toContain("/patent/");
+    expect(sitemap).toContain("/aperture/signals/");
+    expect(sitemap).toContain("/aperture/opportunities/");
+    const guide = await (await request.get("/llms-full.txt")).text();
+    expect(guide).toContain("Published Intelligence Artifacts");
+    expect(guide).toContain("Aperture signal");
+  });
+
   test("invalid artifact routes preserve not-found behavior without diagnostics", async ({ page }) => {
     for (const path of ["/article/not-a-real-deeptechly-slug", "/startup/not-a-real-deeptechly-slug", "/dossier/not-a-real-deeptechly-slug"]) {
       const response = await page.goto(path, { waitUntil: "domcontentloaded" });

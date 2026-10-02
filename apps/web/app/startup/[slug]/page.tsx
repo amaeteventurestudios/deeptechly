@@ -12,6 +12,7 @@ import {
   TechnicalSummarySection
 } from "@/components/dossier/DossierComponents";
 import { PageShell } from "@/components/layout/PageShell";
+import { StructuredResearchData } from "@/components/seo/StructuredResearchData";
 import { entities } from "@/lib/data";
 import { getPublishedArtifactAvailability, getPublishedEntityBySlug } from "@/lib/research/public-data";
 import type { ResearchEntity } from "@/lib/types";
@@ -68,6 +69,7 @@ export default async function StartupProfilePage({
 
   return (
     <PageShell>
+      <StructuredResearchData type="Dataset" title={`${entity.name} research profile`} description={entity.summary} path={`/startup/${entity.slug}`} about={entity.name} dateModified={entity.updatedAt} citations={entity.sources.map((source) => source.url)} />
       <ProfileHero entity={entity} articleAvailable={availability.article} dossierAvailable={availability.dossier} />
       <section className="w-full bg-paper">
         <div className="mx-auto grid max-w-[1200px] gap-8 px-4 py-10 sm:px-6 lg:grid-cols-[minmax(0,1fr)_320px] lg:px-8">

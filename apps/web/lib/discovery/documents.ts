@@ -1,6 +1,5 @@
 import "server-only";
 
-import { createHash } from "node:crypto";
 import {
   getPublishedArtifactAvailabilityForSlugs,
   getPublishedEntities
@@ -11,19 +10,20 @@ import {
   listPublicProblems,
   listPublicSignals
 } from "@/lib/aperture/public-data";
+import { listPublicPatentRecords } from "@/lib/patents/public-data";
 
 export async function buildPublishedDiscoveryDocuments(): Promise<DiscoveryDocument[]> {
-  const [entities, signals, problems, opportunities] = await Promise.all([
+  const [entities, signals, problems, opportunities, patents] = await Promise.all([
     getPublishedEntities(),
     listPublicSignals(),
     listPublicProblems(),
-    listPublicOpportunities()
+    listPublicOpportunities(),
+    listPublicPatentRecords()
   ]);
   const availability = await getPublishedArtifactAvailabilityForSlugs(
     entities.map((entity) => entity.slug)
   );
   const documents: DiscoveryDocument[] = [];
-  const seenPatents = new Set<string>();
 
   for (const entity of entities) {
     const publishedAt = entity.article.publishedAt ?? entity.updatedAt ?? entity.createdAt ?? null;
@@ -59,27 +59,23 @@ export async function buildPublishedDiscoveryDocuments(): Promise<DiscoveryDocum
       });
     }
 
-    for (const source of [...entity.sources, ...entity.dossier.sources]) {
-      if (source.type !== "patent" && !/patent/i.test(source.url)) continue;
-      const key = normalizedExternalUrl(source.url);
-      if (!key || seenPatents.has(key)) continue;
-      seenPatents.add(key);
-      documents.push({
-        id: `patent:${createHash("sha256").update(key).digest("hex").slice(0, 20)}`,
-        kind: "patent",
-        title: source.title,
-        slug: entity.slug,
-        summary: `Patent evidence connected to the public ${entity.name} research profile.`,
-        href: key,
-        entityName: entity.name,
-        sector: entity.sector,
-        confidenceLabel: entity.confidenceLabel,
-        sourceCount: 1,
-        publishedAt: source.date ?? publishedAt,
-        external: true,
-        published: true
-      });
-    }
+  }
+
+  for (const patent of patents) {
+    documents.push({
+      id: `patent:${patent.slug}`,
+      kind: "patent",
+      title: patent.title,
+      slug: patent.slug,
+      summary: patent.summary,
+      href: `/patent/${patent.slug}`,
+      entityName: patent.entityName,
+      sector: patent.sector,
+      confidenceLabel: patent.confidenceLabel,
+      sourceCount: 1,
+      publishedAt: patent.sourceDate,
+      published: true
+    });
   }
 
   for (const item of [...signals, ...problems, ...opportunities]) {
@@ -100,13 +96,4 @@ export async function buildPublishedDiscoveryDocuments(): Promise<DiscoveryDocum
   }
 
   return documents;
-}
-
-function normalizedExternalUrl(value: string) {
-  try {
-    const url = new URL(value);
-    return /^https?:$/.test(url.protocol) ? url.toString() : null;
-  } catch {
-    return null;
-  }
 }

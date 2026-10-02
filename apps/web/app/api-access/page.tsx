@@ -4,7 +4,11 @@ import { PageShell } from "@/components/layout/PageShell";
 const routes = [
   ["Articles", "/articles", "/article/[slug].md"],
   ["Company profiles", "/startups", "/startup/[slug].md"],
-  ["Research dossiers", null, "/dossier/[slug].md"]
+  ["Research dossiers", null, "/dossier/[slug].md"],
+  ["Patent source briefs", "/patents", "/patent/[slug].md"],
+  ["Aperture signals", "/aperture/signals", "/aperture/signals/[slug].md"],
+  ["Aperture problems", "/aperture/problems", "/aperture/problems/[slug].md"],
+  ["Aperture opportunities", "/aperture/opportunities", "/aperture/opportunities/[slug].md"]
 ];
 
 export default function ApiAccessPage() {
@@ -18,7 +22,7 @@ export default function ApiAccessPage() {
         </div>
       </section>
       <section className="bg-paper">
-        <div className="mx-auto grid max-w-[1840px] gap-5 px-4 py-10 sm:px-6 lg:grid-cols-3 lg:px-8">
+        <div className="mx-auto grid max-w-[1840px] gap-5 px-4 py-10 sm:px-6 md:grid-cols-2 lg:grid-cols-3 lg:px-8">
           {routes.map(([label, indexRoute, markdownRoute]) => (
             <article key={label} className="border border-black bg-white p-5 shadow-hard">
               <p className="text-[10px] font-black uppercase tracking-[0.18em] text-deepOrange">{label}</p>

@@ -9,6 +9,10 @@ Allow: /article/
 Allow: /startup/
 Allow: /dossier/
 Allow: /patents
+Allow: /patent/
+Allow: /aperture/
+Allow: /explore
+Allow: /api-access
 Allow: /llms.txt
 Allow: /llms-full.txt
 Allow: /sitemap.xml

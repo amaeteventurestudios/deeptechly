@@ -1,4 +1,6 @@
 import { getPublishedArtifactAvailabilityForSlugs, getPublishedEntities } from "@/lib/research/public-data";
+import { listPublicOpportunities, listPublicProblems, listPublicSignals } from "@/lib/aperture/public-data";
+import { listPublicPatentRecords } from "@/lib/patents/public-data";
 
 export const dynamic = "force-dynamic";
 
@@ -19,7 +21,13 @@ const categories = [
 ];
 
 export async function GET() {
-  const entities = await getPublishedEntities();
+  const [entities, patents, signals, problems, opportunities] = await Promise.all([
+    getPublishedEntities(),
+    listPublicPatentRecords(),
+    listPublicSignals(),
+    listPublicProblems(),
+    listPublicOpportunities()
+  ]);
   const availability = await getPublishedArtifactAvailabilityForSlugs(entities.map((entity) => entity.slug));
   const researchIndex = entities
     .slice(0, 36)
@@ -36,6 +44,12 @@ export async function GET() {
     )
     .filter(Boolean)
     .join("\n");
+  const intelligenceIndex = [
+    ...patents.map((item) => `- ${item.entityName} patent source: /patent/${item.slug}.md`),
+    ...signals.map((item) => `- Aperture signal — ${item.title}: /aperture/signals/${item.slug}.md`),
+    ...problems.map((item) => `- Aperture problem — ${item.title}: /aperture/problems/${item.slug}.md`),
+    ...opportunities.map((item) => `- Aperture opportunity — ${item.title}: /aperture/opportunities/${item.slug}.md`)
+  ].join("\n");
 
   const body = `# DeepTechly Expanded LLM Guide
 
@@ -48,6 +62,8 @@ DeepTechly is an AI-native research and intelligence platform for deep-tech comp
 - Article archive: /articles
 - Research profile archive: /startups
 - Patent intelligence archive: /patents
+- Unified discovery: /explore
+- Aperture government-demand intelligence: /aperture
 - Sector archive: /sectors
 - Research queue entry: /research
 - Methodology: /methodology
@@ -66,7 +82,9 @@ Example patterns:
 - /dossier/[slug].md
 - /patent/[slug].md
 
-DeepTechly currently exposes a patent intelligence archive at /patents. Individual patent profile routes should be treated as available only when present in the sitemap.
+Patent Markdown represents the attached public source and its evidence boundary; it must not be interpreted as proof of ownership, assignment, licensing, readiness, or traction.
+
+Aperture Markdown includes published signals, problem statements, and opportunity maps. Capability matches indicate evidence-linked relevance, not procurement eligibility or award probability.
 
 ## Source And Confidence Policy
 
@@ -95,6 +113,10 @@ Use public markdown pages for summaries and citations. Prefer source-linked clai
 ## Published Public Research
 
 ${researchIndex || "- No published public research available."}
+
+## Published Intelligence Artifacts
+
+${intelligenceIndex || "- No published intelligence artifacts available."}
 
 ## Disclaimers
 

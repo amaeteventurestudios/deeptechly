@@ -7,6 +7,7 @@ import type {
   ApertureSignal,
   ApertureSource
 } from "@deeptechly/aperture";
+import { StructuredResearchData } from "@/components/seo/StructuredResearchData";
 
 export function SignalBrief({ signal }: { signal: ApertureSignal }) {
   return (
@@ -99,6 +100,7 @@ function BriefFrame({
   const visibleSections = sections.filter(([, items]) => items.length > 0);
   return (
     <article className="bg-paper">
+      <StructuredResearchData type="Report" title={title} description={summary} path={markdownHref.replace(/\.md$/, "")} citations={sources.map((source) => source.url)} />
       <section className="border-b border-black bg-deepOrange deeptech-texture">
         <div className="mx-auto max-w-[1180px] px-4 py-12 sm:px-6 lg:px-8">
           <p className="text-[11px] font-black uppercase tracking-[0.22em]">{eyebrow}</p>

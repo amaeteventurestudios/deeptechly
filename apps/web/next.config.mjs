@@ -27,6 +27,10 @@ const nextConfig = {
         destination: "/api/markdown/dossier/:slug"
       },
       {
+        source: "/patent/:slug.md",
+        destination: "/api/markdown/patent/:slug"
+      },
+      {
         source: "/aperture/signals/:slug.md",
         destination: "/api/markdown/aperture/signals/:slug"
       },

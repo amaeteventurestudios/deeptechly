@@ -20,6 +20,7 @@ import {
   TechnicalSummarySection
 } from "@/components/dossier/DossierComponents";
 import { PageShell } from "@/components/layout/PageShell";
+import { StructuredResearchData } from "@/components/seo/StructuredResearchData";
 import {
   getAuthSession,
   getInstitutionalAccessState
@@ -80,6 +81,7 @@ export default async function DossierPage({ params }: DossierPageProps) {
 
   return (
     <PageShell>
+      <StructuredResearchData type="Report" title={`${entity.name} institutional dossier`} description={entity.summary} path={`/dossier/${entity.slug}`} about={entity.name} dateModified={entity.updatedAt} citations={entity.dossier.sources.map((source) => source.url)} />
       <DossierHero entity={entity} articleAvailable={availability.article} profileAvailable={availability.profile} />
       <ExternalLinksRow entity={entity} />
       <SnapshotPanel entity={entity} />

@@ -10,7 +10,7 @@ type Props = { params: Promise<{ agency: string }> };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const agency = await getPublicAgency((await params).agency);
-  return agency ? { title: `${agency.name} Intelligence | Aperture`, description: agency.summary } : {};
+  return agency ? { title: `${agency.name} Intelligence | Aperture`, description: agency.summary, alternates: { canonical: `/aperture/agencies/${agency.slug}` } } : {};
 }
 
 export default async function AgencyPage({ params }: Props) {

@@ -7,7 +7,8 @@ export const dynamic = "force-dynamic";
 
 export const metadata = {
   title: "Startups | DeepTechly",
-  description: "Browse DeepTechly public research profiles for deep-tech companies."
+  description: "Browse DeepTechly public research profiles for deep-tech companies.",
+  alternates: { canonical: "/startups" }
 };
 
 export default async function StartupsPage() {

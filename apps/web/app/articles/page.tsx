@@ -11,6 +11,12 @@ import {
 
 export const dynamic = "force-dynamic";
 
+export const metadata = {
+  title: "Research Articles | DeepTechly",
+  description: "Browse evidence-backed DeepTechly research articles.",
+  alternates: { canonical: "/articles" }
+};
+
 export default async function ArticlesPage() {
   const entities = await getPublishedEntities();
   const stories = entities.map(storyFromEntity);

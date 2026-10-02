@@ -14,7 +14,8 @@ export const dynamic = "force-dynamic";
 export const metadata = {
   title: "Explore Deep-Tech Research | DeepTechly",
   description:
-    "Search DeepTechly articles, profiles, patents, technologies, labs, and government-demand intelligence."
+    "Search DeepTechly articles, profiles, patents, technologies, labs, and government-demand intelligence.",
+  alternates: { canonical: "/explore" }
 };
 
 type ExplorePageProps = {

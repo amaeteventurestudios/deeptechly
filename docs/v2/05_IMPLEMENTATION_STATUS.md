@@ -264,3 +264,15 @@ Status: proprietary analysis kernel, durable task, and first evidence-backed pub
 - Published one curated DoD Replicator intelligence family from five official DoD/DIU/DIB sources, with explicit limits on vendor and procurement inference.
 - Added a public evidence pack, agency page, problem statement, opportunity map, signal brief, Markdown, and unified Explore indexing.
 - Added deterministic intelligence verification and expanded browser coverage to the evidence-backed artifacts.
+
+## Phase 18 — Archives, Explore, Markdown, SEO, and AI-readable routes
+
+Status: complete with publication-safe discovery and no gated-content leakage.
+
+- Completed stable patent source-brief HTML and Markdown routes without converting generic search sources into unsupported patent ownership claims.
+- Routed patent results through internal evidence briefs and retained direct original-source plus related-profile links.
+- Expanded the sitemap across public patent, Aperture, agency, archive, and Markdown routes.
+- Expanded `llms.txt`, `llms-full.txt`, API access guidance, and robots policy for patent and government-demand intelligence.
+- Added canonical metadata and citation-bearing JSON-LD to articles, profiles, dossiers, patent briefs, and Aperture briefs.
+- Preserved one publication-filtered data path for HTML, Markdown, local search, optional Meilisearch, and sitemap output.
+- Added deterministic public-discovery checks and end-to-end browser coverage for patent and Aperture machine-readable discovery.

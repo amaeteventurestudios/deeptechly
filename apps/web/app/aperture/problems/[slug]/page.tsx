@@ -9,7 +9,7 @@ type Props = { params: Promise<{ slug: string }> };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const problem = await getPublicProblem((await params).slug);
-  return problem ? { title: `${problem.title} | Aperture`, description: problem.summary } : {};
+  return problem ? { title: `${problem.title} | Aperture`, description: problem.summary, alternates: { canonical: `/aperture/problems/${problem.slug}` } } : {};
 }
 
 export default async function ProblemPage({ params }: Props) {

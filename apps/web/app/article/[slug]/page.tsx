@@ -13,6 +13,7 @@ import {
   SourcesBlock
 } from "@/components/article/ArticleComponents";
 import { PageShell } from "@/components/layout/PageShell";
+import { StructuredResearchData } from "@/components/seo/StructuredResearchData";
 import { entities } from "@/lib/data";
 import { getPublishedArticleEntityBySlug, getPublishedArtifactAvailability } from "@/lib/research/public-data";
 
@@ -70,6 +71,7 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
 
   return (
     <PageShell>
+      <StructuredResearchData type="Article" title={entity.article.headline} description={entity.article.dek} path={`/article/${entity.slug}`} about={entity.name} datePublished={entity.article.publishedAt} dateModified={entity.updatedAt} citations={entity.sources.map((source) => source.url)} />
       <ArticleHero entity={entity} profileAvailable={availability.profile} />
       <ArticleBody
         outline={[

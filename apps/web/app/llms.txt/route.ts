@@ -1,4 +1,6 @@
 import { getPublishedArtifactAvailabilityForSlugs, getPublishedEntities } from "@/lib/research/public-data";
+import { listPublicOpportunities, listPublicProblems, listPublicSignals } from "@/lib/aperture/public-data";
+import { listPublicPatentRecords } from "@/lib/patents/public-data";
 
 export const dynamic = "force-dynamic";
 
@@ -6,7 +8,13 @@ const categories =
   "Space, Defense, Robotics, Energy, Semiconductors, Photonics, Materials, Manufacturing, Sensors, Autonomy, Quantum, Bioinfrastructure, Climate Systems.";
 
 export async function GET() {
-  const entities = await getPublishedEntities();
+  const [entities, patents, signals, problems, opportunities] = await Promise.all([
+    getPublishedEntities(),
+    listPublicPatentRecords(),
+    listPublicSignals(),
+    listPublicProblems(),
+    listPublicOpportunities()
+  ]);
   const availability = await getPublishedArtifactAvailabilityForSlugs(entities.map((entity) => entity.slug));
   const recent = entities
     .slice(0, 12)
@@ -23,6 +31,12 @@ export async function GET() {
     )
     .filter(Boolean)
     .join("\n");
+  const intelligence = [
+    ...patents.slice(0, 12).map((item) => `- Patent source brief: /patent/${item.slug}.md`),
+    ...signals.map((item) => `- Aperture signal: /aperture/signals/${item.slug}.md`),
+    ...problems.map((item) => `- Aperture problem: /aperture/problems/${item.slug}.md`),
+    ...opportunities.map((item) => `- Aperture opportunity: /aperture/opportunities/${item.slug}.md`)
+  ].join("\n");
 
   const body = `# DeepTechly
 
@@ -42,6 +56,11 @@ Important routes:
 - /news
 - /startups
 - /patents
+- /explore
+- /aperture
+- /aperture/signals/[slug].md
+- /aperture/problems/[slug].md
+- /aperture/opportunities/[slug].md
 - /sectors
 - /sitemap.xml
 
@@ -52,6 +71,9 @@ Use public markdown pages for summaries and citations. Institutional analysis ma
 
 Recent public research:
 ${recent || "- No published public research available."}
+
+Public patent and government-demand intelligence:
+${intelligence || "- No published intelligence artifacts available."}
 
 Independent research. Not investment advice.
 `;
