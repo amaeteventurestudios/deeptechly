@@ -1,4 +1,4 @@
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { getServerIdentity } from "./providers/server";
 import {
   getUserProfile,
   syncUserProfileEmail,
@@ -22,35 +22,21 @@ export type DeeptechlyAuthSession = {
 };
 
 export async function getAuthSession(): Promise<DeeptechlyAuthSession | null> {
-  const supabase = await createSupabaseServerClient();
-
-  if (!supabase) {
+  const identity = await getServerIdentity();
+  if (!identity?.email) {
     return null;
   }
 
-  const {
-    data: { user },
-    error
-  } = await supabase.auth.getUser();
-
-  if (error || !user?.email) {
-    return null;
+  const profile = await getUserProfile(identity.providerUserId);
+  if (profile && profile.email !== identity.email) {
+    await syncUserProfileEmail(identity.providerUserId, identity.email);
+    profile.email = identity.email;
   }
-
-  const profile = await getUserProfile(user.id);
-  if (profile && profile.email !== user.email) {
-    await syncUserProfileEmail(user.id, user.email);
-    profile.email = user.email;
-  }
-  const metadataName =
-    typeof user.user_metadata?.full_name === "string"
-      ? user.user_metadata.full_name
-      : undefined;
 
   return {
-    userId: user.id,
-    email: user.email,
-    name: profile?.full_name ?? metadataName,
+    userId: identity.providerUserId,
+    email: identity.email,
+    name: profile?.full_name ?? identity.displayName ?? undefined,
     profile,
     accessTier: profile?.access_tier ?? "free",
     isInstitutionalVerified: Boolean(profile?.is_institutional_verified),

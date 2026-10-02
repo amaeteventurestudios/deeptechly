@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getSiteUrl } from "@/lib/supabase/env";
-import { createSupabaseRouteClient } from "@/lib/supabase/route";
+import { createRouteIdentityProvider } from "@/lib/auth/providers";
 
 export async function POST(request: NextRequest) {
   const formData = await request.formData();
@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const authClient = createSupabaseRouteClient(request);
+  const authClient = createRouteIdentityProvider(request);
 
   if (!authClient) {
     return NextResponse.redirect(
@@ -23,27 +23,29 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const { error } = await authClient.supabase.auth.resetPasswordForEmail(
+  const result = await authClient.requestPasswordReset(
     email,
-    {
-      redirectTo: `${getSiteUrl(request.url)}/reset-password`
-    }
+    `${getSiteUrl(request.url)}/reset-password`
   );
 
-  if (error) {
-    return authClient.applyAuthCookies(
+  if (!result.ok) {
+    return authClient.applyCookies(
       NextResponse.redirect(
-        new URL("/forgot-password?error=send", request.url),
+        new URL(`/forgot-password?error=${isProviderUnavailable(result.reason) ? "config" : "send"}`, request.url),
         { status: 303 }
       )
     );
   }
 
-  return authClient.applyAuthCookies(
+  return authClient.applyCookies(
     NextResponse.redirect(new URL("/forgot-password?sent=1", request.url), {
       status: 303
     })
   );
+}
+
+function isProviderUnavailable(reason: string) {
+  return reason === "configuration" || reason === "provider_unavailable";
 }
 
 function getField(formData: FormData, key: string) {

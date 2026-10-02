@@ -143,3 +143,23 @@ Validation:
 - `pnpm test`
 - `pnpm build`
 - Responsive Playwright rendering and signed-out gating checks for the dossier at 320, 390, 768, 1440, and 1920 pixels.
+
+## Phase 8 — Authentication/account abstraction
+
+Status: implemented as a non-breaking migration boundary; Appwrite activation is externally blocked and documented.
+
+- Expanded the kernel identity port to cover session reads, registration, sign-in, sign-out, password recovery, verified email state, and provider-neutral failure outcomes.
+- Routed join, sign-in, sign-out, password-reset requests, and server session reads through provider adapters.
+- Preserved Supabase as the default compatibility provider, including its existing cookie behavior and production account flow.
+- Added a fail-closed Appwrite adapter boundary without installing an SDK or pretending unconfigured authentication works.
+- Kept profiles, institutional entitlements, invite codes, browser reset exchange, and account email changes as explicit Supabase compatibility islands pending the data/import phase.
+- Documented environment variables, identity mapping invariants, cutover prerequisites, rollback requirements, and the external Appwrite blocker.
+- Added a verification script proving default, explicit Appwrite, and unsupported-provider selection behavior.
+
+Validation:
+
+- `pnpm lint`
+- `pnpm typecheck`
+- `pnpm test` including `verify:auth-adapters`
+- `pnpm build`
+- Existing signed-out/auth-adjacent Playwright regression suite.

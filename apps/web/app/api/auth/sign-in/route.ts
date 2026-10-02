@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { createSupabaseRouteClient } from "@/lib/supabase/route";
+import { createRouteIdentityProvider } from "@/lib/auth/providers";
 
 export async function POST(request: NextRequest) {
   const formData = await request.formData();
@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const authClient = createSupabaseRouteClient(request);
+  const authClient = createRouteIdentityProvider(request);
 
   if (!authClient) {
     return NextResponse.redirect(
@@ -24,22 +24,23 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const { error } = await authClient.supabase.auth.signInWithPassword({
-    email,
-    password
-  });
+  const result = await authClient.signIn(email, password);
 
-  if (error) {
-    return authClient.applyAuthCookies(
-      NextResponse.redirect(new URL("/sign-in?error=invalid", request.url), {
+  if (!result.ok) {
+    return authClient.applyCookies(
+      NextResponse.redirect(new URL(`/sign-in?error=${isProviderUnavailable(result.reason) ? "config" : "invalid"}`, request.url), {
         status: 303
       })
     );
   }
 
-  return authClient.applyAuthCookies(
+  return authClient.applyCookies(
     NextResponse.redirect(new URL(redirectTo, request.url), { status: 303 })
   );
+}
+
+function isProviderUnavailable(reason: string) {
+  return reason === "configuration" || reason === "provider_unavailable";
 }
 
 function getField(formData: FormData, key: string) {

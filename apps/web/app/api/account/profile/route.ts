@@ -93,7 +93,7 @@ export async function POST(request: NextRequest) {
     if (error) {
       return authClient.applyAuthCookies(
         NextResponse.json(
-          { error: "Email changes must be confirmed through Supabase Auth." },
+          { error: "Email changes must be confirmed through the account provider." },
           { status: 400 }
         )
       );

@@ -6,8 +6,8 @@ import {
   resolveInstitutionalInvite,
   type AccessPath
 } from "@/lib/auth/profiles";
+import { createRouteIdentityProvider } from "@/lib/auth/providers";
 import { getSiteUrl, getSupabaseServiceRoleKey } from "@/lib/supabase/env";
-import { createSupabaseRouteClient } from "@/lib/supabase/route";
 
 export async function POST(request: NextRequest) {
   const formData = await request.formData();
@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const authClient = createSupabaseRouteClient(request);
+  const authClient = createRouteIdentityProvider(request);
 
   if (!authClient || !getSupabaseServiceRoleKey()) {
     return NextResponse.redirect(
@@ -59,34 +59,33 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const { data, error } = await authClient.supabase.auth.signUp({
+  const registration = await authClient.register({
     email,
     password,
-    options: {
-      emailRedirectTo: `${getSiteUrl(request.url)}/research`,
-      data: {
-        full_name: name,
-        organization: organization || undefined,
-        access_path: accessPath,
-        institutional_request_pending:
-          accessPath === "institutional"
-            ? inviteResolution.institutionalRequestPending
-            : false
-      }
+    emailRedirectTo: `${getSiteUrl(request.url)}/research`,
+    metadata: {
+      full_name: name,
+      organization: organization || undefined,
+      access_path: accessPath,
+      institutional_request_pending:
+        accessPath === "institutional"
+          ? inviteResolution.institutionalRequestPending
+          : false
     }
   });
 
-  if (error || !data.user) {
-    return authClient.applyAuthCookies(
+  if (!registration.ok || !registration.identity) {
+    const reason = !registration.ok && isProviderUnavailable(registration.reason) ? "config" : "signup";
+    return authClient.applyCookies(
       NextResponse.redirect(
-        new URL(`/join?error=signup&access=${accessPath}`, request.url),
+        new URL(`/join?error=${reason}&access=${accessPath}`, request.url),
         { status: 303 }
       )
     );
   }
 
   const profileResult = await persistUserProfile({
-    authUserId: data.user.id,
+    authUserId: registration.identity.providerUserId,
     fullName: name,
     email,
     organization,
@@ -95,8 +94,8 @@ export async function POST(request: NextRequest) {
   });
 
   if (!profileResult.ok) {
-    await authClient.supabase.auth.signOut();
-    return authClient.applyAuthCookies(
+    await authClient.signOut();
+    return authClient.applyCookies(
       NextResponse.redirect(
         new URL(`/join?error=profile&access=${accessPath}`, request.url),
         { status: 303 }
@@ -104,13 +103,17 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const destination = data.session
+  const destination = registration.hasSession
     ? "/research"
     : "/sign-in?notice=check-email";
 
-  return authClient.applyAuthCookies(
+  return authClient.applyCookies(
     NextResponse.redirect(new URL(destination, request.url), { status: 303 })
   );
+}
+
+function isProviderUnavailable(reason: string) {
+  return reason === "configuration" || reason === "provider_unavailable";
 }
 
 function getField(formData: FormData, key: string) {

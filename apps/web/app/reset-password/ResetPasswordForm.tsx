@@ -30,7 +30,7 @@ export function ResetPasswordForm({ code }: ResetPasswordFormProps) {
       if (!supabase) {
         setState("error");
         setCanUpdatePassword(false);
-        setMessage("Supabase authentication is not configured for this environment.");
+        setMessage("Account authentication is not configured for this environment.");
         return;
       }
 

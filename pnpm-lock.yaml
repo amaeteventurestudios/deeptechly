@@ -26,6 +26,9 @@ importers:
 
   apps/web:
     dependencies:
+      '@deeptechly/kernel':
+        specifier: workspace:*
+        version: link:../../packages/kernel
       '@deeptechly/ui':
         specifier: workspace:*
         version: link:../../packages/ui

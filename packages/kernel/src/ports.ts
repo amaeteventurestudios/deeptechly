@@ -2,6 +2,26 @@ export type ExternalIdentity = {
   provider: string;
   providerUserId: string;
   email: string | null;
+  displayName?: string | null;
+  emailVerified?: boolean;
+};
+
+export type IdentityFailureReason =
+  | "configuration"
+  | "invalid_credentials"
+  | "duplicate_identity"
+  | "provider_unavailable"
+  | "request_failed";
+
+export type IdentityMutationResult =
+  | { ok: true; identity?: ExternalIdentity; hasSession?: boolean }
+  | { ok: false; reason: IdentityFailureReason };
+
+export type IdentityRegistration = {
+  email: string;
+  password: string;
+  emailRedirectTo: string;
+  metadata?: Record<string, string | boolean | undefined>;
 };
 
 export type ResearchDispatchInput = {
@@ -12,6 +32,10 @@ export type ResearchDispatchInput = {
 
 export interface IdentityProvider {
   getCurrentIdentity(): Promise<ExternalIdentity | null>;
+  signIn(email: string, password: string): Promise<IdentityMutationResult>;
+  register(input: IdentityRegistration): Promise<IdentityMutationResult>;
+  signOut(): Promise<IdentityMutationResult>;
+  requestPasswordReset(email: string, redirectTo: string): Promise<IdentityMutationResult>;
 }
 
 export interface WorkflowDispatcher {
