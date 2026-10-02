@@ -8,6 +8,11 @@ import {
   updateResearchJob
 } from "./store";
 import type { ResearchJob } from "./types";
+import { buildInputFingerprint, safeMarkJobFailed } from "./orchestration";
+import {
+  getResearchWorkflowDispatcher,
+  selectedResearchWorkflowProvider
+} from "./workflow";
 
 export type ResearchQueueStats = {
   activeCount: number;
@@ -72,11 +77,57 @@ export async function startNextQueuedResearchJobs() {
     result.startedCount += 1;
     result.startedJobIds.push(reservedJob.id);
 
-    const { runResearchJob } = await import("./pipeline");
-    void runResearchJob(reservedJob.id, reservedJob.query);
+    const provider = selectedResearchWorkflowProvider();
+    const dispatcher = getResearchWorkflowDispatcher(provider);
+    const idempotencyKey =
+      reservedJob.orchestration?.inputFingerprint ??
+      buildInputFingerprint(reservedJob.query);
+
+    try {
+      const dispatchInput = {
+        jobId: reservedJob.id,
+        query: reservedJob.query,
+        idempotencyKey
+      };
+      if (provider === "local") {
+        await recordWorkflowDispatch(reservedJob, provider, `local:${reservedJob.id}`, idempotencyKey);
+        await dispatcher.dispatchResearch(dispatchInput);
+      } else {
+        const handle = await dispatcher.dispatchResearch(dispatchInput);
+        await recordWorkflowDispatch(reservedJob, provider, handle.runId, idempotencyKey);
+      }
+    } catch (error) {
+      await safeMarkJobFailed(reservedJob.id, undefined, {
+        retryable: true,
+        failureType: "transient",
+        failureCode: "workflow_dispatch_failed",
+        failureStage: "resolving_entity",
+        internalMessage: error instanceof Error ? error.message : "Workflow dispatch failed"
+      });
+    }
   }
 
   return result;
+}
+
+async function recordWorkflowDispatch(
+  job: ResearchJob,
+  provider: "local" | "trigger",
+  runId: string,
+  idempotencyKey: string
+) {
+  await updateResearchJob(job.id, {
+    orchestration: {
+      ...job.orchestration,
+      lockKey: job.orchestration?.lockKey ?? idempotencyKey,
+      inputFingerprint: idempotencyKey,
+      attemptCount: job.orchestration?.attemptCount ?? 0,
+      maxAttempts: job.orchestration?.maxAttempts ?? 3,
+      provider,
+      runId,
+      dispatchedAt: new Date().toISOString()
+    }
+  });
 }
 
 export async function drainResearchQueue(userId?: string | null): Promise<ResearchQueueDrainResult> {

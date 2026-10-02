@@ -166,6 +166,14 @@ test.describe("public visual QA", () => {
     await expect(page.locator("h1")).toHaveCount(1);
   });
 
+  test("internal research callback fails closed for public requests", async ({ request }) => {
+    const response = await request.post("/api/internal/research/run", {
+      data: { jobId: "job_public_probe", query: "Acme", idempotencyKey: "entity:acme" }
+    });
+    expect(response.status()).toBe(404);
+    expect(await response.json()).toEqual({ error: "not_found" });
+  });
+
   test("signed-out dossier keeps institutional content gated", async ({ page }) => {
     const { dossierPath } = await discoverArtifactPaths(page);
     const errors = await openPublicPage(page, dossierPath, viewports.mobile390);

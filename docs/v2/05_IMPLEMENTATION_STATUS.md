@@ -196,3 +196,14 @@ Status: adapter foundation implemented; external services remain opt-in and unco
 - Kept source evaluation, confidence, publication, and research truth in DeepTechly code and PostgreSQL boundaries.
 - Documented why Trigger.dev and Langfuse should use their maintained upstream deployment stacks rather than copied partial configurations.
 - Added deterministic adapter verification; no external endpoint was contacted.
+
+## Phase 12 — Durable research orchestration
+
+Status: Trigger.dev task and dispatch cutover implemented behind an explicit provider flag; live activation is externally blocked.
+
+- Added a canonical deterministic research stage plan in `@deeptechly/research`.
+- Replaced direct queue-to-pipeline coupling with the kernel workflow dispatcher and preserved `local` as the compatibility default.
+- Added a pinned Trigger.dev v4 task with idempotency, concurrency, timeout, retry, and external run tracking.
+- Added an authenticated internal execution callback that revalidates persisted job/query/fingerprint state and converts transient pipeline failures into bounded durable retries.
+- Connected user cancellation to persisted cancellation and external Trigger run cancellation.
+- Added direct durable-workflow verification and documented activation, security, and incremental-migration limitations.

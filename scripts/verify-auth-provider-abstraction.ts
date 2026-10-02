@@ -17,7 +17,10 @@ async function verify() {
 
     delete process.env.APPWRITE_ENDPOINT;
     delete process.env.APPWRITE_PROJECT_ID;
-    const appwrite = createAppwriteIdentityProvider(new NextRequest("http://localhost/sign-in"));
+    const request = new NextRequest("http://localhost/sign-in") as unknown as Parameters<
+      typeof createAppwriteIdentityProvider
+    >[0];
+    const appwrite = createAppwriteIdentityProvider(request);
     assert.deepEqual(
       await appwrite.signIn("test@example.test", "not-a-real-password"),
       { ok: false, reason: "configuration" },

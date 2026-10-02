@@ -3,7 +3,16 @@
   "version": "0.2.0",
   "private": true,
   "type": "module",
-  "scripts": { "typecheck": "tsc --noEmit" },
-  "dependencies": { "@deeptechly/kernel": "workspace:*" },
-  "devDependencies": { "@types/node": "20.19.40", "typescript": "5.9.3" }
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "trigger:dev": "pnpm dlx trigger.dev@4.7.0 dev --config trigger.config.ts"
+  },
+  "dependencies": {
+    "@deeptechly/kernel": "workspace:*",
+    "@trigger.dev/sdk": "4.7.0"
+  },
+  "devDependencies": {
+    "@types/node": "20.19.40",
+    "typescript": "5.9.3"
+  }
 }

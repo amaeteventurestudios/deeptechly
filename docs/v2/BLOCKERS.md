@@ -15,3 +15,7 @@ Repository migrations and reconciliation controls are ready, but production impo
 ## Commodity capability activation
 
 Crawl4AI, Directus, Meilisearch, Trigger.dev, Langfuse, Valkey, and object storage have no approved production endpoints, credentials, image policy, network policy, backups, or operational owners in the repository. Phase 11 provides fail-closed ports, adapters, and opt-in local profiles only. No production integration is presented as active.
+
+## Trigger.dev activation
+
+The pinned task, dispatcher, private callback, idempotency, retry, concurrency, and cancellation paths are implemented. Live task registration and external execution require a Trigger.dev project reference/secret, a reachable HTTPS internal web URL, and a shared callback secret configured in both environments. Until those exist, `DEEPTECHLY_WORKFLOW_PROVIDER=local` preserves the tested production path.

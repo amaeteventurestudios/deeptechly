@@ -11,6 +11,7 @@ import {
 } from "@/lib/research/orchestration";
 import { drainResearchQueue } from "@/lib/research/queue";
 import { runResearchWatchdog } from "@/lib/research/watchdog";
+import { getResearchWorkflowDispatcher } from "@/lib/research/workflow";
 
 export const dynamic = "force-dynamic";
 
@@ -87,7 +88,17 @@ export async function PATCH(request: Request, { params }: RouteProps) {
       return NextResponse.json({ job: (await getResearchJob(jobId)) ?? job });
     }
 
+    const runId = existingJob.orchestration?.runId;
+    const provider = existingJob.orchestration?.provider;
     const job = await cancelResearchJob(jobId);
+    if (provider === "trigger" && runId) {
+      await getResearchWorkflowDispatcher("trigger")
+        .cancelResearch(runId)
+        .catch((error) => console.error("Workflow cancellation failed", {
+          jobId,
+          message: error instanceof Error ? error.message : "unknown failure"
+        }));
+    }
     await drainResearchQueue(session.userId);
 
     return NextResponse.json({ job });

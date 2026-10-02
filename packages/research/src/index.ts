@@ -6,3 +6,4 @@ export * from "./limits";
 export * from "./publication";
 export * from "./source-policy";
 export * from "./workflow-policy";
+export * from "./workflow-plan";

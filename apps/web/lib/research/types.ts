@@ -114,6 +114,9 @@ export type ResearchJob = {
     retryable?: boolean;
     failureType?: "transient" | "permanent" | "stuck" | "timeout" | null;
     stuckMarkedAt?: string | null;
+    provider?: "local" | "trigger";
+    runId?: string | null;
+    dispatchedAt?: string | null;
   };
   feed?: {
     slug: string;
