@@ -6,7 +6,7 @@ import {
   detectSBIRReference,
   extractPublicSectorSignals,
   mapPublicSectorSignalsToClaims
-} from "../lib/research/public-sector-recognition";
+} from "@/lib/research/public-sector-recognition";
 
 function includes(value: string[], expected: string) {
   assert.ok(value.includes(expected), `Expected ${JSON.stringify(value)} to include ${expected}`);

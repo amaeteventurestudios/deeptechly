@@ -22,7 +22,7 @@ export default defineConfig({
     video: "off"
   },
   webServer: {
-    command: `npm run dev -- --hostname localhost --port ${port}`,
+    command: `pnpm dev --hostname localhost --port ${port}`,
     url: baseURL,
     reuseExistingServer: !process.env.CI,
     timeout: 120_000

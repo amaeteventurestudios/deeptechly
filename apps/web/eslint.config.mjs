@@ -5,18 +5,12 @@ const eslintConfig = [
   ...nextVitals,
   ...nextTypescript,
   {
-    rules: {
-      "@next/next/no-html-link-for-pages": "off"
-    }
-  },
-  {
     ignores: [
-      "**/.next/**",
-      "**/node_modules/**",
-      "**/out/**",
-      "**/dist/**",
-      "**/next-env.d.ts",
-      "apps/web/package-lock.legacy.json"
+      ".next/**",
+      "node_modules/**",
+      "out/**",
+      "dist/**",
+      "next-env.d.ts"
     ]
   }
 ];

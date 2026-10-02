@@ -578,7 +578,7 @@ async function verifyResearchImageStorage() {
 
 function verifyBannedLanguageTemplates() {
   const generateSource = readFileSync(
-    join(process.cwd(), "lib/research/generate.ts"),
+    join(process.cwd(), "apps/web/lib/research/generate.ts"),
     "utf8"
   );
   const lines = generateSource.split("\n");

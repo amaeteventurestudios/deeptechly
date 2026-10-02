@@ -1,40 +1,30 @@
 {
-  "name": "deeptechly",
-  "version": "0.1.0",
+  "name": "deeptechly-v2",
+  "version": "0.2.0",
   "private": true,
+  "packageManager": "pnpm@10.34.5",
+  "engines": { "node": ">=20.17.0" },
   "scripts": {
-    "dev": "next dev",
+    "dev": "pnpm --filter @deeptechly/web dev",
     "lint": "eslint .",
-    "build": "next build",
-    "test:visual": "playwright test",
-    "test:visual:headed": "playwright test --headed",
-    "audit:links": "npx tsx scripts/audit-links.ts",
-    "verify:research-quality": "npx tsx scripts/verify-entity-resolution.ts && npx tsx scripts/verify-public-sector-recognition.ts && npx tsx scripts/verify-research-quality.ts",
-    "verify:research-orchestration": "npx tsx scripts/verify-research-orchestration.ts",
-    "verify:admin-review": "npx tsx scripts/verify-admin-research-review.ts",
-    "verify:research-load": "npx tsx scripts/verify-research-load.ts",
-    "verify:admin-access": "npx tsx scripts/verify-admin-access-management.ts",
-    "admin:bootstrap": "npx tsx scripts/bootstrap-admin.ts"
-  },
-  "dependencies": {
-    "@supabase/ssr": "^0.10.3",
-    "@supabase/supabase-js": "^2.105.4",
-    "lucide-react": "^0.468.0",
-    "next": "^16.2.6",
-    "react": "^19.2.6",
-    "react-dom": "^19.2.6",
-    "recharts": "^2.13.3"
+    "typecheck": "tsc --noEmit -p tsconfig.json && pnpm -r --if-present typecheck",
+    "test": "pnpm run verify:research-quality && pnpm run verify:research-orchestration && pnpm run verify:admin-review && pnpm run verify:research-load && pnpm run verify:admin-access",
+    "build": "pnpm -r --if-present build",
+    "test:visual": "pnpm --filter @deeptechly/web test:visual",
+    "test:visual:headed": "pnpm --filter @deeptechly/web test:visual:headed",
+    "audit:links": "tsx scripts/audit-links.ts",
+    "verify:research-quality": "tsx scripts/verify-entity-resolution.ts && tsx scripts/verify-public-sector-recognition.ts && tsx scripts/verify-research-quality.ts",
+    "verify:research-orchestration": "tsx scripts/verify-research-orchestration.ts",
+    "verify:admin-review": "tsx scripts/verify-admin-research-review.ts",
+    "verify:research-load": "tsx scripts/verify-research-load.ts",
+    "verify:admin-access": "tsx scripts/verify-admin-access-management.ts",
+    "admin:bootstrap": "tsx scripts/bootstrap-admin.ts"
   },
   "devDependencies": {
-    "@playwright/test": "^1.61.1",
-    "@types/node": "^20.17.6",
-    "@types/react": "^19.2.14",
-    "@types/react-dom": "^19.2.3",
-    "autoprefixer": "^10.4.20",
-    "eslint": "^9.39.4",
-    "eslint-config-next": "^16.2.6",
-    "postcss": "^8.5.10",
-    "tailwindcss": "^3.4.14",
-    "typescript": "^5.6.3"
+    "@types/node": "20.19.40",
+    "eslint": "9.39.4",
+    "eslint-config-next": "16.2.6",
+    "tsx": "4.23.15",
+    "typescript": "5.9.3"
   }
 }

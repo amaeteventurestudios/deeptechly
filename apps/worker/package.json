@@ -1,0 +1,9 @@
+{
+  "name": "@deeptechly/worker",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "scripts": { "typecheck": "tsc --noEmit" },
+  "dependencies": { "@deeptechly/kernel": "workspace:*" },
+  "devDependencies": { "@types/node": "20.19.40", "typescript": "5.9.3" }
+}

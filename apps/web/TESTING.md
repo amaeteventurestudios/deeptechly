@@ -1,12 +1,13 @@
 # Browser visual QA
 
-Install the Chromium browser once after dependencies are installed:
+From the repository root, install dependencies and the Chromium browser once:
 
 ```bash
-npx playwright install chromium
+pnpm install
+pnpm --filter @deeptechly/web exec playwright install chromium
 ```
 
-Run the signed-out browser smoke and responsive suite with `npm run test:visual`, or use `npm run test:visual:headed` to watch Chromium. The suite starts the Next.js app at `http://localhost:3000` and reuses that server outside CI when it is already running.
+Run the signed-out browser smoke and responsive suite from the repository root with `pnpm test:visual`, or use `pnpm test:visual:headed` to watch Chromium. The suite starts the Next.js app at `http://localhost:3000` and reuses that server outside CI when it is already running. Set `BASE_URL` when port 3000 belongs to another local service.
 
 Tests discover real published article and profile links from the local `/news` and `/startups` archives. The repository's deterministic public seed records keep artifact coverage available when persistent development data is unavailable. If an environment has no public records, the discovery assertion fails rather than fabricating coverage.
 

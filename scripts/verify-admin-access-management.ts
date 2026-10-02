@@ -158,10 +158,10 @@ function verifyAdminEmailGate() {
 }
 
 function verifyServerOnlyInviteGeneration() {
-  const inviteLibrary = readFileSync("lib/admin/invite-codes.ts", "utf8");
-  const inviteActions = readFileSync("app/admin/invite-codes/actions.ts", "utf8");
+  const inviteLibrary = readFileSync("apps/web/lib/admin/invite-codes.ts", "utf8");
+  const inviteActions = readFileSync("apps/web/app/admin/invite-codes/actions.ts", "utf8");
   const copyButton = readFileSync(
-    "components/admin/CopyInviteCodeButton.tsx",
+    "apps/web/components/admin/CopyInviteCodeButton.tsx",
     "utf8"
   );
 

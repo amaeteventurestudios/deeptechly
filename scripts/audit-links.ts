@@ -5,9 +5,7 @@
  * checks each href for HTTP status, and writes a markdown report.
  *
  * Usage:
- *   npx tsx scripts/audit-links.ts
- *   # or after adding the package.json script:
- *   npm run audit:links
+ *   pnpm audit:links
  *
  * Requires the Next.js dev server to be running at BASE_URL (default: http://localhost:3000).
  */
