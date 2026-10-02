@@ -29,6 +29,9 @@ importers:
       '@deeptechly/kernel':
         specifier: workspace:*
         version: link:../../packages/kernel
+      '@deeptechly/research':
+        specifier: workspace:*
+        version: link:../../packages/research
       '@deeptechly/ui':
         specifier: workspace:*
         version: link:../../packages/ui

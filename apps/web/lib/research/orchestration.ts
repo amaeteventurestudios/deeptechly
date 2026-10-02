@@ -1,36 +1,29 @@
 import type { ResearchFailureStage, ResearchJob, ResearchStage } from "./types";
 import {
+  computeRetryDelay,
+  isActiveResearchStatus,
+  isTerminalResearchStatus,
+  redactInternalFailure,
+  safePublicErrorMessage
+} from "@deeptechly/research";
+import {
   createCanonicalSlug,
   normalizeDomain,
   normalizeEntityName
 } from "./entity-resolution";
+
+export {
+  computeRetryDelay,
+  isActiveResearchStatus,
+  isTerminalResearchStatus,
+  normalizeResearchStatus
+} from "@deeptechly/research";
 
 export const MAX_RESEARCH_JOB_ATTEMPTS = 3;
 export const MAX_MANUAL_RESEARCH_RETRIES = 3;
 export const MAX_AUTOMATIC_RESEARCH_RETRIES = 1;
 export const RETRYABLE_RESEARCH_FAILURE_COPY =
   "Research failed. We could not complete this research job. Try a more specific company name, domain, patent number, or source URL.";
-
-const terminalStatuses = new Set<ResearchStage>(["done", "failed", "cancelled"]);
-const activeStatuses = new Set<ResearchStage>([
-  "resolving_entity",
-  "finding_official_domain",
-  "confirming_company_identity",
-  "searching_web",
-  "reading_homepage",
-  "reading_technical_pages",
-  "distilling_facts",
-  "filling_gaps",
-  "verifying_claims",
-  "mapping_technology_stack",
-  "mapping_government_relevance",
-  "estimating_readiness",
-  "drafting_outputs",
-  "publishing_article",
-  "publishing_profile",
-  "public_research_ready",
-  "finalizing_dossier"
-]);
 
 const permanentFailurePatterns = [
   /authorization/i,
@@ -71,23 +64,6 @@ const stageTimeoutsMs: Partial<Record<ResearchStage, number>> = {
 };
 
 const workerStalledMs = 5 * 60 * 1000;
-
-export function normalizeResearchStatus(status: string | null | undefined): ResearchStage {
-  const normalized = String(status ?? "queued").trim().toLowerCase();
-  if (normalized === "complete" || normalized === "completed") return "done";
-  if (normalized === "ready") return "public_research_ready";
-  if (normalized === "error") return "failed";
-  if (isResearchStage(normalized)) return normalized;
-  return "queued";
-}
-
-export function isTerminalResearchStatus(status: string | null | undefined) {
-  return terminalStatuses.has(normalizeResearchStatus(status));
-}
-
-export function isActiveResearchStatus(status: string | null | undefined) {
-  return activeStatuses.has(normalizeResearchStatus(status));
-}
 
 export function canRetryResearchJob(job: ResearchJob, now = new Date()) {
   if (job.stage !== "failed") return false;
@@ -177,11 +153,6 @@ export function getResearchJobStallReason(
   }
 
   return null;
-}
-
-export function computeRetryDelay(attemptCount: number) {
-  const normalizedAttempt = Math.max(0, Math.floor(attemptCount));
-  return Math.min(15 * 60 * 1000, 2 ** normalizedAttempt * 60 * 1000);
 }
 
 export function buildJobLockKey(input: {
@@ -453,31 +424,11 @@ export function getMaxAttempts(job: ResearchJob) {
 }
 
 export function safeErrorMessage(message: string | null | undefined) {
-  const fallback = RETRYABLE_RESEARCH_FAILURE_COPY;
-  const text = String(message ?? "").trim();
-  if (!text) return fallback;
-  if (/stack|trace|at\s+\w+|api\s*key|apikey|api_key|service_role|supabase_service_role|authorization|bearer/i.test(text)) {
-    return fallback;
-  }
-  return text.length > 180 ? fallback : text;
+  return safePublicErrorMessage(message, RETRYABLE_RESEARCH_FAILURE_COPY);
 }
 
 export function safeInternalFailureMessage(message: string | null | undefined) {
-  const text = String(message ?? "").replace(/\s+/g, " ").trim();
-  if (!text) {
-    return "Unknown research failure.";
-  }
-
-  const redacted = text
-    .replace(/Bearer\s+[A-Za-z0-9._-]+/gi, "Bearer [redacted]")
-    .replace(/sk-[A-Za-z0-9_-]+/gi, "sk-[redacted]")
-    .replace(/eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/g, "[redacted-token]")
-    .replace(
-      /\b(apikey|api_key|service_role|supabase_service_role|authorization)\b\s*[:=]\s*[^,\s}]+/gi,
-      "$1=[redacted]"
-    );
-
-  return redacted.length > 1200 ? `${redacted.slice(0, 1197)}...` : redacted;
+  return redactInternalFailure(message);
 }
 
 function failureCodeForMessage(
@@ -502,32 +453,6 @@ export function stageTimeoutForResearchStage(stage: ResearchStage) {
 
 export function workerStalledThresholdMs() {
   return workerStalledMs;
-}
-
-function isResearchStage(value: string): value is ResearchStage {
-  return [
-    "queued",
-    "resolving_entity",
-    "finding_official_domain",
-    "confirming_company_identity",
-    "searching_web",
-    "reading_homepage",
-    "reading_technical_pages",
-    "distilling_facts",
-    "filling_gaps",
-    "verifying_claims",
-    "mapping_technology_stack",
-    "mapping_government_relevance",
-    "estimating_readiness",
-    "drafting_outputs",
-    "publishing_article",
-    "publishing_profile",
-    "finalizing_dossier",
-    "public_research_ready",
-    "done",
-    "failed",
-    "cancelled"
-  ].includes(value);
 }
 
 function hasUsableArtifact(job: ResearchJob) {

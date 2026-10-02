@@ -31,6 +31,10 @@ import {
 import type { EntityResolutionMetadata, EntityInputType } from "./entity-resolution";
 import type { TargetEntityAnchor } from "./entity-anchor";
 import type { ResearchImageResolution } from "./image-resolution";
+import {
+  calculateEvidenceConfidence,
+  confidenceLabelForScore
+} from "@deeptechly/research";
 
 const profilePersona = "Axon Reyes";
 const dossierPersona = "Daxon Pierce";
@@ -80,13 +84,6 @@ const dossierHighlightsSchema = {
   },
   required: ["executiveSummary", "strategicOutlook"]
 };
-
-function confidenceLabel(score: number): ConfidenceLabel {
-  if (score >= 80) return "HIGH CONFIDENCE";
-  if (score >= 60) return "MODERATE CONFIDENCE";
-  if (score >= 35) return "LIMITED PUBLIC DATA";
-  return "LOW CONFIDENCE";
-}
 
 function asSource(summary: SourceSummary): Source {
   const enriched = summary as EnrichedSourceSummary;
@@ -165,26 +162,10 @@ function confidenceScoreForSources(
   verification: ClaimVerification
 ) {
   const mix = sourceMix(summaries);
-  const moderate = Math.max(0, mix.total - mix.strongOrBetter - mix.weak);
-  const score =
-    18 +
-    mix.official * 16 +
-    (mix.strongOrBetter - mix.official) * 11 +
-    moderate * 5 +
-    Math.min(mix.weak, 3) * 2 +
-    verification.confirmed.length * 3 -
-    verification.unverified.length * 4;
-  let bounded = Math.min(100, Math.max(0, score));
-
-  if (!mix.hasReliableEvidence) {
-    bounded = Math.min(bounded, 34);
-  } else if (mix.official === 0) {
-    bounded = Math.min(bounded, 59);
-  } else if (mix.official < 2 || mix.strongOrBetter < 3) {
-    bounded = Math.min(bounded, 79);
-  }
-
-  return bounded;
+  return calculateEvidenceConfidence(mix, {
+    confirmed: verification.confirmed.length,
+    unverified: verification.unverified.length
+  });
 }
 
 function agencyPhrase(facts: ExtractedEntityFacts) {
@@ -339,7 +320,7 @@ function fallbackDossier(
       sectorActivity: facts.sector === "Deep Tech" ? 60 : 76
     },
     accuracyAndConfidence: {
-      label: confidenceLabel(score),
+      label: confidenceLabelForScore(score) as ConfidenceLabel,
       confirmed: verification.confirmed,
       inferred: verification.inferred,
       unverified: [
@@ -766,7 +747,7 @@ export async function generateResearchOutput({
   const imageAttribution = imageResolution?.imageAttribution ?? null;
   const sourceCount = Math.max(sources.length, facts.sourceUrls.length);
   const score = confidenceScoreForSources(summaries, verification);
-  const label = confidenceLabel(score);
+  const label = confidenceLabelForScore(score) as ConfidenceLabel;
   const secondary = facts.secondarySectors.length
     ? facts.secondarySectors
     : ["Technology", "Government Relevance"];

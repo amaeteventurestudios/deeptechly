@@ -24,7 +24,10 @@ import {
   type EntityCandidate
 } from "./entity-resolution";
 import { queueProgressByStage } from "./display";
-import { MIN_SOURCE_COUNT_TO_PUBLISH } from "./limits";
+import {
+  isCompletedFeedEligible,
+  isPublicationEligible
+} from "@deeptechly/research";
 import {
   buildInputFingerprint,
   buildJobLockKey,
@@ -1047,27 +1050,11 @@ export async function listPublishedEntities() {
 }
 
 export function isPublishable(entity: ResearchEntity) {
-  return Boolean(
-    entity.sourceCount >= MIN_SOURCE_COUNT_TO_PUBLISH &&
-      entity.article.headline &&
-      entity.article.sections.length >= 4 &&
-      entity.name &&
-      entity.summary &&
-      entity.dossier.executiveSummary.length > 0 &&
-      entity.confidenceScore >= 50
-  );
+  return isPublicationEligible(entity);
 }
 
 export function isCompletedResearchFeedEligible(entity: ResearchEntity) {
-  return Boolean(
-    entity.article.headline &&
-      entity.article.dek &&
-      entity.article.sections.length >= 4 &&
-      entity.name &&
-      entity.summary &&
-      entity.dossier.executiveSummary.length > 0 &&
-      entity.confidenceScore >= 50
-  );
+  return isCompletedFeedEligible(entity);
 }
 
 export async function saveResearchOutput(jobId: string, output: ResearchOutput) {

@@ -175,3 +175,13 @@ Status: implemented as additive schema and offline migration controls; no live d
 - Kept lossless compatibility snapshots for rich legacy aggregates while separating public and institutional dossier content.
 - Added immutable legacy import, identity-map, finding, and reconciliation ledgers plus a field-level migration runbook.
 - Added offline migration verification to the standard test suite. No script connects to `DATABASE_URL` or applies SQL automatically.
+
+## Phase 10 — DeepTechly proprietary kernel extraction
+
+Status: implemented as a behavior-preserving package boundary.
+
+- Extracted production-used entity identity, source policy, confidence, publication eligibility, research limits, workflow-state, retry, and error-redaction rules into `@deeptechly/research`.
+- Kept provider and framework dependencies outside the package; it has no runtime dependency on Next.js, Supabase, UI, or environment variables.
+- Retained existing web module exports as compatibility façades while routing policy decisions through the shared package.
+- Added direct kernel verification and kept the existing research quality/orchestration suites as compatibility regression coverage.
+- Documented ownership, invariants, and intentionally deferred stateful/provider-bound modules in `08_RESEARCH_KERNEL.md`.

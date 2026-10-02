@@ -3,13 +3,25 @@ import "server-only";
 import type { Source, SourceType } from "@/lib/types";
 import type { SearchResult, SourceSummary } from "./types";
 import {
+  normalizeSourceUrl,
+  publisherFromUrl,
+  qualityForSourceType,
+  type SourceQualityTier
+} from "@deeptechly/research";
+import {
   classifyPublicSectorSource,
   extractPublicSectorSignals,
   mapPublicSectorSignalsToClaims
 } from "./public-sector-recognition";
 
 export type ResearchSourceType = SourceType;
-export type SourceQualityTier = "official" | "strong" | "moderate" | "weak";
+export type { SourceQualityTier } from "@deeptechly/research";
+export {
+  isPublishableSourceUrl,
+  normalizeSourceUrl,
+  publisherFromUrl,
+  qualityForSourceType
+} from "@deeptechly/research";
 export type SourceMetadata = {
   publisher?: string;
   retrievedAt?: string;
@@ -23,19 +35,6 @@ export type EnrichedSourceSummary = SourceSummary & SourceMetadata;
 export type EnrichedSource = Source & {
   qualityTier?: SourceQualityTier;
 };
-
-const TRACKING_PREFIXES = ["utm_", "vero_", "ga_"];
-const TRACKING_PARAMS = new Set([
-  "fbclid",
-  "gclid",
-  "mc_cid",
-  "mc_eid",
-  "msclkid",
-  "ref",
-  "ref_src",
-  "source",
-  "spm"
-]);
 
 const sourceRank: Record<ResearchSourceType, number> = {
   company_site: 9,
@@ -56,66 +55,6 @@ const qualityRank: Record<SourceQualityTier, number> = {
   moderate: 2,
   weak: 1
 };
-
-const placeholderSourceHosts = new Set([
-  "example.com",
-  "example.org",
-  "example.net",
-  "localhost"
-]);
-
-export function isPublishableSourceUrl(value: string) {
-  try {
-    const url = new URL(value);
-    const hostname = url.hostname.toLowerCase().replace(/^www\./, "");
-    return (
-      /^https?:$/.test(url.protocol) &&
-      !placeholderSourceHosts.has(hostname) &&
-      !hostname.endsWith(".invalid") &&
-      !hostname.endsWith(".test")
-    );
-  } catch {
-    return false;
-  }
-}
-
-export function normalizeSourceUrl(url: string) {
-  try {
-    const parsed = new URL(url.trim());
-    parsed.hash = "";
-    parsed.protocol = "https:";
-    parsed.hostname = parsed.hostname.toLowerCase().replace(/^www\./, "");
-
-    for (const key of [...parsed.searchParams.keys()]) {
-      const lower = key.toLowerCase();
-      if (
-        TRACKING_PARAMS.has(lower) ||
-        TRACKING_PREFIXES.some((prefix) => lower.startsWith(prefix))
-      ) {
-        parsed.searchParams.delete(key);
-      }
-    }
-
-    parsed.searchParams.sort();
-    parsed.pathname = parsed.pathname.replace(/\/{2,}/g, "/").replace(/\/$/, "") || "/";
-
-    if (parsed.pathname === "/" && !parsed.search) {
-      return `${parsed.protocol}//${parsed.hostname}`;
-    }
-
-    return parsed.toString();
-  } catch {
-    return url.trim();
-  }
-}
-
-export function publisherFromUrl(url: string) {
-  try {
-    return new URL(normalizeSourceUrl(url)).hostname.replace(/^www\./, "");
-  } catch {
-    return undefined;
-  }
-}
 
 function includesAny(value: string, needles: string[]) {
   return needles.some((needle) => value.includes(needle));
@@ -205,28 +144,6 @@ export function classifySource(url: string, title = ""): ResearchSourceType {
 
 export function displaySourceType(sourceType: ResearchSourceType): SourceType {
   return sourceType;
-}
-
-export function qualityForSourceType(sourceType: ResearchSourceType): SourceQualityTier {
-  if (
-    sourceType === "company_site" ||
-    sourceType === "government" ||
-    sourceType === "patent" ||
-    sourceType === "academic"
-  ) {
-    return "official";
-  }
-  if (
-    sourceType === "press_release" ||
-    sourceType === "investor" ||
-    sourceType === "database"
-  ) {
-    return "strong";
-  }
-  if (sourceType === "news" || sourceType === "jobs") {
-    return "moderate";
-  }
-  return "weak";
 }
 
 export function supportsClaimsForSource(sourceType: ResearchSourceType, text = "") {
