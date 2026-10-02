@@ -163,3 +163,15 @@ Validation:
 - `pnpm test` including `verify:auth-adapters`
 - `pnpm build`
 - Existing signed-out/auth-adjacent Playwright regression suite.
+
+## Phase 9 — PostgreSQL/data layer cleanup and migration
+
+Status: implemented as additive schema and offline migration controls; no live database was changed.
+
+- Added an ordered, idempotent PostgreSQL migration ledger under `packages/database/migrations` using an isolated `deeptechly` schema.
+- Added stable internal accounts with provider identity mappings so Supabase and future Appwrite identities can coexist during migration.
+- Normalized research jobs/runs/events, sources, claims, evidence, contradictions, publishing, patents, labs, technologies, taxonomy, saved research, provenance, and transactional outbox domains.
+- Added first-class Aperture data domains that reuse core evidence instead of duplicating it.
+- Kept lossless compatibility snapshots for rich legacy aggregates while separating public and institutional dossier content.
+- Added immutable legacy import, identity-map, finding, and reconciliation ledgers plus a field-level migration runbook.
+- Added offline migration verification to the standard test suite. No script connects to `DATABASE_URL` or applies SQL automatically.
