@@ -27,6 +27,9 @@ const mockFetch = (async (input: string | URL | Request, init?: RequestInit) => 
       processingTimeMs: 2
     });
   }
+  if (url.includes("/indexes/research/settings")) {
+    return Response.json({ taskUid: 43 });
+  }
   if (url.includes("/items/entities/entity_1")) {
     if (init?.method === "PATCH") {
       return Response.json({ data: { id: "entity_1", name: "Acme Updated" } });
@@ -67,6 +70,13 @@ assert.equal((await meilisearch.health()).status, "available");
 const search = await meilisearch.search({ index: "research", query: "Acme", limit: 10 });
 assert.equal(search.hits[0]?.slug, "acme");
 assert.equal((await meilisearch.upsert("research", search.hits)).taskId, "42");
+assert.equal(
+  (await meilisearch.configure("research", {
+    searchableAttributes: ["title"],
+    filterableAttributes: ["kind"]
+  })).taskId,
+  "43"
+);
 
 const directus = new DirectusAdapter(
   {

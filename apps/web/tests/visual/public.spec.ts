@@ -112,6 +112,23 @@ test.describe("public visual QA", () => {
     }
   });
 
+  test("Explore searches and filters only published discovery documents", async ({ page }) => {
+    for (const viewport of [viewports.mobile320, viewports.tablet, viewports.desktop]) {
+      await openPublicPage(page, "/explore?q=space", viewport);
+      await expect(page.getByRole("search")).toBeVisible();
+      await expect(page.getByRole("heading", { name: /Results for “space”/ })).toBeVisible();
+      await expect(page.getByLabel("Research type filters")).toBeVisible();
+    }
+
+    const response = await page.request.get("/api/search?kind=entity&limit=5");
+    expect(response.ok()).toBeTruthy();
+    const body = (await response.json()) as {
+      documents: Array<{ kind: string; published: boolean }>;
+    };
+    expect(body.documents.length).toBeGreaterThan(0);
+    expect(body.documents.every((document) => document.kind === "entity" && document.published)).toBe(true);
+  });
+
   test("published article, profile, and dossier meet the rendered matrix", async ({ page }, testInfo) => {
     const artifacts = await discoverArtifactPaths(page);
     for (const [name, path] of Object.entries(artifacts)) {

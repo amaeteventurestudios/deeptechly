@@ -23,3 +23,7 @@ The pinned task, dispatcher, private callback, idempotency, retry, concurrency, 
 ## Directus newsroom activation
 
 The newsroom CRUD port, Directus adapter, editorial schema, runtime selector, and admin Data Studio handoff are implemented. Live activation requires an authorized Directus deployment, scoped server token, collection registration/layout snapshot, least-privilege roles, and a reconciled V2 PostgreSQL import. `DEEPTECHLY_NEWSROOM_PROVIDER=compatibility` remains the safe default; no live Directus or production database was contacted.
+
+## Meilisearch activation
+
+The public document policy, server query adapter, index settings, worker synchronization utility, local fallback, and public-ID reconciliation are implemented. Live activation requires an approved Meilisearch endpoint and scoped keys, initial indexing from reconciled PostgreSQL, durable outbox consumption, and index reconciliation/rollback. `DEEPTECHLY_SEARCH_PROVIDER=local` remains complete and production-safe.

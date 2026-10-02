@@ -229,3 +229,14 @@ Status: provider boundary and schema are implemented; live activation is externa
 - Added a fail-closed `compatibility` / `directus` newsroom selector and an admin-only Data Studio link that never exposes the server token.
 - Documented collection ownership, least-privilege requirements, staged cutover, and why Directus does not own research truth.
 - Kept compatibility persistence as the default, so current production behavior is unchanged.
+
+## Phase 15 — Search and discovery
+
+Status: complete with deterministic local search; Meilisearch acceleration is implemented but opt-in and externally blocked.
+
+- Rebuilt Explore as a unified editorial search/archive with shareable queries, type filters, evidence metadata, and responsive results.
+- Added a public-only search document policy for articles, profiles, and deduplicated patent evidence, ready for Aperture/lab/technology kinds.
+- Added a bounded `/api/search` contract for machine-readable public discovery.
+- Added a server-side Meilisearch query path that reconciles every hit against current public artifacts and degrades to local search when unavailable.
+- Extended the search-index port and Meilisearch adapter with settings configuration, plus a worker synchronization utility that rejects non-public documents.
+- Added unit/integration and responsive browser coverage while leaving local search as the production-safe default.

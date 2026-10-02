@@ -2,6 +2,7 @@ import type {
   CapabilityHealth,
   SearchDocument,
   SearchIndex,
+  SearchIndexSettings,
   SearchRequest,
   SearchResponse
 } from "@deeptechly/kernel";
@@ -56,6 +57,16 @@ export class MeilisearchAdapter implements SearchIndex {
       this.fetchImplementation,
       `/indexes/${encodeURIComponent(index)}/documents/delete-batch`,
       { method: "POST", body: JSON.stringify(documentIds) }
+    );
+    return { taskId: String(task.taskUid ?? task.uid ?? "unknown") };
+  }
+
+  async configure(index: string, settings: SearchIndexSettings) {
+    const task = await requestJson<MeiliTask>(
+      this.config,
+      this.fetchImplementation,
+      `/indexes/${encodeURIComponent(index)}/settings`,
+      { method: "PATCH", body: JSON.stringify(settings) }
     );
     return { taskId: String(task.taskUid ?? task.uid ?? "unknown") };
   }

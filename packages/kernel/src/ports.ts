@@ -104,10 +104,17 @@ export type SearchResponse<Document extends SearchDocument = SearchDocument> = {
   processingTimeMs?: number;
 };
 
+export type SearchIndexSettings = {
+  searchableAttributes?: readonly string[];
+  filterableAttributes?: readonly string[];
+  sortableAttributes?: readonly string[];
+};
+
 export interface SearchIndex extends HealthCheck {
   search<Document extends SearchDocument>(request: SearchRequest): Promise<SearchResponse<Document>>;
   upsert(index: string, documents: readonly SearchDocument[]): Promise<{ taskId: string }>;
   remove(index: string, documentIds: readonly string[]): Promise<{ taskId: string }>;
+  configure(index: string, settings: SearchIndexSettings): Promise<{ taskId: string }>;
 }
 
 export interface NewsroomRepository extends HealthCheck {
