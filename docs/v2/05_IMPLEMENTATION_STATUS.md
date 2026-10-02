@@ -83,3 +83,23 @@ Validation:
 - `pnpm test`
 - `pnpm build`
 - Responsive Playwright matrix including homepage screenshots at mobile and desktop sizes.
+
+## Phase 5 — Premium article experience
+
+Status: implemented and validated; commit recorded in Git history after this document lands.
+
+- Preserved the existing evidence-backed article contract and its omission behavior rather than inventing new content fields.
+- Added entity context to breadcrumbs, distinct published/updated metadata, an editorial serif headline, and direct public markdown access.
+- Added a sticky desktop report index generated from the article’s actual sections, plus anchors for open questions, evidence quality, and sources.
+- Kept the readable 760px body measure while widening only the desktop frame needed for the report index.
+- Exposed source-to-claim support counts when provenance data is present.
+- Corrected footer artifact availability logic so profile and dossier actions render independently and never rely on the wrong availability flag.
+- Added browser coverage for article navigation, research snapshot, evidence quality, bibliography, related artifacts, and markdown output.
+
+Validation:
+
+- `pnpm lint`
+- `pnpm typecheck`
+- `pnpm test`
+- `pnpm build`
+- Responsive Playwright rendering for the article at 320, 390, 768, 1440, and 1920 pixels.

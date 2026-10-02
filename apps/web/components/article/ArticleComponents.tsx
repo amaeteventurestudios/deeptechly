@@ -4,6 +4,7 @@ import {
   BookOpen,
   ExternalLink,
   FileText,
+  FileType2,
   ShieldCheck
 } from "lucide-react";
 import {
@@ -33,14 +34,21 @@ function formatDate(value?: string | null) {
   }).format(date);
 }
 
-export function ArticleHero({ entity }: { entity: ResearchEntity }) {
+export function ArticleHero({
+  entity,
+  profileAvailable
+}: {
+  entity: ResearchEntity;
+  profileAvailable: boolean;
+}) {
   const story = storyFromEntity(entity);
   const metadata = [
     ["Sector", entity.sector],
     ["Sources", `${entity.sourceCount} sources`],
     ["Confidence", entity.confidenceLabel],
     ["Analyst", formatByline(story.authorPersona)],
-    ["Published", formatDate(entity.article.publishedAt ?? entity.updatedAt)]
+    ["Published", formatDate(entity.article.publishedAt ?? entity.createdAt ?? entity.updatedAt)],
+    ["Updated", formatDate(entity.updatedAt ?? entity.article.publishedAt)]
   ];
 
   return (
@@ -60,6 +68,14 @@ export function ArticleHero({ entity }: { entity: ResearchEntity }) {
           >
             {entity.sector}
           </Link>
+          {profileAvailable ? (
+            <>
+              <span aria-hidden="true">/</span>
+              <Link href={`/startup/${entity.slug}`} className="border border-black bg-white px-2 py-1 hover:bg-ink hover:text-white">
+                {entity.name}
+              </Link>
+            </>
+          ) : null}
         </nav>
 
         <div className="grid gap-8 lg:grid-cols-[1.05fr_0.95fr] lg:items-stretch">
@@ -70,7 +86,7 @@ export function ArticleHero({ entity }: { entity: ResearchEntity }) {
             <p className="mt-4 text-sm font-black uppercase tracking-[0.18em] text-ink/76">
               {entity.name}
             </p>
-            <h1 className="mx-auto mt-3 max-w-4xl text-4xl font-black leading-[0.95] text-ink sm:text-5xl md:text-6xl lg:mx-0">
+            <h1 className="mx-auto mt-3 max-w-4xl font-serif text-4xl font-black leading-[0.95] tracking-[-0.035em] text-ink sm:text-5xl md:text-6xl lg:mx-0">
               {entity.article.headline}
             </h1>
             <p className="mx-auto mt-5 max-w-2xl text-base font-semibold leading-7 text-ink/82 md:text-lg lg:mx-0">
@@ -83,6 +99,13 @@ export function ArticleHero({ entity }: { entity: ResearchEntity }) {
                 </span>
               ))}
             </div>
+            <Link
+              href={`/article/${entity.slug}.md`}
+              className="mt-6 inline-flex min-h-11 items-center justify-center gap-2 self-center border border-ink bg-white px-4 text-[0.6875rem] font-black uppercase tracking-[0.14em] shadow-hard hover:bg-paleOrange lg:self-start"
+            >
+              <FileType2 size={15} aria-hidden="true" />
+              Read as markdown
+            </Link>
           </div>
 
           <div className="border border-black bg-white shadow-hardLg">
@@ -144,14 +167,45 @@ function ArticleVisual({ entity }: { entity: ResearchEntity }) {
   );
 }
 
-export function ArticleBody({ children }: { children: React.ReactNode }) {
+export function ArticleBody({
+  children,
+  outline
+}: {
+  children: React.ReactNode;
+  outline: string[];
+}) {
   return (
     <section className="w-full bg-paper">
-      <div className="article-copy mx-auto max-w-[760px] px-4 py-10 text-[17px] leading-8 sm:px-6 md:text-[18px] lg:px-8">
-        {children}
+      <div className="mx-auto grid max-w-[1120px] gap-10 px-4 py-10 sm:px-6 lg:px-8 xl:grid-cols-[220px_minmax(0,760px)]">
+        <aside className="hidden xl:block">
+          <nav aria-label="Article sections" className="sticky top-6 border-l-4 border-ink pl-4">
+            <p className="font-mono text-[0.6875rem] font-black uppercase tracking-[0.18em] text-darkOrange">
+              In this report
+            </p>
+            <ol className="mt-4 space-y-2">
+              {outline.map((title, index) => (
+                <li key={`${title}-${index}`}>
+                  <a className="block py-1 text-xs font-bold leading-5 text-muted hover:text-ink" href={`#${sectionId(title)}`}>
+                    <span className="mr-2 font-mono text-[0.625rem] text-darkOrange">
+                      {String(index + 1).padStart(2, "0")}
+                    </span>
+                    {title}
+                  </a>
+                </li>
+              ))}
+            </ol>
+          </nav>
+        </aside>
+        <div className="article-copy min-w-0 text-[17px] leading-8 md:text-[18px]">
+          {children}
+        </div>
       </div>
     </section>
   );
+}
+
+function sectionId(title: string) {
+  return title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 }
 
 export function ResearchSnapshotCallout({ entity }: { entity: ResearchEntity }) {
@@ -189,8 +243,8 @@ export function ArticleSection({ section }: { section?: ArticleSectionType }) {
   if (!section) return null;
 
   return (
-    <section className="border-t border-black/20 py-7">
-      <h2 className="mb-4 text-2xl font-black leading-tight sm:text-3xl">
+    <section id={sectionId(section.title)} className="scroll-mt-6 border-t border-black/20 py-7">
+      <h2 className="mb-4 font-serif text-2xl font-black leading-tight tracking-[-0.02em] sm:text-3xl">
         {section.title}
       </h2>
       {section.body.map((paragraph) => (
@@ -248,7 +302,7 @@ export function OpenQuestionsSection({ entity }: { entity: ResearchEntity }) {
   if (!questions.length) return null;
 
   return (
-    <section className="border-t border-black/20 py-8">
+    <section id="open-questions" className="scroll-mt-6 border-t border-black/20 py-8">
       <p className="text-[10px] font-black uppercase tracking-[0.22em] text-deepOrange">
         Open Questions
       </p>
@@ -268,7 +322,7 @@ export function SourcesBlock({ sources }: { sources: Source[] }) {
   if (!visibleSources.length) return null;
 
   return (
-    <section className="border-t border-black/20 py-8">
+    <section id="sources" className="scroll-mt-6 border-t border-black/20 py-8">
       <h2 className="mb-4 text-[11px] font-black uppercase tracking-[0.24em] text-ink">
         Sources
       </h2>
@@ -324,8 +378,13 @@ export function SourceRow({ source, index }: { source: Source; index?: number })
               {meta}
             </p>
           ) : null}
+          {source.supportsClaims?.length ? (
+            <p className="mt-2 text-xs font-semibold leading-5 text-charcoal">
+              Supports {source.supportsClaims.length} {source.supportsClaims.length === 1 ? "claim" : "claims"}
+            </p>
+          ) : null}
         </div>
-        <span className="inline-flex min-h-10 shrink-0 items-center justify-center gap-2 border border-black bg-white px-3 py-2 text-[10px] font-black uppercase tracking-[0.14em]">
+        <span className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 border border-black bg-white px-3 py-2 text-[10px] font-black uppercase tracking-[0.14em]">
           Open URL
           <ExternalLink size={12} />
         </span>
@@ -364,7 +423,7 @@ export function DossierCTA({ entity }: { entity: ResearchEntity }) {
               Snapshot · Technology Stack · Patent Position · Risk Model · Government Relevance
             </p>
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <span className="inline-flex min-h-8 items-center border border-white/35 px-3 py-1 text-[10px] font-black uppercase tracking-[0.14em]">
+              <span className="inline-flex min-h-11 items-center border border-white/35 px-3 py-1 text-[10px] font-black uppercase tracking-[0.14em]">
                 Public + Institutional
               </span>
               <span className="inline-flex min-h-11 items-center justify-center gap-2 border border-black bg-deepOrange px-4 py-3 text-[11px] font-black uppercase tracking-[0.14em] text-ink shadow-hard">
@@ -422,7 +481,7 @@ export function ConfidenceEvidencePanel({ entity }: { entity: ResearchEntity }) 
   if (!groups.length) return null;
 
   return (
-    <section className="border-t border-black/20 py-8">
+    <section id="evidence-quality" className="scroll-mt-6 border-t border-black/20 py-8">
       <div className="border border-black bg-white shadow-hard">
         <div className="border-b border-black bg-ink px-4 py-3 text-white">
           <p className="text-[10px] font-black uppercase tracking-[0.22em] text-deepOrange">
@@ -452,16 +511,16 @@ export function ConfidenceEvidencePanel({ entity }: { entity: ResearchEntity }) 
 
 export function ArticleFooterActions({
   entity,
-  dossierAvailable
+  availability
 }: {
   entity: ResearchEntity;
-  dossierAvailable: boolean;
+  availability: { profile: boolean; dossier: boolean };
 }) {
   return (
     <section className="w-full bg-paper">
       <div className="mx-auto max-w-[760px] px-4 pb-12 sm:px-6 lg:px-8">
         <div className="grid gap-4 sm:grid-cols-2">
-          {dossierAvailable ? <Link
+          {availability.profile ? <Link
             href={`/startup/${entity.slug}`}
             className="flex min-h-24 items-center gap-3 border border-black bg-white p-4 shadow-hard hover:bg-paleOrange"
           >
@@ -473,7 +532,7 @@ export function ArticleFooterActions({
               <span className="mt-1 block text-sm font-black">Open structured profile</span>
             </span>
           </Link> : null}
-          <Link
+          {availability.dossier ? <Link
             href={`/dossier/${entity.slug}`}
             className="flex min-h-24 items-center gap-3 border border-black bg-white p-4 shadow-hard hover:bg-paleOrange"
           >
@@ -484,7 +543,7 @@ export function ArticleFooterActions({
               </span>
               <span className="mt-1 block text-sm font-black">Open public and institutional research</span>
             </span>
-          </Link>
+          </Link> : null}
         </div>
       </div>
     </section>

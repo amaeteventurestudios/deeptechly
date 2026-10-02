@@ -212,4 +212,21 @@ test.describe("public visual QA", () => {
     await expect(page.getByText(/public sources/i).first()).toBeVisible();
     await expect(page.getByText(/confidence/i).first()).toBeVisible();
   });
+
+  test("article provides editorial sections, provenance, and machine-readable access", async ({ page }) => {
+    const { articlePath, profilePath, dossierPath } = await discoverArtifactPaths(page);
+    await openPublicPage(page, articlePath, viewports.desktop);
+    await expect(page.getByRole("navigation", { name: "Breadcrumb" })).toBeVisible();
+    await expect(page.getByRole("navigation", { name: "Article sections" })).toBeVisible();
+    await expect(page.getByText("Research Snapshot", { exact: true })).toBeVisible();
+    await expect(page.getByText("Evidence Quality", { exact: true })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Sources", exact: true })).toBeVisible();
+    await expect(page.locator(`a[href="${profilePath}"]`).first()).toBeVisible();
+    await expect(page.locator(`a[href="${dossierPath}"]`).first()).toBeVisible();
+    const markdownPath = `${articlePath}.md`;
+    await expect(page.locator(`a[href="${markdownPath}"]`)).toBeVisible();
+    const markdown = await page.request.get(markdownPath);
+    expect(markdown.ok()).toBeTruthy();
+    expect(await markdown.text()).toContain("# ");
+  });
 });

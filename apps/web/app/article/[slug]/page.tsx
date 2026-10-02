@@ -70,8 +70,15 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
 
   return (
     <PageShell>
-      <ArticleHero entity={entity} />
-      <ArticleBody>
+      <ArticleHero entity={entity} profileAvailable={availability.profile} />
+      <ArticleBody
+        outline={[
+          ...entity.article.sections.map((section) => section.title),
+          ...(entity.article.openQuestions?.length || entity.dossier.accuracyAndConfidence.unverified.length ? ["Open Questions"] : []),
+          "Evidence Quality",
+          "Sources"
+        ]}
+      >
         <ResearchSnapshotCallout entity={entity} />
         <ArticleSection section={whyItMatters} />
         <ArticleSection section={technicalWedge} />
@@ -85,7 +92,7 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
         <SourcesBlock sources={entity.sources} />
       </ArticleBody>
       {availability.dossier ? <DossierCTA entity={entity} /> : null}
-      <ArticleFooterActions entity={entity} dossierAvailable={availability.dossier} />
+      <ArticleFooterActions entity={entity} availability={availability} />
       <RelatedResearch entity={entity} />
     </PageShell>
   );
