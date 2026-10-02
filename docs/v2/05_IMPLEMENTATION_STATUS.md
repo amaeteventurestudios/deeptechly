@@ -185,3 +185,14 @@ Status: implemented as a behavior-preserving package boundary.
 - Retained existing web module exports as compatibility façades while routing policy decisions through the shared package.
 - Added direct kernel verification and kept the existing research quality/orchestration suites as compatibility regression coverage.
 - Documented ownership, invariants, and intentionally deferred stateful/provider-bound modules in `08_RESEARCH_KERNEL.md`.
+
+## Phase 11 — Open-source capability integrations
+
+Status: adapter foundation implemented; external services remain opt-in and unconfigured.
+
+- Added provider-neutral source acquisition, search index, newsroom, trace, cache, object-store, and health ports.
+- Added bounded worker adapters for Crawl4AI, Directus, and Meilisearch with explicit configuration and no web-runtime coupling.
+- Added opt-in local Compose profiles for PostgreSQL, Directus, Meilisearch, and Valkey; no service starts during application development or tests.
+- Kept source evaluation, confidence, publication, and research truth in DeepTechly code and PostgreSQL boundaries.
+- Documented why Trigger.dev and Langfuse should use their maintained upstream deployment stacks rather than copied partial configurations.
+- Added deterministic adapter verification; no external endpoint was contacted.

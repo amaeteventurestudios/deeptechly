@@ -11,3 +11,7 @@ An Appwrite endpoint, project ID, allowed-origin configuration, email templates,
 ## PostgreSQL migration activation
 
 Repository migrations and reconciliation controls are ready, but production import/cutover requires an isolated target PostgreSQL database, encrypted exports from the deployed Supabase/Redis configuration, backup retention, and an authorized operator. No production database was accessed or changed during Phase 9.
+
+## Commodity capability activation
+
+Crawl4AI, Directus, Meilisearch, Trigger.dev, Langfuse, Valkey, and object storage have no approved production endpoints, credentials, image policy, network policy, backups, or operational owners in the repository. Phase 11 provides fail-closed ports, adapters, and opt-in local profiles only. No production integration is presented as active.

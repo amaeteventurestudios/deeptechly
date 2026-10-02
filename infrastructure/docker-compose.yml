@@ -1,0 +1,71 @@
+name: deeptechly-v2
+
+# Local capability profiles only. Nothing starts without an explicit --profile flag.
+# Copy .env.infrastructure.example to an untracked .env and replace every secret.
+services:
+  postgres:
+    image: ${POSTGRES_IMAGE:-postgres:17-alpine}
+    profiles: [core, newsroom]
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-deeptechly}
+      POSTGRES_USER: ${POSTGRES_USER:-deeptechly}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
+    ports: ["${POSTGRES_PORT:-5433}:5432"]
+    volumes: [deeptechly_postgres:/var/lib/postgresql/data]
+    healthcheck:
+      test: [CMD-SHELL, "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  valkey:
+    image: ${VALKEY_IMAGE:-valkey/valkey:8-alpine}
+    profiles: [coordination]
+    environment:
+      VALKEY_PASSWORD: ${VALKEY_PASSWORD:?Set VALKEY_PASSWORD}
+    command: [valkey-server, --requirepass, "${VALKEY_PASSWORD:?Set VALKEY_PASSWORD}"]
+    ports: ["${VALKEY_PORT:-6380}:6379"]
+    volumes: [deeptechly_valkey:/data]
+    healthcheck:
+      test: [CMD-SHELL, "valkey-cli -a '$${VALKEY_PASSWORD}' ping | grep PONG"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  meilisearch:
+    image: ${MEILISEARCH_IMAGE:-getmeili/meilisearch:v1.15}
+    profiles: [discovery]
+    environment:
+      MEILI_ENV: development
+      MEILI_MASTER_KEY: ${MEILISEARCH_MASTER_KEY:?Set MEILISEARCH_MASTER_KEY}
+    ports: ["${MEILISEARCH_PORT:-7700}:7700"]
+    volumes: [deeptechly_meilisearch:/meili_data]
+
+  directus:
+    image: ${DIRECTUS_IMAGE:-directus/directus:11.5.1}
+    profiles: [newsroom]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      SECRET: ${DIRECTUS_SECRET:?Set DIRECTUS_SECRET}
+      ADMIN_EMAIL: ${DIRECTUS_ADMIN_EMAIL:?Set DIRECTUS_ADMIN_EMAIL}
+      ADMIN_PASSWORD: ${DIRECTUS_ADMIN_PASSWORD:?Set DIRECTUS_ADMIN_PASSWORD}
+      DB_CLIENT: pg
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_DATABASE: ${POSTGRES_DB:-deeptechly}
+      DB_USER: ${POSTGRES_USER:-deeptechly}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
+      WEBSOCKETS_ENABLED: "true"
+    ports: ["${DIRECTUS_PORT:-8055}:8055"]
+    volumes:
+      - deeptechly_directus_uploads:/directus/uploads
+      - deeptechly_directus_extensions:/directus/extensions
+
+volumes:
+  deeptechly_postgres:
+  deeptechly_valkey:
+  deeptechly_meilisearch:
+  deeptechly_directus_uploads:
+  deeptechly_directus_extensions:

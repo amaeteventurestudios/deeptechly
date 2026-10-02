@@ -1,5 +1,35 @@
-# DeepTechly infrastructure
+# DeepTechly local capability infrastructure
 
-Infrastructure adapters live here only when an external capability is intentionally integrated. Domain policy stays in `packages/research`, `packages/aperture`, and `packages/kernel`.
+This directory contains opt-in local capability profiles. Domain policy stays in `packages/research` and `packages/aperture`; these services remain replaceable adapters. PostgreSQL is authoritative. Directus, Meilisearch, and caches are projections or operational capabilities.
 
-Planned adapters include Appwrite, Trigger.dev, Crawl4AI, Directus, Langfuse, Meilisearch, Valkey/Redis, S3-compatible storage, Lago, and Stripe. Phase 1 installs none of them; the current providers remain compatibility adapters until each cutover is tested.
+## Safety and startup
+
+No profile starts as part of `pnpm dev`, tests, imports, or builds. Copy `.env.infrastructure.example` to an untracked `infrastructure/.env`, replace every secret, then opt into only the profile you need:
+
+```sh
+docker compose --env-file infrastructure/.env -f infrastructure/docker-compose.yml --profile core up -d
+docker compose --env-file infrastructure/.env -f infrastructure/docker-compose.yml --profile discovery up -d
+docker compose --env-file infrastructure/.env -f infrastructure/docker-compose.yml --profile coordination up -d
+docker compose --env-file infrastructure/.env -f infrastructure/docker-compose.yml --profile newsroom up -d
+```
+
+Do not point local profiles at production volumes or credentials. Applying database migrations remains a separate reviewed operator action.
+
+## Included profiles
+
+| Profile | Capability | Authority |
+|---|---|---|
+| `core` | PostgreSQL | Intended V2 source of truth after approved migration. |
+| `newsroom` | Directus + PostgreSQL | Editorial CRUD projection; cannot own research truth or identity. |
+| `discovery` | Meilisearch | Derived public discovery index. |
+| `coordination` | Valkey | Ephemeral cache/coordination only, never artifact authority. |
+
+The image references are explicit and overrideable so upgrades are reviewed. The initial defaults are conservative compatibility pins, not an instruction to deploy them unchanged to production.
+
+## Deliberately not copied here
+
+- Trigger.dev and current Langfuse self-hosted deployments are multi-service upstream stacks. Use their maintained Compose distributions and connect via adapters instead of copying a stale subset into this repository.
+- Crawl4AI activation depends on selecting and pinning a supported server image/API contract. The worker adapter accepts a versioned base URL and path without owning truth evaluation.
+- Appwrite, S3-compatible storage, and Lago require their dedicated phases and security configuration.
+
+Relevant upstream documentation: [Directus Docker guide](https://docs.directus.io/self-hosted/docker-guide), [Meilisearch Docker integration](https://www.meilisearch.com/integrations/docker), [Crawl4AI documentation](https://docs.crawl4ai.com/), [Trigger.dev self-hosting](https://trigger.dev/docs/open-source-self-hosting), and [Langfuse self-hosting](https://langfuse.com/self-hosting).
