@@ -1,13 +1,13 @@
 import type { NextRequest } from "next/server";
-import { createAppwriteIdentityProvider } from "./appwrite";
+import { createPocketBaseIdentityProvider } from "./pocketbase";
 import type { AuthProviderName, RouteIdentityProvider } from "./types";
 
 export function configuredAuthProvider(): AuthProviderName {
-  return "appwrite";
+  return "pocketbase";
 }
 
 export function createRouteIdentityProvider(request: NextRequest): RouteIdentityProvider | null {
-  return createAppwriteIdentityProvider(request);
+  return createPocketBaseIdentityProvider(request);
 }
 
 export type { AuthProviderName, RouteIdentityProvider } from "./types";

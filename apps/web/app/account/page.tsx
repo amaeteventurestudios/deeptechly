@@ -78,6 +78,13 @@ export default async function AccountPage() {
               </Link>
             </section>
             <Link
+              href="/settings"
+              className="flex min-h-12 items-center justify-between border border-black bg-white px-4 py-3 text-[11px] font-black uppercase tracking-[0.14em] shadow-hard hover:bg-paleOrange"
+            >
+              Settings
+              <ArrowRight size={14} />
+            </Link>
+            <Link
               href="/dashboard"
               className="flex min-h-12 items-center justify-between border border-black bg-white px-4 py-3 text-[11px] font-black uppercase tracking-[0.14em] shadow-hard hover:bg-paleOrange"
             >

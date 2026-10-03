@@ -31,4 +31,4 @@ The web app runs on port 3000 by default. If another project already uses that p
 
 ## Migration policy
 
-PostgreSQL is the application source of truth and Appwrite is the authentication architecture. Public development fixtures remain available when those services are unconfigured, but authenticated and persistent operations fail closed; no Supabase configuration is required or supported by the normal runtime.
+PostgreSQL is the application source of truth and PocketBase is the V1 identity architecture. DeepTechly roles and authorization remain in PostgreSQL. Public development fixtures remain available when those services are unconfigured, but authenticated and persistent operations fail closed; neither Supabase nor Appwrite is required by the normal runtime.

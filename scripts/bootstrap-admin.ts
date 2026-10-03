@@ -1,94 +1,48 @@
-import { createHash } from "node:crypto";
 import postgres from "postgres";
 
-type AppwriteUser = { $id: string; email: string; name: string };
+type PocketBaseUser = { id: string; email: string; name?: string; verified?: boolean };
+type RecordList<T> = { items: T[] };
 
 async function main() {
-  const endpoint = required("APPWRITE_ENDPOINT").replace(/\/$/, "");
-  const projectId = required("APPWRITE_PROJECT_ID");
-  const apiKey = required("APPWRITE_API_KEY");
+  const url = required("POCKETBASE_URL").replace(/\/$/, "");
+  const collection = process.env.POCKETBASE_AUTH_COLLECTION?.trim() || "users";
+  const adminToken = await superuserToken(url);
   const databaseUrl = required("DEEPTECHLY_V2_DATABASE_URL");
-  const email = required("DEEPTECHLY_BOOTSTRAP_ADMIN_EMAIL").trim().toLowerCase();
+  const email = required("DEEPTECHLY_BOOTSTRAP_ADMIN_EMAIL").toLowerCase();
   const password = required("DEEPTECHLY_BOOTSTRAP_ADMIN_TEMP_PASSWORD");
   if (password.length < 12) throw new Error("Bootstrap admin password must contain at least 12 characters");
 
-  const userId = `admin_${createHash("sha256").update(email).digest("hex").slice(0, 29)}`;
-  let user: AppwriteUser;
+  let user: PocketBaseUser;
   try {
-    user = await appwrite<AppwriteUser>(endpoint, projectId, apiKey, "/users", {
-      method: "POST",
-      body: JSON.stringify({ userId, email, password, name: "DeepTechly Admin" })
+    user = await pb<PocketBaseUser>(url, `/api/collections/${collection}/records`, adminToken, {
+      method: "POST", body: JSON.stringify({ email, password, passwordConfirm: password, name: "DeepTechly Super Admin", verified: true })
     });
   } catch (error) {
-    if (!(error instanceof AppwriteError) || error.status !== 409) throw error;
-    user = await appwrite<AppwriteUser>(endpoint, projectId, apiKey, `/users/${encodeURIComponent(userId)}`);
-    if (user.email.toLowerCase() !== email) throw new Error("Deterministic admin ID belongs to another email");
+    if (!(error instanceof PocketBaseError) || error.status !== 400) throw error;
+    const filter = encodeURIComponent(`email = "${email.replaceAll('"', '\\"')}"`);
+    const existing = await pb<RecordList<PocketBaseUser>>(url, `/api/collections/${collection}/records?perPage=1&filter=${filter}`, adminToken);
+    if (!existing.items[0]) throw error;
+    user = existing.items[0];
   }
 
-  const sql = postgres(databaseUrl, { max: 1, prepare: false });
+  const sql = postgres(databaseUrl, { max: 1, prepare: false, ssl: process.env.DEEPTECHLY_V2_DATABASE_SSL === "disable" ? false : "require" });
   try {
     await sql.begin(async (transaction) => {
-      await transaction`
-        insert into deeptechly.accounts (
-          id, primary_email, display_name, status, created_at, updated_at
-        ) values (${user.$id}, ${email}, ${user.name}, 'active', now(), now())
-        on conflict (id) do update set
-          primary_email = excluded.primary_email, display_name = excluded.display_name,
-          status = 'active', updated_at = now()
-      `;
-      await transaction`
-        insert into deeptechly.external_identities (
-          id, account_id, provider, provider_user_id, provider_email,
-          email_verified, provider_payload, created_at, updated_at
-        ) values (
-          ${`identity:appwrite:${user.$id}`}, ${user.$id}, 'appwrite', ${user.$id},
-          ${email}, false, ${transaction.json({ bootstrap: true })}, now(), now()
-        ) on conflict (provider, provider_user_id) do update set
-          provider_email = excluded.provider_email, updated_at = now()
-      `;
-      await transaction`
-        insert into deeptechly.access_grants (
-          id, account_id, capability, source, status, metadata, created_at, updated_at
-        ) values (
-          ${`grant:admin:${user.$id}`}, ${user.$id}, 'admin', 'bootstrap', 'active',
-          '{}'::jsonb, now(), now()
-        ) on conflict (account_id, capability, source) do update set
-          status = 'active', updated_at = now()
-      `;
+      await transaction`insert into deeptechly.accounts (id, primary_email, display_name, status, created_at, updated_at) values (${user.id}, ${email}, ${user.name || "DeepTechly Super Admin"}, 'active', now(), now()) on conflict (id) do update set primary_email = excluded.primary_email, display_name = excluded.display_name, status = 'active', updated_at = now()`;
+      await transaction`insert into deeptechly.external_identities (id, account_id, provider, provider_user_id, provider_email, email_verified, provider_payload, created_at, updated_at) values (${`identity:pocketbase:${user.id}`}, ${user.id}, 'pocketbase', ${user.id}, ${email}, ${Boolean(user.verified)}, ${transaction.json({ bootstrap: true })}, now(), now()) on conflict (provider, provider_user_id) do update set account_id = excluded.account_id, provider_email = excluded.provider_email, updated_at = now()`;
+      await transaction`delete from deeptechly.account_roles where account_id = ${user.id}`;
+      await transaction`insert into deeptechly.account_roles (id, account_id, role, assigned_by, metadata, created_at, updated_at) values (${`role:${user.id}:SUPER_ADMIN`}, ${user.id}, 'SUPER_ADMIN', ${user.id}, '{}'::jsonb, now(), now())`;
     });
-  } finally {
-    await sql.end();
-  }
-  console.log(`Admin account ready: ${email} (${user.$id})`);
+  } finally { await sql.end(); }
+  console.log(`PocketBase-backed Super Admin ready: ${email} (${user.id})`);
 }
 
-class AppwriteError extends Error {
-  constructor(readonly status: number, message: string) { super(message); }
+async function superuserToken(url: string) {
+  if (process.env.POCKETBASE_SUPERUSER_TOKEN?.trim()) return process.env.POCKETBASE_SUPERUSER_TOKEN.trim();
+  const auth = await pb<{ token: string }>(url, "/api/collections/_superusers/auth-with-password", undefined, { method: "POST", body: JSON.stringify({ identity: required("POCKETBASE_SUPERUSER_EMAIL"), password: required("POCKETBASE_SUPERUSER_PASSWORD") }) });
+  return auth.token;
 }
-
-async function appwrite<T>(endpoint: string, projectId: string, apiKey: string, path: string, init: RequestInit = {}) {
-  const response = await fetch(`${endpoint}${path}`, {
-    ...init,
-    headers: {
-      accept: "application/json", "content-type": "application/json",
-      "X-Appwrite-Project": projectId, "X-Appwrite-Key": apiKey,
-      "X-Appwrite-Response-Format": "1.8.0", ...init.headers
-    }
-  });
-  if (!response.ok) {
-    const payload = await response.json().catch(() => ({})) as { message?: string };
-    throw new AppwriteError(response.status, payload.message || `Appwrite request failed: ${response.status}`);
-  }
-  return await response.json() as T;
-}
-
-function required(name: string) {
-  const value = process.env[name]?.trim();
-  if (!value) throw new Error(`${name} is required`);
-  return value;
-}
-
-main().catch((error) => {
-  console.error(error instanceof Error ? error.message : "Admin bootstrap failed");
-  process.exitCode = 1;
-});
+class PocketBaseError extends Error { constructor(readonly status: number, message: string) { super(message); } }
+async function pb<T>(url: string, path: string, token?: string, init: RequestInit = {}) { const response = await fetch(`${url}${path}`, { ...init, headers: { accept: "application/json", "content-type": "application/json", ...(token ? { Authorization: token } : {}), ...init.headers } }); if (!response.ok) { const body = await response.json().catch(() => ({})) as { message?: string }; throw new PocketBaseError(response.status, body.message || `PocketBase request failed: ${response.status}`); } return response.status === 204 ? undefined as T : await response.json() as T; }
+function required(name: string) { const value = process.env[name]?.trim(); if (!value) throw new Error(`${name} is required`); return value; }
+main().catch((error) => { console.error(error instanceof Error ? error.message : "Admin bootstrap failed"); process.exitCode = 1; });

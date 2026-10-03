@@ -1,5 +1,7 @@
 # Phase 23 — Supabase exit and Appwrite/PostgreSQL cutover
 
+> Historical Phase 23 record. Phase 24 superseded Appwrite with PocketBase before either identity service was provisioned. PostgreSQL authority and the Supabase exit remain current. See `26_POCKETBASE_AUTH_AND_SETTINGS_CONTROL_CENTER.md` for the active V1 architecture.
+
 ## Outcome
 
 DeepTechly V2 no longer uses Supabase in its normal runtime. Appwrite is the only authentication architecture, and PostgreSQL is the only application-data authority when configured. With neither service configured, public development pages continue to use the existing deterministic fixtures; authentication and persistent writes fail closed with provider-neutral messages.

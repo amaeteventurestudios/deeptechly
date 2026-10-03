@@ -14,6 +14,7 @@ const viewports = {
 
 const internalDiagnosticPattern = /(?:database provider|postgres|stack trace|internal server error|error code)/i;
 const uuidPattern = /\b[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\b/i;
+const backendProviderPattern = new RegExp(["supa", "base|appwrite|pocketbase"].join(""), "i");
 
 async function installRuntimeGuards(page: Page) {
   const errors: string[] = [];
@@ -95,6 +96,17 @@ async function discoverArtifactPaths(page: Page) {
 }
 
 test.describe("public visual QA", () => {
+  test("identity pages remain provider-neutral and settings fails closed", async ({ page }) => {
+    for (const viewport of [viewports.mobile320, viewports.tablet, viewports.desktop]) {
+      await openPublicPage(page, "/sign-in", viewport);
+      await expect(page.locator("body")).not.toContainText(backendProviderPattern);
+    }
+    const response = await page.goto("/settings", { waitUntil: "domcontentloaded" });
+    expect(response?.ok()).toBeTruthy();
+    await expect(page).toHaveURL(/\/sign-in\?redirectTo=(?:%2F|\/)settings/);
+    await expect(page.locator("body")).not.toContainText(backendProviderPattern);
+  });
+
   test("shared public surfaces fit every required viewport", async ({ page }) => {
     for (const viewport of Object.values(viewports)) {
       for (const path of ["/", "/aperture", "/research", "/pricing", "/methodology"]) {

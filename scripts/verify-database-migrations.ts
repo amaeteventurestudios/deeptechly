@@ -46,7 +46,7 @@ const prohibitedStatements = [
 
 assert.deepEqual(
   databaseMigrations.map((migration) => migration.id),
-  ["0001", "0002", "0003", "0004", "0005", "0006", "0007"],
+  ["0001", "0002", "0003", "0004", "0005", "0006", "0007", "0008"],
   "Migration ledger must remain ordered"
 );
 
@@ -94,6 +94,10 @@ for (const table of [
   );
 }
 
+for (const table of ["account_roles", "account_preferences", "system_settings", "ai_providers", "ai_models", "ai_model_assignments", "smtp_configuration", "user_invitations", "auth_audit_events"]) {
+  assert.match(migrationSql.get("0008")!, new RegExp(`create table if not exists deeptechly\\.${table}\\b`, "i"), `Settings migration is missing ${table}`);
+}
+
 for (const table of ["research_job_outputs", "artifact_sources"]) {
   assert.match(
     migrationSql.get("0006")!,
@@ -126,5 +130,5 @@ for (const table of [
 }
 
 console.log(
-  `Verified ${databaseMigrations.length} additive database migrations and ${requiredCoreTables.length + requiredApertureTables.length + 10} required domain tables.`
+  `Verified ${databaseMigrations.length} additive database migrations and ${requiredCoreTables.length + requiredApertureTables.length + 19} required domain tables.`
 );

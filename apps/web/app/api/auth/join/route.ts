@@ -7,7 +7,8 @@ import {
   type AccessPath
 } from "@/lib/auth/profiles";
 import { createRouteIdentityProvider } from "@/lib/auth/providers";
-import { getSiteUrl } from "@/lib/appwrite/config";
+import { getSiteUrl } from "@/lib/pocketbase/config";
+import { recordAuthAudit } from "@/lib/auth/audit";
 
 export async function POST(request: NextRequest) {
   const formData = await request.formData();
@@ -75,6 +76,7 @@ export async function POST(request: NextRequest) {
   });
 
   if (!registration.ok || !registration.identity) {
+    await recordAuthAudit({ eventType: "sign_up", outcome: "failure", identifier: email });
     const reason = !registration.ok && isProviderUnavailable(registration.reason) ? "config" : "signup";
     return authClient.applyCookies(
       NextResponse.redirect(
@@ -102,6 +104,13 @@ export async function POST(request: NextRequest) {
       )
     );
   }
+
+  await recordAuthAudit({
+    eventType: "sign_up",
+    outcome: "success",
+    actorAccountId: registration.identity.providerUserId,
+    identifier: email
+  });
 
   const destination = registration.hasSession
     ? "/research"

@@ -1,6 +1,6 @@
 # Authentication and Account Migration
 
-> Historical Phase 6 plan. Superseded by Phase 23 and `25_SUPABASE_EXIT_AND_APPWRITE_POSTGRES_CUTOVER.md`; the normal runtime now uses Appwrite only.
+> Historical Phase 6 plan. Phase 23 first superseded this plan; Phase 24 then superseded the unprovisioned Appwrite choice with PocketBase. See `26_POCKETBASE_AUTH_AND_SETTINGS_CONTROL_CENTER.md` for the active architecture.
 
 ## Current production path
 

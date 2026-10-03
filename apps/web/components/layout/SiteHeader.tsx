@@ -72,6 +72,9 @@ function AccountControls({
         <UserRound size={14} aria-hidden="true" />
         <span className="truncate">{accountLabel}</span>
       </Link>
+      <Link className={mobile ? "flex min-h-11 items-center border-b border-white/15 font-black uppercase tracking-[0.1em]" : navLinkClass} href="/settings">
+        Settings
+      </Link>
       {isAdmin ? <Link className={joinLinkClass} href="/admin">Admin</Link> : null}
       <form action="/api/auth/sign-out" method="post">
         <button className="flex min-h-11 items-center gap-2 text-left font-black uppercase tracking-[0.1em] hover:text-deepOrange" type="submit">

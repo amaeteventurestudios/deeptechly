@@ -1,6 +1,6 @@
 # DeepTechly V2 Final Build Report
 
-Date: 2026-10-01
+Date: 2026-10-02
 
 Branch: `rebuild/deeptechly-v2`
 
@@ -8,9 +8,9 @@ Implementation head before this report: `f45546b` (`Validate DeepTechly V2 golde
 
 ## Executive summary
 
-DeepTechly V2 now has the requested modular workspace, a rebuilt evidence-first product experience, extracted proprietary research policy, first-class Aperture product and intelligence domains, Appwrite authentication architecture, and authoritative transactional PostgreSQL persistence. Public development fixtures remain available without external credentials, but authenticated and persistent operations fail closed; the runtime has no Supabase fallback.
+DeepTechly V2 now has the requested modular workspace, a rebuilt evidence-first product experience, extracted proprietary research policy, first-class Aperture product and intelligence domains, PocketBase identity architecture, PostgreSQL authorization and Settings control plane, and authoritative transactional PostgreSQL persistence. Public development fixtures remain available without external credentials, but authenticated and persistent operations fail closed; the runtime has no legacy identity or persistence fallback.
 
-No production database was accessed or migrated. No external capability was represented as live without credentials. The final verified checkout passed lint, type checking, the complete deterministic verification suite, a production build, a production dependency audit, and 20 production-rendered Playwright scenarios.
+No production database was accessed or migrated and PocketBase was not provisioned. No external capability was represented as live without credentials. Phase 24 verification includes the complete deterministic suite, production build, dependency audit, and production-rendered Playwright scenarios.
 
 ## What was built
 
@@ -37,7 +37,8 @@ No production database was accessed or migrated. No external capability was repr
 
 ### Commodity capability boundaries
 
-- Appwrite server-session identity boundary with PostgreSQL account mapping.
+- PocketBase HTTP-only token identity boundary with PostgreSQL account and role mapping.
+- PostgreSQL-backed Settings control center for roles, application settings, AI/model configuration, SMTP delivery, invitations, preferences, and authentication audit.
 - Local/Trigger.dev workflow provider boundary.
 - Compatibility/Directus newsroom provider boundary.
 - Local/Meilisearch discovery provider boundary.
@@ -66,7 +67,7 @@ infrastructure
   opt-in local PostgreSQL / Directus / Meilisearch / Valkey profiles
 ```
 
-PostgreSQL is the V2 application authority. Directus and Meilisearch are projections; Valkey is ephemeral coordination; object storage owns binary objects only. Appwrite owns identity capability, Trigger.dev owns durable execution, Crawl4AI owns acquisition mechanics, and Langfuse owns trace telemetry. DeepTechly code retains every decision about identity resolution, evidence authority, claims, confidence, synthesis, publication, and Aperture interpretation.
+PostgreSQL is the V2 application authority. Directus and Meilisearch are projections; Valkey is ephemeral coordination; object storage owns binary objects only. PocketBase proves identity, DeepTechly policy in PostgreSQL determines authorization, Trigger.dev owns durable execution, Crawl4AI owns acquisition mechanics, and Langfuse owns trace telemetry. DeepTechly code retains every decision about authorization, entity resolution, evidence authority, claims, confidence, synthesis, publication, and Aperture interpretation.
 
 ## Services used and activation state
 
@@ -76,7 +77,7 @@ PostgreSQL is the V2 application authority. Directus and Meilisearch are project
 | Worker / Trigger.dev | Task and callback implemented; live project blocked | `local` workflow |
 | Legacy Supabase artifacts | Migration/archive only | Never selected by runtime |
 | PostgreSQL | Transactional runtime adapter and real-data rehearsal complete | Authoritative application store |
-| Appwrite | Auth/session/recovery architecture complete; external credentials blocked | Sole identity provider |
+| PocketBase | Auth/token/recovery architecture complete; external service not provisioned | Sole V1 identity provider |
 | Crawl4AI | Worker adapter only; endpoint/image contract blocked | Existing acquisition path |
 | Directus | CRUD adapter/schema ready; deployment and roles blocked | Compatibility admin store |
 | Meilisearch | Adapter/index policy ready; endpoint and initial index blocked | Complete local search |
@@ -101,7 +102,8 @@ Archived SQL and the legacy dependency lock remain for historical provenance onl
 No source files or production records were destructively deleted. Replacement work was structural and behavior-preserving:
 
 - Direct queue-to-pipeline dispatch was replaced by a workflow port with the local implementation as default.
-- Appwrite replaced the legacy auth client, middleware, browser recovery, service-role admin, and session paths.
+- PocketBase replaced the superseded Phase 23 identity adapter before production provisioning. The provider-neutral boundary and PostgreSQL account IDs remain stable.
+- PostgreSQL roles now enforce `SUPER_ADMIN`, `ADMIN`, `USER`, and `VIEWER` policy at server boundaries.
 - PostgreSQL replaced legacy profile, invite, saved-research, admin, research-store, and Redis/KV authority fallbacks.
 - Discovery, newsroom, billing, caching, object storage, tracing, and acquisition now cross explicit adapter boundaries.
 - Repetitive dossier lock panels were consolidated into one server-rendered gate; protected content remains absent from public HTML and Markdown.
@@ -123,10 +125,8 @@ All migrations are additive, ordered, idempotent, isolated under the `deeptechly
 | `0004_newsroom_metadata.sql` | Directus-ready editorial metadata and reviews. |
 | `0005_billing_entitlements.sql` | Billing, subscription, usage, credit, and webhook ledgers. |
 | `0006_legacy_relationships.sql` | Research-output and artifact-source relationships. |
-| `0007_runtime_cutover.sql` | Appwrite identity and PostgreSQL runtime indexes plus non-secret invite hints. |
-| `0003_legacy_import_ledger.sql` | Immutable export/import batches, raw legacy records, identity maps, findings, and reconciliation results. |
-| `0004_newsroom_metadata.sql` | Directus-ready editorial metadata and review records without transferring research truth to the CMS. |
-| `0005_billing_entitlements.sql` | Billing customers/subscriptions, credit ledger, usage events, webhook receipts, and reconciliation-safe provider state. |
+| `0007_runtime_cutover.sql` | Phase 23 identity and PostgreSQL runtime indexes plus non-secret invite hints. |
+| `0008_pocketbase_settings_control.sql` | PocketBase identity roles, preferences, system settings, AI/model controls, SMTP configuration, invitations, and auth audit. |
 
 The preservation requirements and field-level cutover sequence are documented in `03_DATA_AND_SCHEMA_MIGRATION_RISKS.md` and `07_DATA_MIGRATION_PLAN.md`.
 
@@ -141,9 +141,9 @@ The final suite was rerun after upgrading the patched dependency set.
 | `pnpm test` | PASS, including all kernel, quality, orchestration, workflow, queue, admin, newsroom, search, Aperture, discovery, billing, hardening, load, auth, migration, and adapter verifiers |
 | `pnpm build` | PASS, production Next.js 16.3.8 build and workspace builds |
 | `pnpm audit --prod` | PASS, no known vulnerabilities |
-| Production Playwright on port 3017 | PASS, 20/20 scenarios |
+| Production Playwright on isolated port 3019 | PASS, 21/21 scenarios |
 
-Playwright covered 320, 375, 390, 430, 768, 1024, 1280, and 1440+ widths; public pages and Markdown; navigation and keyboard behavior; 404s; signed-out gating; callback failure behavior; security headers; and health output.
+Playwright covered 320, 375, 390, 430, 768, 1024, 1280, and 1440+ widths; provider-neutral identity pages; signed-out Settings gating; public pages and Markdown; navigation and keyboard behavior; 404s; callback failure behavior; security headers; and health output.
 
 Golden-path verification covered an established defense company, an early-stage company, a NASA/government technology, a patent, an obscure entity, a government-demand signal, and the end-to-end verification/publication/discovery order. The load verifier exercised 204 jobs, 25 duplicate inputs, 40 deduplicated variants, and 90 admin records. Live Supabase load testing was deliberately skipped because `DEEPTECHLY_ALLOW_LIVE_LOAD_TEST` was not enabled.
 
@@ -158,11 +158,13 @@ The verified production build uses Node.js 20.17 or newer, pnpm 10.34.5, Next.js
 | Variable | Purpose |
 |---|---|
 | `NEXT_PUBLIC_SITE_URL` | Canonical public origin and auth redirects. |
-| `APPWRITE_ENDPOINT`, `APPWRITE_PROJECT_ID`, `APPWRITE_API_KEY` | Server-only Appwrite identity and session configuration. |
-| `APPWRITE_SESSION_COOKIE_NAME` | Optional HTTP-only session-cookie override. |
-| `APPWRITE_DATABASE_ID` | Reserved; not required because PostgreSQL owns application data. |
-| `ADMIN_EMAILS` | Bootstrap admin allowlist; database grants are authoritative. |
-| `DEEPTECHLY_BOOTSTRAP_ADMIN_EMAIL`, `DEEPTECHLY_BOOTSTRAP_ADMIN_TEMP_PASSWORD` | Explicit Appwrite/PostgreSQL admin bootstrap command only. |
+| `POCKETBASE_URL`, `POCKETBASE_AUTH_COLLECTION` | PocketBase endpoint and V1 auth collection. |
+| `POCKETBASE_AUTH_COOKIE_NAME` | Optional HTTP-only auth-token cookie override. |
+| `POCKETBASE_SUPERUSER_TOKEN` | Preferred server-only operator token for identity migration and administration. |
+| `POCKETBASE_SUPERUSER_EMAIL`, `POCKETBASE_SUPERUSER_PASSWORD` | Optional operator-only fallback when no managed token is available. |
+| `ADMIN_EMAILS` | Emergency bootstrap Super Admin allowlist; PostgreSQL roles are authoritative. |
+| `DEEPTECHLY_BOOTSTRAP_ADMIN_EMAIL`, `DEEPTECHLY_BOOTSTRAP_ADMIN_TEMP_PASSWORD` | Explicit PocketBase/PostgreSQL Super Admin bootstrap command only. |
+| `DEEPTECHLY_SETTINGS_ENCRYPTION_KEY` | Base64 32-byte server-only AES key for persisted SMTP and AI provider secrets. |
 | `DEEPTECHLY_V2_DATABASE_URL` | Server-only authoritative PostgreSQL connection, never committed. |
 | `DEEPTECHLY_V2_DATABASE_HOST`, `DEEPTECHLY_V2_DATABASE_PORT`, `DEEPTECHLY_V2_DATABASE_NAME`, `DEEPTECHLY_V2_DATABASE_USER`, `DEEPTECHLY_V2_DATABASE_PASSWORD` | Component form of the V2 connection for secret-managed deployments and isolated rehearsal. |
 | `DEEPTECHLY_V2_DATABASE_SSL`, `DEEPTECHLY_V2_DATABASE_POOL_SIZE` | PostgreSQL transport and pool controls. |
@@ -209,7 +211,7 @@ pnpm install --frozen-lockfile
 pnpm dev
 ```
 
-The web application starts public development surfaces without external credentials. Authentication and durable writes require Appwrite and PostgreSQL and fail closed when unconfigured. To run durable tasks separately after Trigger.dev configuration:
+The web application starts public development surfaces without external credentials. Authentication and durable writes require PocketBase and PostgreSQL and fail closed when unconfigured. To run durable tasks separately after Trigger.dev configuration:
 
 ```sh
 pnpm workflow:dev
@@ -226,9 +228,9 @@ Available profiles are `core`, `coordination`, `discovery`, and `newsroom`. Repl
 
 ## Deployment notes
 
-1. Provision managed PostgreSQL and Appwrite with backups, least-privilege credentials, allowed origins, and recovery email delivery.
-2. Apply migrations `0001`–`0007`, import the final write-frozen export, and reconcile counts, checksums, identities, publications, and entitlements.
-3. Dry-run then operator-approve Appwrite account mapping; canary sessions, ownership, queue persistence, saved research, admin authorization, public artifacts, Markdown, and Aperture before traffic activation.
+1. Provision managed PostgreSQL and PocketBase with TLS, backups, approved auth-collection rules, server-only operator credentials, and recovery/verification email delivery.
+2. Apply migrations `0001`–`0008`, configure the Settings encryption key, import the final write-frozen export, and reconcile counts, checksums, identities, publications, and entitlements.
+3. Dry-run then operator-approve PocketBase account mapping; canary all four roles, token refresh, ownership, settings permissions, queue persistence, saved research, public artifacts, Markdown, and Aperture before traffic activation.
 4. Configure Trigger.dev and the authenticated callback only after the internal HTTPS route and shared secret exist. Keep local dispatch available during staged rollout.
 5. Build Directus and Meilisearch only from reconciled PostgreSQL state. Neither may become an authority for research facts or publication decisions.
 6. Review Langfuse sampling/retention before enabling it. Keep content capture off unless explicitly approved.
@@ -238,7 +240,8 @@ Available profiles are `core`, `coordination`, `discovery`, and `newsroom`. Repl
 ## Known limitations
 
 - External providers were verified with deterministic adapters, not live production calls.
-- Appwrite lacks an approved external endpoint, credentials, allowed origins, and email templates; the server-session architecture itself is complete.
+- PocketBase lacks an approved external endpoint, auth collection/rules, operator credential, backups, and email templates; the identity architecture itself is complete.
+- Active PocketBase tokens are stateless and cannot be enumerated as server-side sessions; the UI reports that limitation instead of inventing session data.
 - PostgreSQL is the runtime authority when configured, but production still requires a managed target, final freeze export, backup/restore proof, and operator-approved activation.
 - The real legacy dataset passes repeated PostgreSQL import, rendering, and transactional-write rehearsals.
 - OpenAI credentials were absent during final verification, so generation tests used deterministic/demo behavior rather than a live model call.
@@ -248,7 +251,7 @@ Available profiles are `core`, `coordination`, `discovery`, and `newsroom`. Repl
 
 ## External blockers
 
-Production activation requires user-authorized accounts, credentials, endpoints, network and backup policy, service ownership, and (where applicable) approved data migration. The exact requirements for Appwrite, PostgreSQL, Trigger.dev, Crawl4AI, Directus, Meilisearch, Langfuse, Valkey, S3, Lago, and Stripe are maintained in `BLOCKERS.md`. These blockers do not prevent credential-free public development mode from running; authenticated production operations intentionally fail closed until Appwrite and PostgreSQL are configured.
+Production activation requires user-authorized accounts, credentials, endpoints, network and backup policy, service ownership, and approved data migration. The exact requirements for PocketBase, PostgreSQL, SMTP, Trigger.dev, Crawl4AI, Directus, Meilisearch, Langfuse, Valkey, S3, Lago, and Stripe are maintained in `BLOCKERS.md`. These blockers do not prevent credential-free public development mode from running; authenticated production operations intentionally fail closed until PocketBase and PostgreSQL are configured.
 
 ## Final Git state
 
@@ -258,4 +261,4 @@ Production activation requires user-authorized accounts, credentials, endpoints,
 - Target branch: `rebuild/deeptechly-v2` tracking `origin/rebuild/deeptechly-v2`.
 - Expected handoff state after the report commit: clean worktree with zero commits ahead of or behind the remote.
 
-Phase 23 completed the runtime cutover after the isolated import rehearsal. The next action is operator-managed external Appwrite/PostgreSQL provisioning and canary activation, not a return to the legacy provider.
+Phase 24 replaced the unprovisioned Phase 23 identity choice with PocketBase, added PostgreSQL authorization and Settings control, and retained the completed PostgreSQL cutover. The next action is operator-managed PocketBase/PostgreSQL provisioning and canary activation, not a return to a legacy provider.

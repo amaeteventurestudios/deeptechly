@@ -2,6 +2,7 @@ import { createHash, randomUUID } from "node:crypto";
 import type { Sql, TransactionSql } from "postgres";
 import type { ExternalIdentity } from "@deeptechly/kernel";
 import { getPostgres } from "@/lib/database/postgres";
+import { highestApplicationRole, type ApplicationRole } from "./authorization";
 
 export type AccessPath = "research" | "institutional";
 
@@ -15,6 +16,7 @@ export type UserProfile = {
   is_institutional_verified: boolean;
   institutional_request_pending: boolean;
   is_admin: boolean;
+  status: "active" | "suspended" | "closed";
   created_at: string;
   updated_at: string;
 };
@@ -48,6 +50,7 @@ type ProfileRow = {
   is_institutional_verified: boolean;
   institutional_request_pending: boolean;
   is_admin: boolean;
+  status: "active" | "suspended" | "closed";
   created_at: Date | string;
   updated_at: Date | string;
 };
@@ -58,7 +61,7 @@ const profileProjection = `
     identities.provider_user_id as auth_user_id,
     accounts.display_name as full_name,
     accounts.primary_email as email,
-    accounts.organization,
+    accounts.organization, accounts.status,
     case when bool_or(grants.capability = 'institutional' and grants.status = 'active')
       then 'institutional' else 'free' end as access_tier,
     bool_or(grants.capability = 'institutional' and grants.status = 'active') as is_institutional_verified,
@@ -92,8 +95,8 @@ export async function ensureAccountForIdentity(identity: ExternalIdentity) {
         id, account_id, provider, provider_user_id, provider_email,
         email_verified, provider_payload, created_at, updated_at
       ) values (
-        ${`identity:appwrite:${identity.providerUserId}`}, ${accounts[0].id},
-        'appwrite', ${identity.providerUserId}, ${identity.email}, true,
+        ${`identity:pocketbase:${identity.providerUserId}`}, ${accounts[0].id},
+        'pocketbase', ${identity.providerUserId}, ${identity.email}, true,
         ${transaction.json({ linkedBy: "verified-email-cutover" })}, now(), now()
       ) on conflict (provider, provider_user_id) do nothing
     `;
@@ -120,7 +123,7 @@ export async function updateEditableUserProfile(
       updated_at = now()
     from deeptechly.external_identities identities
     where identities.account_id = accounts.id
-      and identities.provider = 'appwrite'
+      and identities.provider = 'pocketbase'
       and identities.provider_user_id = ${authUserId}
     returning accounts.id
   `;
@@ -139,13 +142,13 @@ export async function syncUserProfileEmail(authUserId: string, email: string) {
       update deeptechly.accounts accounts set primary_email = ${email}, updated_at = now()
       from deeptechly.external_identities identities
       where identities.account_id = accounts.id
-        and identities.provider = 'appwrite'
+        and identities.provider = 'pocketbase'
         and identities.provider_user_id = ${authUserId}
     `;
     await transaction`
       update deeptechly.external_identities
       set provider_email = ${email}, updated_at = now()
-      where provider = 'appwrite' and provider_user_id = ${authUserId}
+      where provider = 'pocketbase' and provider_user_id = ${authUserId}
     `;
   });
 }
@@ -201,11 +204,16 @@ export async function persistUserProfile(input: ProfileInput) {
           id, account_id, provider, provider_user_id, provider_email,
           email_verified, provider_payload, created_at, updated_at
         ) values (
-          ${`identity:appwrite:${input.authUserId}`}, ${accountId}, 'appwrite',
+          ${`identity:pocketbase:${input.authUserId}`}, ${accountId}, 'pocketbase',
           ${input.authUserId}, ${input.email}, false, '{}'::jsonb, now(), now()
         ) on conflict (provider, provider_user_id) do update set
           provider_email = excluded.provider_email,
           updated_at = now()
+      `;
+      await transaction`
+        insert into deeptechly.account_roles (id, account_id, role, metadata, created_at, updated_at)
+        values (${`role:${accountId}:USER`}, ${accountId}, 'USER', '{}'::jsonb, now(), now())
+        on conflict (account_id, role) do nothing
       `;
 
       if (input.accessPath === "institutional") {
@@ -247,12 +255,34 @@ export async function persistUserProfile(input: ProfileInput) {
   }
 }
 
+export async function getAccountRole(accountId: string): Promise<ApplicationRole> {
+  const sql = getPostgres();
+  if (!sql) return "USER";
+  const rows = await sql<{ role: string }[]>`
+    select role from deeptechly.account_roles where account_id = ${accountId}
+  `;
+  return highestApplicationRole(rows.map((row) => row.role));
+}
+
+export async function markAccountLogin(authUserId: string) {
+  const sql = getPostgres();
+  if (!sql) return null;
+  const rows = await sql<{ id: string }[]>`
+    update deeptechly.accounts accounts set last_login_at = now(), updated_at = now()
+    from deeptechly.external_identities identities
+    where identities.account_id = accounts.id and identities.provider = 'pocketbase'
+      and identities.provider_user_id = ${authUserId}
+    returning accounts.id
+  `;
+  return rows[0]?.id || null;
+}
+
 async function getUserProfileWithSql(
   sql: Sql | TransactionSql,
   authUserId: string
 ) {
   const rows = await sql<ProfileRow[]>`${sql.unsafe(profileProjection)}
-    where identities.provider = 'appwrite'
+    where identities.provider = 'pocketbase'
       and identities.provider_user_id = ${authUserId}
     group by accounts.id, identities.provider_user_id
     limit 1

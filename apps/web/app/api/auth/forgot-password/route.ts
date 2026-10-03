@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { getSiteUrl } from "@/lib/appwrite/config";
 import { createRouteIdentityProvider } from "@/lib/auth/providers";
+import { recordAuthAudit } from "@/lib/auth/audit";
 
 export async function POST(request: NextRequest) {
   const formData = await request.formData();
@@ -25,10 +25,11 @@ export async function POST(request: NextRequest) {
 
   const result = await authClient.requestPasswordReset(
     email,
-    `${getSiteUrl(request.url)}/reset-password`
+    new URL("/reset-password", request.url).toString()
   );
 
   if (!result.ok) {
+    await recordAuthAudit({ eventType: "password_recovery_requested", outcome: "failure", identifier: email });
     return authClient.applyCookies(
       NextResponse.redirect(
         new URL(`/forgot-password?error=${isProviderUnavailable(result.reason) ? "config" : "send"}`, request.url),
@@ -36,6 +37,8 @@ export async function POST(request: NextRequest) {
       )
     );
   }
+
+  await recordAuthAudit({ eventType: "password_recovery_requested", outcome: "success", identifier: email });
 
   return authClient.applyCookies(
     NextResponse.redirect(new URL("/forgot-password?sent=1", request.url), {

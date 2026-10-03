@@ -28,7 +28,7 @@ The V2 database becomes authoritative only after every acceptance gate in this d
 
 ## Stable identity rule
 
-`deeptechly.accounts.id` is the durable DeepTechly owner ID. Provider identities belong in `external_identities(provider, provider_user_id, account_id)`. Supabase auth IDs are imported as mappings and are not rewritten in place. Appwrite IDs can later attach to the same account.
+`deeptechly.accounts.id` is the durable DeepTechly owner ID. Provider identities belong in `external_identities(provider, provider_user_id, account_id)`. Legacy auth IDs are imported as mappings and are not rewritten in place. PocketBase record IDs attach to the same account and never become ownership foreign keys.
 
 This prevents research ownership, saved research, grants, and audit history from changing when authentication providers change. Password hashes and sessions are outside this data import; they require a provider-supported migration or password-reset cutover.
 
@@ -77,7 +77,7 @@ This prevents research ownership, saved research, grants, and audit history from
 ## Migration risks that remain external
 
 - No target PostgreSQL instance or production export is available in the repository, so counts and checksums cannot yet be reconciled.
-- Appwrite credentials and an approved auth/session migration strategy are absent. Passwords and sessions are not migrated by these SQL files.
+- PocketBase credentials and an operator-approved identity activation are absent. Passwords and sessions are not migrated by these SQL files; migrated users complete PocketBase password recovery.
 - The deployed Supabase schema version and whether Redis/KV contains divergent production records require environment access.
 
 These items are also tracked in `docs/v2/BLOCKERS.md`; none prevents building repository boundaries and offline verification.

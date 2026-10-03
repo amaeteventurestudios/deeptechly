@@ -2,10 +2,12 @@ import { getServerIdentity } from "./providers/server";
 import { resolveAccountEntitlements } from "@deeptechly/kernel";
 import {
   ensureAccountForIdentity,
+  getAccountRole,
   getUserProfile,
   syncUserProfileEmail,
   type UserProfile
 } from "./profiles";
+import { isAdministrativeRole, type ApplicationRole } from "./authorization";
 
 export type InstitutionalAccessState =
   | "signed-out"
@@ -22,6 +24,8 @@ export type DeeptechlyAuthSession = {
   isInstitutionalVerified: boolean;
   institutionalRequestPending: boolean;
   isAdmin: boolean;
+  isSuperAdmin: boolean;
+  role: ApplicationRole;
 };
 
 export async function getAuthSession(): Promise<DeeptechlyAuthSession | null> {
@@ -34,10 +38,19 @@ export async function getAuthSession(): Promise<DeeptechlyAuthSession | null> {
     (await getUserProfile(identity.providerUserId)) ??
     (await ensureAccountForIdentity(identity));
   if (!profile) return null;
+  if (profile.status !== "active") return null;
   if (profile && profile.email !== identity.email) {
     await syncUserProfileEmail(identity.providerUserId, identity.email);
     profile.email = identity.email;
   }
+
+  const bootstrapSuperAdmin = isConfiguredBootstrapAdmin(identity.email);
+  const storedRole = await getAccountRole(profile.id);
+  const role: ApplicationRole = bootstrapSuperAdmin
+    ? "SUPER_ADMIN"
+    : storedRole === "USER" && profile.is_admin
+      ? "ADMIN"
+      : storedRole;
 
   return {
     userId: profile.id,
@@ -49,7 +62,9 @@ export async function getAuthSession(): Promise<DeeptechlyAuthSession | null> {
     institutionalRequestPending: Boolean(
       profile?.institutional_request_pending
     ),
-    isAdmin: Boolean(profile.is_admin) || isConfiguredBootstrapAdmin(identity.email)
+    role,
+    isAdmin: isAdministrativeRole(role),
+    isSuperAdmin: role === "SUPER_ADMIN"
   };
 }
 

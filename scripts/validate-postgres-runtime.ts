@@ -1,9 +1,13 @@
 import assert from "node:assert/strict";
 import { writeFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { persistUserProfile, getUserProfile, resolveInstitutionalInvite } from "../apps/web/lib/auth/profiles";
-import { createInviteCode } from "../apps/web/lib/admin/invite-codes";
+import { persistUserProfile, getUserProfile, hashInviteCode, resolveInstitutionalInvite } from "../apps/web/lib/auth/profiles";
 import { verifyInstitutionalAccess } from "../apps/web/lib/admin/users";
+import { setUserRole } from "../apps/web/lib/admin/users";
+import { getAccountRole } from "../apps/web/lib/auth/profiles";
+import { recordAuthAudit } from "../apps/web/lib/auth/audit";
+import { addAiProvider, getAccountPreferences, saveAccountPreferences, saveSmtpConfiguration, saveSystemSetting } from "../apps/web/lib/settings/store";
+import { requirePostgres } from "../apps/web/lib/database/postgres";
 import {
   deleteSavedResearchItem,
   listSavedResearchItems,
@@ -22,6 +26,8 @@ const aggregateOutputPath = outputPath;
 void main();
 
 async function main() {
+  process.env.DEEPTECHLY_SETTINGS_ENCRYPTION_KEY ||= Buffer.alloc(32, 11).toString("base64");
+  const sql = requirePostgres();
   const freeAccountId = "runtime-test-account";
   const invitedAccountId = "runtime-invited-account";
   assert.deepEqual(
@@ -43,6 +49,7 @@ async function main() {
   const profile = await getUserProfile(freeAccountId);
   assert.equal(profile?.id, freeAccountId);
   assert.equal(profile?.access_tier, "free");
+  assert.equal(await getAccountRole(freeAccountId), "USER");
 
   const saved = await saveResearchItem({
     authUserId: freeAccountId,
@@ -57,15 +64,16 @@ async function main() {
   assert.deepEqual(await deleteSavedResearchItem(freeAccountId, "runtime-test-item"), { ok: true });
   assert.equal((await listSavedResearchItems(freeAccountId)).count, 0);
 
-  const invite = await createInviteCode({
-    label: "Runtime test",
-    accessTier: "institutional",
-    maxUses: 1,
-    expiresAt: null
-  });
-  assert.equal(invite.ok, true);
-  if (!invite.ok) throw new Error("Synthetic invite creation failed");
-  const resolution = await resolveInstitutionalInvite(invite.inviteCode.code);
+  const inviteCode = "DTLY-RUNTIME-TEST-ONLY";
+  await sql`
+    insert into deeptechly.invite_codes (
+      id, code_hash, code_hint, organization, capability, max_uses, used_count, created_at
+    ) values (
+      'runtime-test-invite', ${hashInviteCode(inviteCode)}, 'DTLY-RUNT-••••-••••',
+      'Runtime test', 'institutional', 1, 0, now()
+    ) on conflict (id) do update set used_count = 0, disabled_at = null
+  `;
+  const resolution = await resolveInstitutionalInvite(inviteCode);
   assert.equal(resolution.inviteStatus, "verified");
   assert.deepEqual(
     await persistUserProfile({
@@ -81,6 +89,18 @@ async function main() {
   assert.equal((await getUserProfile(invitedAccountId))?.is_institutional_verified, true);
   assert.deepEqual(await verifyInstitutionalAccess(freeAccountId), { ok: true });
   assert.equal((await getUserProfile(freeAccountId))?.is_institutional_verified, true);
+  assert.deepEqual(await setUserRole(freeAccountId, "VIEWER", invitedAccountId), { ok: true });
+  assert.equal(await getAccountRole(freeAccountId), "VIEWER");
+
+  assert.deepEqual(await saveAccountPreferences(freeAccountId, { theme: "dark", density: "compact" }), { ok: true });
+  assert.equal((await getAccountPreferences(freeAccountId)).theme, "dark");
+  assert.deepEqual(await saveSystemSetting("general", { applicationName: "DeepTechly Runtime Test" }, invitedAccountId), { ok: true });
+  assert.deepEqual(await addAiProvider({ name: "Runtime provider", providerType: "openai-compatible", secret: "runtime-ai-secret", accountId: invitedAccountId }), { ok: true });
+  assert.deepEqual(await saveSmtpConfiguration({ host: "smtp.example.test", port: 587, username: "runtime", password: "runtime-smtp-secret", security: "starttls", senderName: "DeepTechly", senderEmail: "runtime@example.test", replyToEmail: "", accountId: invitedAccountId }), { ok: true });
+  await recordAuthAudit({ eventType: "runtime_validation", outcome: "success", actorAccountId: invitedAccountId });
+  const secrets = await sql<{ ai: string; smtp: string }[]>`select (select secret_ciphertext from deeptechly.ai_providers where name = 'Runtime provider' limit 1) ai, (select password_ciphertext from deeptechly.smtp_configuration where id = 'primary') smtp`;
+  assert.ok(secrets[0]?.ai && !secrets[0].ai.includes("runtime-ai-secret"));
+  assert.ok(secrets[0]?.smtp && !secrets[0].smtp.includes("runtime-smtp-secret"));
 
   const store = await readV2PostgresStore();
   await writeV2PostgresStore(store);
@@ -106,6 +126,10 @@ async function main() {
     savedResearchRoundTrips: 1,
     inviteRedemptions: 1,
     adminGrantUpdates: 1,
+    rolePolicyWrites: 1,
+    settingsWrites: 4,
+    encryptedSecretWrites: 2,
+    authAuditWrites: 1,
     transactionalResearchStoreWrites: 1,
     persistedCounts: {
       jobs: persisted.jobs.length,

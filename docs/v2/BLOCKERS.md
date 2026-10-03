@@ -2,15 +2,19 @@
 
 This file records integrations that require user-authorized external accounts or credentials. They do not block independent V2 implementation work.
 
-## Appwrite activation
+## PocketBase activation
 
-Status: active runtime architecture; external project not configured in the repository.
+Status: active V1 identity architecture; external service not provisioned.
 
-Appwrite is the only runtime identity provider and its HTTP-only server-session design is implemented and deterministically tested. Production sign-in requires an endpoint, project ID, least-privilege API key, allowed production/recovery origins, and email/recovery templates. When those credentials are absent, authentication fails closed with provider-neutral messaging; no legacy provider fallback exists. See `25_SUPABASE_EXIT_AND_APPWRITE_POSTGRES_CUTOVER.md`.
+PocketBase is the only runtime identity provider and its HTTP-only token, server validation, recovery, and verification design is implemented and deterministically tested. Production requires a TLS endpoint, configured `users` auth collection/rules, approved email templates, backups, and server-only operator credentials. PostgreSQL role and account state remains authoritative. When credentials are absent, authentication fails closed with provider-neutral messaging. Appwrite is superseded for V1 and must not be provisioned. See `26_POCKETBASE_AUTH_AND_SETTINGS_CONTROL_CENTER.md`.
 
 ## PostgreSQL migration activation
 
-The recovered August 19, 2026 legacy dump was imported twice into clean isolated PostgreSQL 17.11 clusters with equivalent results, zero reconciliation mismatches, migrated-data application rendering, and transactional runtime writes. PostgreSQL is now the only configured application-data authority. Production activation still requires a final write-frozen export, approved managed PostgreSQL with tested backup/restore, encrypted custody, account mapping, canary validation, and an authorized operator. No production database was accessed or changed during Phases 9, 22, or 23.
+The recovered August 19, 2026 legacy dump was imported twice into clean isolated PostgreSQL 17.11 clusters with equivalent results, zero reconciliation mismatches, migrated-data application rendering, and transactional runtime writes. PostgreSQL is the only application-data authority. Production activation still requires a final write-frozen export, approved managed PostgreSQL with tested backup/restore, encrypted custody, PocketBase account mapping, canary validation, and an authorized operator. No production database was accessed or changed during Phases 9, 22, 23, or 24.
+
+## Settings and delivery activation
+
+The Settings control center, authorization policy, encrypted AI/SMTP secret storage, and SMTP test-delivery path are implemented. Production use requires a secret-manager-generated `DEEPTECHLY_SETTINGS_ENCRYPTION_KEY`, an approved key-rotation/recovery procedure, SMTP credentials, sender-domain verification, and deliverability policy. No credential is committed or returned to browsers.
 
 ## Commodity capability activation
 

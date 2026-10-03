@@ -5,11 +5,11 @@ import Link from "next/link";
 import { ArrowRight, KeyRound } from "lucide-react";
 import { PasswordSuggestionField } from "@/components/auth/PasswordSuggestionField";
 
-type ResetPasswordFormProps = { userId?: string; secret?: string };
+type ResetPasswordFormProps = { token?: string };
 type FormState = "ready" | "submitting" | "success" | "error";
 
-export function ResetPasswordForm({ userId, secret }: ResetPasswordFormProps) {
-  const validLink = Boolean(userId && secret);
+export function ResetPasswordForm({ token }: ResetPasswordFormProps) {
+  const validLink = Boolean(token);
   const [state, setState] = useState<FormState>(validLink ? "ready" : "error");
   const [message, setMessage] = useState(
     validLink
@@ -31,7 +31,7 @@ export function ResetPasswordForm({ userId, secret }: ResetPasswordFormProps) {
     const response = await fetch("/api/auth/reset-password", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ userId, secret, password })
+      body: JSON.stringify({ token, password })
     });
     if (!response.ok) {
       setState("error");

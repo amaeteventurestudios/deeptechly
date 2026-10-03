@@ -17,6 +17,7 @@ import {
   shouldReuseActiveJob
 } from "@/lib/research/orchestration";
 import { runResearchWatchdog } from "@/lib/research/watchdog";
+import { hasPermission } from "@/lib/auth/authorization";
 
 export const dynamic = "force-dynamic";
 
@@ -25,6 +26,9 @@ export async function POST(request: Request) {
     const session = await getAuthSession();
     if (!session) {
       return NextResponse.json({ error: "sign_in_required" }, { status: 401 });
+    }
+    if (!hasPermission(session, "research.submit")) {
+      return NextResponse.json({ error: "read_only_account" }, { status: 403 });
     }
 
     const body = (await request.json().catch(() => ({}))) as {

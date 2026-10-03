@@ -24,7 +24,7 @@ for (const manifest of ["package.json", "apps/web/package.json", "pnpm-lock.yaml
 }
 
 const authFactory = readFileSync(resolve(root, "apps/web/lib/auth/providers/index.ts"), "utf8");
-assert.match(authFactory, /return "appwrite"/);
+assert.match(authFactory, /return "pocketbase"/);
 assert.doesNotMatch(authFactory, /process\.env\.DEEPTECHLY_AUTH_PROVIDER/);
 
 const researchStore = readFileSync(resolve(root, "apps/web/lib/research/store.ts"), "utf8");

@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createRouteIdentityProvider } from "@/lib/auth/providers";
-import { updateAppwriteUserEmail } from "@/lib/auth/providers/appwrite";
-import { syncUserProfileEmail, updateEditableUserProfile } from "@/lib/auth/profiles";
+import { requestPocketBaseEmailChange } from "@/lib/auth/providers/pocketbase";
+import { updateEditableUserProfile } from "@/lib/auth/profiles";
 
 type ProfilePayload = { fullName?: unknown; organization?: unknown; email?: unknown };
 
@@ -44,14 +44,13 @@ export async function POST(request: NextRequest) {
   }
 
   if (email !== identity.email.toLowerCase()) {
-    const emailResult = await updateAppwriteUserEmail(identity.providerUserId, email);
+    const emailResult = await requestPocketBaseEmailChange(request, email);
     if (!emailResult.ok) {
       return NextResponse.json(
         { error: "The account email could not be updated." },
         { status: 400 }
       );
     }
-    await syncUserProfileEmail(identity.providerUserId, email);
   }
 
   return NextResponse.json({
@@ -59,9 +58,9 @@ export async function POST(request: NextRequest) {
     profile: {
       fullName: profileResult.profile.full_name,
       organization: profileResult.profile.organization,
-      email
+      email: identity.email
     },
-    emailChangeRequested: false
+    emailChangeRequested: email !== identity.email.toLowerCase()
   });
 }
 

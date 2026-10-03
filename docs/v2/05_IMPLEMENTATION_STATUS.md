@@ -2,6 +2,16 @@
 
 This file records stable implementation milestones after the architecture audit. It is updated as phases land; `FINAL_BUILD_REPORT.md` will supersede it at completion.
 
+## Phase 24 — PocketBase identity and Settings control center
+
+Status: complete in code and deterministic validation; external PocketBase/PostgreSQL provisioning and operator activation remain.
+
+- Replaced the unprovisioned Appwrite adapter with provider-neutral PocketBase registration, sign-in, token refresh, sign-out, recovery, and verification flows.
+- Added PostgreSQL-backed `SUPER_ADMIN`, `ADMIN`, `USER`, and `VIEWER` policy with server-boundary enforcement.
+- Added the responsive thirteen-section Settings control center, encrypted AI/SMTP secrets, real service status, invitations, preferences, and authentication audit.
+- Added migration `0008`, PocketBase migration/bootstrap tooling, and deterministic auth/role/settings/secret verification.
+- Marked Phase 23 Appwrite choices as historical and documented production requirements in `26_POCKETBASE_AUTH_AND_SETTINGS_CONTROL_CENTER.md`.
+
 ## Phase 23 — Supabase exit and Appwrite/PostgreSQL cutover
 
 Status: complete in code and isolated validation; external Appwrite/PostgreSQL credentials and operator activation remain.

@@ -48,8 +48,14 @@ export const databaseMigrations = [
   },
   {
     id: "0007",
-    description: "Finalize Appwrite identity and PostgreSQL runtime indexes",
+    description: "Finalize identity and PostgreSQL runtime indexes",
     file: "migrations/0007_runtime_cutover.sql",
+    destructive: false
+  },
+  {
+    id: "0008",
+    description: "Add PocketBase identity authorization, settings, invitations, and auth audit domains",
+    file: "migrations/0008_pocketbase_settings_control.sql",
     destructive: false
   }
 ] as const satisfies readonly DatabaseMigration[];

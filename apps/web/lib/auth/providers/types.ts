@@ -1,7 +1,7 @@
 import type { NextResponse } from "next/server";
 import type { IdentityProvider } from "@deeptechly/kernel";
 
-export type AuthProviderName = "appwrite";
+export type AuthProviderName = "pocketbase";
 
 export interface RouteIdentityProvider extends IdentityProvider {
   readonly name: AuthProviderName;
